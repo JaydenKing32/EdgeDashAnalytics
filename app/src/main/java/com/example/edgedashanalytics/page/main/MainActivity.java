@@ -1,10 +1,12 @@
-package com.example.android.edgedashanalytics;
+package com.example.edgedashanalytics.page.main;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+
+import com.example.edgedashanalytics.R;
 
 public class MainActivity extends AppCompatActivity {
     @Override

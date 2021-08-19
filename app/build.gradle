@@ -6,7 +6,7 @@ android {
     compileSdk 30
 
     defaultConfig {
-        applicationId "com.example.android.edgedashanalytics"
+        applicationId "com.example.edgedashanalytics"
         minSdk 28
         targetSdk 30
         versionCode 1

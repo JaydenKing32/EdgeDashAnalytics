@@ -1,4 +1,4 @@
-package com.example.android.edgedashanalytics;
+package com.example.edgedashanalytics.page.main;
 
 import android.os.Bundle;
 
@@ -10,6 +10,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+
+import com.example.edgedashanalytics.R;
+import com.example.edgedashanalytics.util.video.VideoAnalysis;
 
 /**
  * A simple {@link Fragment} subclass.

@@ -1,4 +1,4 @@
-package com.example.android.edgedashanalytics;
+package com.example.edgedashanalytics;
 
 import android.content.Context;
 
@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
     public void useAppContext() {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        assertEquals("com.example.android.edgedashanalytics", appContext.getPackageName());
+        assertEquals("com.example.edgedashanalytics", appContext.getPackageName());
     }
 }

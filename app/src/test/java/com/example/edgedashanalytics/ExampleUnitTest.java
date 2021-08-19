@@ -1,4 +1,4 @@
-package com.example.android.edgedashanalytics;
+package com.example.edgedashanalytics;
 
 import org.junit.Test;
 

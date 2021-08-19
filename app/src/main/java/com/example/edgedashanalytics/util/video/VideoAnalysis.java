@@ -1,4 +1,4 @@
-package com.example.android.edgedashanalytics;
+package com.example.edgedashanalytics.util.video;
 
 import android.content.Context;
 import android.graphics.Bitmap;

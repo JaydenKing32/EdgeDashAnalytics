@@ -3,9 +3,11 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/User/Documents/University/2021/Repositories/EdgeDashAnalytics/app/src/main/res/drawable/ic_launcher_background.xml" value="0.221875" />
         <entry key="..\:/User/Documents/University/2021/Repositories/EdgeDashAnalytics/app/src/main/res/drawable/ic_launcher_foreground.xml" value="0.2078125" />
         <entry key="..\:/User/Documents/University/2021/Repositories/EdgeDashAnalytics/app/src/main/res/layout/activity_main.xml" value="0.335" />
         <entry key="..\:/User/Documents/University/2021/Repositories/EdgeDashAnalytics/app/src/main/res/layout/activity_video_analysis.xml" value="0.29936594202898553" />
+        <entry key="..\:/User/Documents/University/2021/Repositories/EdgeDashAnalytics/app/src/main/res/layout/fragment_blank.xml" value="0.31521739130434784" />
         <entry key="..\:/User/Documents/University/2021/Repositories/EdgeDashAnalytics/app/src/main/res/layout/fragment_video_analysis.xml" value="0.25" />
       </map>
     </option>
