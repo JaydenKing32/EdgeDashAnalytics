@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/navigation_raw"
+        android:icon="@drawable/ic_raw"
+        android:title="@string/title_raw" />
+
+    <item
+        android:id="@+id/navigation_processing"
+        android:icon="@drawable/ic_processing"
+        android:title="@string/title_processing" />
+
+    <item
+        android:id="@+id/navigation_completed"
+        android:icon="@drawable/ic_complete"
+        android:title="@string/title_completed" />
+
+</menu>

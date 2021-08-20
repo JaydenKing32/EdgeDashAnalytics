@@ -1,4 +1,12 @@
 <resources>
     <string name="app_name">EdgeDashAnalytics</string>
+
+    <string name="title_raw">Raw Videos</string>
+    <string name="title_processing">Processing</string>
+    <string name="title_completed">Completed</string>
+
     <string name="start_analysis">Start Analysis</string>
+    <string name="video_thumbnail_content_description">video thumbnail</string>
+    <string name="select_all">select_all</string>
+    <string name="send">Send</string>
 </resources>
