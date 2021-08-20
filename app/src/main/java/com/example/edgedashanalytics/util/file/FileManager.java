@@ -17,14 +17,20 @@ public class FileManager {
 
     public static final String VIDEO_EXTENSION = "mp4";
     public static final String RAW_DIR_NAME = "raw";
+    public static final String COMPLETE_DIR_NAME = "complete";
 
     private static final File MOVIE_DIR = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES);
     private static final File RAW_DIR = new File(MOVIE_DIR, RAW_DIR_NAME);
+    private static final File COMPLETE_DIR = new File(MOVIE_DIR, COMPLETE_DIR_NAME);
 
-    private static final List<File> DIRS = Arrays.asList(RAW_DIR);
+    private static final List<File> DIRS = Arrays.asList(RAW_DIR, COMPLETE_DIR);
 
     public static String getRawDirPath() {
         return RAW_DIR.getAbsolutePath();
+    }
+
+    public static String getCompleteDirPath() {
+        return COMPLETE_DIR.getAbsolutePath();
     }
 
     public static void initialiseDirectories() {

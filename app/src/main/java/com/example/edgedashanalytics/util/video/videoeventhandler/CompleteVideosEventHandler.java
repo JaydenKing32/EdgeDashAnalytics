@@ -49,7 +49,7 @@ public class CompleteVideosEventHandler implements VideoEventHandler {
     public void onRemove(RemoveEvent event) {
         nullCheck(event);
 
-        if (event.type == Type.RAW) {
+        if (event.type == Type.COMPLETE) {
             Log.v(TAG, "onRemove");
             try {
                 repository.delete(event.video.getData());
