@@ -14,7 +14,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
-import androidx.lifecycle.ViewModelProviders;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.selection.ItemKeyProvider;
 import androidx.recyclerview.selection.SelectionPredicates;
 import androidx.recyclerview.selection.SelectionTracker;
@@ -57,7 +57,7 @@ public class VideoFragment extends Fragment {
     private ActionMode actionMode;
     private SelectionTracker<Long> tracker;
 
-    private ActionMode.Callback actionModeCallback = new ActionMode.Callback() {
+    private final ActionMode.Callback actionModeCallback = new ActionMode.Callback() {
         @Override
         public boolean onCreateActionMode(ActionMode mode, Menu menu) {
             MenuInflater inflater = mode.getMenuInflater();
@@ -132,10 +132,8 @@ public class VideoFragment extends Fragment {
             return;
         }
 
-        // TODO replace with non-deprecated version
-        //noinspection deprecation
-        setVideoViewModel(ViewModelProviders.of(
-                this, new VideoViewModelFactory(activity.getApplication(), repository)).get(VideoViewModel.class));
+        setVideoViewModel(new ViewModelProvider(this,
+                new VideoViewModelFactory(activity.getApplication(), repository)).get(VideoViewModel.class));
     }
 
     @Override
@@ -228,10 +226,6 @@ public class VideoFragment extends Fragment {
 
     private void setVideoViewModel(VideoViewModel videoViewModel) {
         this.videoViewModel = videoViewModel;
-    }
-
-    public void setVideoEventHandler(VideoEventHandler handler) {
-        this.videoEventHandler = handler;
     }
 
     void cleanRepository(Context context) {
