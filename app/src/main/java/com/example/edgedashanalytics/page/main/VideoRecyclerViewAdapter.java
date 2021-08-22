@@ -1,6 +1,10 @@
 package com.example.edgedashanalytics.page.main;
 
+import static com.example.edgedashanalytics.util.file.FileManager.getCompleteDirPath;
+import static org.apache.commons.io.FilenameUtils.getBaseName;
+
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.provider.MediaStore;
 import android.view.LayoutInflater;
@@ -19,9 +23,15 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.data.VideoViewModel;
+import com.example.edgedashanalytics.event.AddEvent;
+import com.example.edgedashanalytics.event.RemoveEvent;
+import com.example.edgedashanalytics.event.Type;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.page.main.VideoFragment.OnListFragmentInteractionListener;
+import com.example.edgedashanalytics.util.video.analysis.VideoAnalysisIntentService;
 import com.example.edgedashanalytics.util.video.viewholderprocessor.VideoViewHolderProcessor;
+
+import org.greenrobot.eventbus.EventBus;
 
 import java.util.List;
 
@@ -58,7 +68,18 @@ public class VideoRecyclerViewAdapter extends RecyclerView.Adapter<VideoRecycler
     }
 
     void processSelected(Selection<Long> positions) {
-        // TODO add processing
+        for (Long pos : positions) {
+            Video video = videos.get(pos.intValue());
+            final String output = String.format("%s/%s.json", getCompleteDirPath(), getBaseName(video.getName()));
+
+            Intent analyseIntent = new Intent(context, VideoAnalysisIntentService.class);
+            analyseIntent.putExtra(VideoAnalysisIntentService.VIDEO_KEY, video);
+            analyseIntent.putExtra(VideoAnalysisIntentService.OUTPUT_KEY, output);
+            context.startService(analyseIntent);
+
+            EventBus.getDefault().post(new AddEvent(video, Type.PROCESSING));
+            EventBus.getDefault().post(new RemoveEvent(video, Type.RAW));
+        }
     }
 
     @NonNull

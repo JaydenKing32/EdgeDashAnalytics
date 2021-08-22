@@ -87,7 +87,6 @@ public class VideoFragment extends Fragment {
                     tracker.select(i);
                 }
 
-                adapter.notifyDataSetChanged();
                 return true;
             }
             return false;
