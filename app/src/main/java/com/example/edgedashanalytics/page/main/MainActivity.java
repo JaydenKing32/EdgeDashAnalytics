@@ -5,7 +5,9 @@ import android.content.pm.PackageManager;
 import android.media.MediaScannerConnection;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -144,6 +146,34 @@ public class MainActivity extends AppCompatActivity implements VideoFragment.OnL
         completeFragment.setRepository(completeRepository);
 
         setActiveFragment(rawFragment);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int itemId = item.getItemId();
+
+        if (itemId == R.id.action_clean) {
+            Log.v(TAG, "Clean button clicked");
+            Toast.makeText(this, "Cleaning video directories", Toast.LENGTH_SHORT).show();
+            cleanDirectories();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void cleanDirectories() {
+        // TODO add preference to choose removing raw videos
+        // rawFragment.cleanRepository(this);
+
+        processingFragment.cleanRepository(this);
+        completeFragment.cleanRepository(this);
+        FileManager.cleanDirectories();
     }
 
     @Override

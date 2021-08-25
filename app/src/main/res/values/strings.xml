@@ -9,4 +9,5 @@
     <string name="video_thumbnail_content_description">video thumbnail</string>
     <string name="select_all">select_all</string>
     <string name="send">Send</string>
+    <string name="clean_directories">Clean Directories</string>
 </resources>

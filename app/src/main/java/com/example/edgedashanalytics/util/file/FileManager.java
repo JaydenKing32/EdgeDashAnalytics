@@ -3,12 +3,10 @@ package com.example.edgedashanalytics.util.file;
 import android.os.Environment;
 import android.util.Log;
 
+import org.apache.commons.io.FileUtils;
+
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.List;
 
@@ -63,30 +61,18 @@ public class FileManager {
         return null;
     }
 
-    private static File makeDirectory(File dir, String subDirName) {
-        return makeDirectory(new File(dir, subDirName));
-    }
-
-    // https://stackoverflow.com/a/9293885/8031185
-    public static void copy(File source, File dest) throws IOException {
-        try (InputStream in = new FileInputStream(source)) {
-            try (OutputStream out = new FileOutputStream(dest)) {
-                // Transfer bytes from in to out
-                byte[] buf = new byte[1024];
-                int len;
-                while ((len = in.read(buf)) > 0) {
-                    out.write(buf, 0, len);
-                }
-            }
-        }
-    }
-
     public static boolean isMp4(String filename) {
         int extensionStartIndex = filename.lastIndexOf('.') + 1;
         return filename.regionMatches(true, extensionStartIndex, VIDEO_EXTENSION, 0, VIDEO_EXTENSION.length());
     }
 
-    public static String getFilenameFromPath(String filePath) {
-        return filePath.substring(filePath.lastIndexOf('/') + 1);
+    public static void cleanDirectories() {
+        // TODO add preference to choose removing raw videos
+        try {
+            FileUtils.deleteDirectory(COMPLETE_DIR);
+        } catch (IOException e) {
+            Log.e(TAG, String.format("Failed to delete %s", COMPLETE_DIR.getAbsolutePath()));
+            Log.e(TAG, "cleanVideoDirectories error: \n%s");
+        }
     }
 }
