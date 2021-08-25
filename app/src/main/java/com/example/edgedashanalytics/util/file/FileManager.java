@@ -75,4 +75,8 @@ public class FileManager {
             Log.e(TAG, "cleanVideoDirectories error: \n%s");
         }
     }
+
+    public static String getFilenameFromPath(String filePath) {
+        return filePath.substring(filePath.lastIndexOf('/') + 1);
+    }
 }

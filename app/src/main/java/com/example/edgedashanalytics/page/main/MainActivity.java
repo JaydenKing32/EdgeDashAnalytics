@@ -20,6 +20,7 @@ import com.example.edgedashanalytics.data.ExternalStorageVideosRepository;
 import com.example.edgedashanalytics.data.ProcessingVideosRepository;
 import com.example.edgedashanalytics.data.VideosRepository;
 import com.example.edgedashanalytics.model.Video;
+import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.video.videoeventhandler.CompleteVideosEventHandler;
 import com.example.edgedashanalytics.util.video.videoeventhandler.ProcessingVideosEventHandler;
@@ -89,6 +90,7 @@ public class MainActivity extends AppCompatActivity implements VideoFragment.OnL
         String[] PERMISSIONS = {
                 Manifest.permission.READ_EXTERNAL_STORAGE,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.INTERNET
         };
 
         if (hasPermissions()) {
@@ -158,7 +160,12 @@ public class MainActivity extends AppCompatActivity implements VideoFragment.OnL
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemId = item.getItemId();
 
-        if (itemId == R.id.action_clean) {
+        if (itemId == R.id.action_download) {
+            Log.v(TAG, "Download button clicked");
+            Toast.makeText(this, "Starting download", Toast.LENGTH_SHORT).show();
+            DashCam.startDownloadAll(this);
+            return true;
+        } else if (itemId == R.id.action_clean) {
             Log.v(TAG, "Clean button clicked");
             Toast.makeText(this, "Cleaning video directories", Toast.LENGTH_SHORT).show();
             cleanDirectories();
