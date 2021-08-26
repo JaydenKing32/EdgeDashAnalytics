@@ -7,4 +7,9 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <color name="disconnected">#FFFF0000</color>
+    <color name="connected">#FF00FF00</color>
+    <color name="device_pressed">#4D000000</color>
+    <color name="device_normal">#00FFFFFF</color>
 </resources>

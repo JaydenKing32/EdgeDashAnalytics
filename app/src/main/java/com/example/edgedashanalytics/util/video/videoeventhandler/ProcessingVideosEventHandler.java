@@ -4,9 +4,11 @@ import android.util.Log;
 
 import com.example.edgedashanalytics.data.VideosRepository;
 import com.example.edgedashanalytics.event.AddEvent;
+import com.example.edgedashanalytics.event.RemoveByNameEvent;
 import com.example.edgedashanalytics.event.RemoveEvent;
 import com.example.edgedashanalytics.event.Type;
 import com.example.edgedashanalytics.event.VideoEvent;
+import com.example.edgedashanalytics.util.file.FileManager;
 
 import org.greenrobot.eventbus.Subscribe;
 
@@ -44,6 +46,31 @@ public class ProcessingVideosEventHandler implements VideoEventHandler {
                 repository.delete(event.video.getData());
             } catch (Exception e) {
                 Log.e(TAG, String.format("onRemove error: \n%s", e.getMessage()));
+            }
+        }
+    }
+
+    @Subscribe
+    public void onRemoveByName(RemoveByNameEvent event) {
+        if (event == null) {
+            Log.e(TAG, "Null event");
+            return;
+        }
+        if (repository == null) {
+            Log.e(TAG, "Null repository");
+            return;
+        }
+        if (event.name == null) {
+            Log.e(TAG, "Null name");
+        }
+
+        if (event.type == Type.PROCESSING) {
+            Log.v(TAG, "removeByName");
+            try {
+                String path = String.format("%s/%s", FileManager.getRawDirPath(), event.name);
+                repository.delete(path);
+            } catch (Exception e) {
+                Log.e(TAG, String.format("removeByName error: \n%s", e.getMessage()));
             }
         }
     }

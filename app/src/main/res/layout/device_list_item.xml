@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/device_item_text"
+        style="@style/device_item"
+        android:background="@drawable/device_item_background"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/connection_status"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/connection_status"
+        android:layout_width="@dimen/device_icon_size"
+        android:layout_height="@dimen/device_icon_size"
+        android:layout_marginEnd="8dp"
+        android:contentDescription="@string/connection_status_content_description"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/disconnect_button"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/status_disconnected" />
+
+    <ImageView
+        android:id="@+id/disconnect_button"
+        android:layout_width="@dimen/device_icon_size"
+        android:layout_height="@dimen/device_icon_size"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/device_item_background"
+        android:clickable="true"
+        android:contentDescription="@string/disconnect_button_content_description"
+        android:focusable="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/remove_device_button"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/ic_disconnect_device" />
+
+    <ImageView
+        android:id="@+id/remove_device_button"
+        android:layout_width="@dimen/device_icon_size"
+        android:layout_height="@dimen/device_icon_size"
+        android:background="@drawable/device_item_background"
+        android:clickable="true"
+        android:contentDescription="@string/remove_device_button_content_description"
+        android:focusable="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/ic_remove_device" />
+</androidx.constraintlayout.widget.ConstraintLayout>

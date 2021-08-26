@@ -6,7 +6,11 @@ import android.util.Log;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.List;
 
@@ -59,6 +63,20 @@ public class FileManager {
             Log.e(TAG, "External storage is not readable");
         }
         return null;
+    }
+
+    // https://stackoverflow.com/a/9293885/8031185
+    public static void copy(File source, File dest) throws IOException {
+        try (InputStream in = new FileInputStream(source)) {
+            try (OutputStream out = new FileOutputStream(dest)) {
+                // Transfer bytes from in to out
+                byte[] buf = new byte[1024];
+                int len;
+                while ((len = in.read(buf)) > 0) {
+                    out.write(buf, 0, len);
+                }
+            }
+        }
     }
 
     public static boolean isMp4(String filename) {

@@ -88,9 +88,16 @@ public class MainActivity extends AppCompatActivity implements VideoFragment.OnL
     private void checkPermissions() {
         final int REQUEST_PERMISSIONS = 1;
         String[] PERMISSIONS = {
+                Manifest.permission.INTERNET,
                 Manifest.permission.READ_EXTERNAL_STORAGE,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.INTERNET
+                Manifest.permission.BLUETOOTH,
+                Manifest.permission.BLUETOOTH_ADMIN,
+                Manifest.permission.ACCESS_NETWORK_STATE,
+                Manifest.permission.ACCESS_WIFI_STATE,
+                Manifest.permission.CHANGE_WIFI_STATE,
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION
         };
 
         if (hasPermissions()) {

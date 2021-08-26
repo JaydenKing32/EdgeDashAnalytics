@@ -45,8 +45,8 @@ import java.util.List;
 public class VideoFragment extends Fragment {
     private static final String ARG_COLUMN_COUNT = "column-count";
 
-    private int mColumnCount = 1;
-    private OnListFragmentInteractionListener mListener;
+    private int columnCount = 1;
+    private OnListFragmentInteractionListener listener;
     private VideoViewHolderProcessor videoViewHolderProcessor;
     private ActionButton actionButton;
     private VideosRepository repository;
@@ -124,7 +124,7 @@ public class VideoFragment extends Fragment {
         super.onCreate(savedInstanceState);
 
         if (getArguments() != null) {
-            mColumnCount = getArguments().getInt(ARG_COLUMN_COUNT);
+            columnCount = getArguments().getInt(ARG_COLUMN_COUNT);
         }
 
         FragmentActivity activity = getActivity();
@@ -147,13 +147,13 @@ public class VideoFragment extends Fragment {
         if (view instanceof RecyclerView) {
             Context context = view.getContext();
             RecyclerView recyclerView = (RecyclerView) view;
-            if (mColumnCount <= 1) {
+            if (columnCount <= 1) {
                 recyclerView.setLayoutManager(new LinearLayoutManager(context));
             } else {
-                recyclerView.setLayoutManager(new GridLayoutManager(context, mColumnCount));
+                recyclerView.setLayoutManager(new GridLayoutManager(context, columnCount));
             }
 
-            adapter = new VideoRecyclerViewAdapter(mListener, getContext(), actionButton.toString(),
+            adapter = new VideoRecyclerViewAdapter(listener, getContext(), actionButton.toString(),
                     videoViewHolderProcessor, videoViewModel);
             recyclerView.setAdapter(adapter);
 
@@ -207,7 +207,7 @@ public class VideoFragment extends Fragment {
         super.onAttach(context);
 
         if (context instanceof OnListFragmentInteractionListener) {
-            mListener = (OnListFragmentInteractionListener) context;
+            listener = (OnListFragmentInteractionListener) context;
         } else {
             throw new RuntimeException(context.toString() + " must implement OnListFragmentInteractionListener");
         }
@@ -217,7 +217,7 @@ public class VideoFragment extends Fragment {
     public void onDetach() {
         EventBus.getDefault().unregister(videoEventHandler);
         super.onDetach();
-        mListener = null;
+        listener = null;
     }
 
     public void setRepository(VideosRepository repository) {
