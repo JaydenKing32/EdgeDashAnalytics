@@ -1,5 +1,7 @@
 package com.example.edgedashanalytics.util.file;
 
+import static org.apache.commons.io.FilenameUtils.getBaseName;
+
 import android.os.Environment;
 import android.util.Log;
 
@@ -19,20 +21,20 @@ public class FileManager {
 
     public static final String VIDEO_EXTENSION = "mp4";
     public static final String RAW_DIR_NAME = "raw";
-    public static final String COMPLETE_DIR_NAME = "complete";
+    public static final String RESULTS_DIR_NAME = "results";
 
     private static final File MOVIE_DIR = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES);
     private static final File RAW_DIR = new File(MOVIE_DIR, RAW_DIR_NAME);
-    private static final File COMPLETE_DIR = new File(MOVIE_DIR, COMPLETE_DIR_NAME);
+    private static final File RESULTS_DIR = new File(MOVIE_DIR, RESULTS_DIR_NAME);
 
-    private static final List<File> DIRS = Arrays.asList(RAW_DIR, COMPLETE_DIR);
+    private static final List<File> DIRS = Arrays.asList(RAW_DIR, RESULTS_DIR);
 
     public static String getRawDirPath() {
         return RAW_DIR.getAbsolutePath();
     }
 
-    public static String getCompleteDirPath() {
-        return COMPLETE_DIR.getAbsolutePath();
+    public static String getResultDirPath() {
+        return RESULTS_DIR.getAbsolutePath();
     }
 
     public static void initialiseDirectories() {
@@ -87,14 +89,18 @@ public class FileManager {
     public static void cleanDirectories() {
         // TODO add preference to choose removing raw videos
         try {
-            FileUtils.deleteDirectory(COMPLETE_DIR);
+            FileUtils.deleteDirectory(RESULTS_DIR);
         } catch (IOException e) {
-            Log.e(TAG, String.format("Failed to delete %s", COMPLETE_DIR.getAbsolutePath()));
+            Log.e(TAG, String.format("Failed to delete %s", RESULTS_DIR.getAbsolutePath()));
             Log.e(TAG, "cleanVideoDirectories error: \n%s");
         }
     }
 
     public static String getFilenameFromPath(String filePath) {
         return filePath.substring(filePath.lastIndexOf('/') + 1);
+    }
+
+    public static String getResultNameFromVideoName(String filename) {
+        return String.format("%s.json", getBaseName(filename));
     }
 }

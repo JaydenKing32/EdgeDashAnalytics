@@ -17,4 +17,7 @@
     <string name="send">Send</string>
     <string name="download">Download</string>
     <string name="clean_directories">Clean Directories</string>
+    <string name="video_name_content_description">video name</string>
+    <string name="action_button_content_description">action</string>
+    <string name="result_name_content_description">result name</string>
 </resources>

@@ -1,7 +1,6 @@
 package com.example.edgedashanalytics.page.main;
 
-import static com.example.edgedashanalytics.util.file.FileManager.getCompleteDirPath;
-import static org.apache.commons.io.FilenameUtils.getBaseName;
+import static com.example.edgedashanalytics.util.file.FileManager.getResultDirPath;
 
 import android.content.Context;
 import android.content.Intent;
@@ -22,12 +21,13 @@ import androidx.recyclerview.selection.SelectionTracker;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.edgedashanalytics.R;
-import com.example.edgedashanalytics.data.VideoViewModel;
-import com.example.edgedashanalytics.event.AddEvent;
-import com.example.edgedashanalytics.event.RemoveEvent;
-import com.example.edgedashanalytics.event.Type;
+import com.example.edgedashanalytics.data.video.VideoViewModel;
+import com.example.edgedashanalytics.event.video.AddEvent;
+import com.example.edgedashanalytics.event.video.RemoveEvent;
+import com.example.edgedashanalytics.event.video.Type;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.page.main.VideoFragment.OnListFragmentInteractionListener;
+import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.video.analysis.VideoAnalysisIntentService;
 import com.example.edgedashanalytics.util.video.viewholderprocessor.VideoViewHolderProcessor;
 
@@ -70,7 +70,8 @@ public class VideoRecyclerViewAdapter extends RecyclerView.Adapter<VideoRecycler
     void processSelected(Selection<Long> positions) {
         for (Long pos : positions) {
             Video video = videos.get(pos.intValue());
-            final String output = String.format("%s/%s.json", getCompleteDirPath(), getBaseName(video.getName()));
+            final String output = String.format("%s/%s", getResultDirPath(),
+                    FileManager.getResultNameFromVideoName(video.getName()));
 
             Intent analyseIntent = new Intent(context, VideoAnalysisIntentService.class);
             analyseIntent.putExtra(VideoAnalysisIntentService.VIDEO_KEY, video);
@@ -148,8 +149,8 @@ public class VideoRecyclerViewAdapter extends RecyclerView.Adapter<VideoRecycler
             super(view);
             this.view = view;
             thumbnailView = view.findViewById(R.id.thumbnail);
-            videoFileNameView = view.findViewById(R.id.content);
-            actionButton = view.findViewById(R.id.actionButton);
+            videoFileNameView = view.findViewById(R.id.video_name);
+            actionButton = view.findViewById(R.id.video_action_button);
             layout = itemView.findViewById(R.id.video_row);
         }
 

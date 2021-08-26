@@ -1,4 +1,4 @@
-package com.example.edgedashanalytics.data;
+package com.example.edgedashanalytics.data.video;
 
 import android.app.Application;
 

@@ -6,10 +6,12 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
-import com.example.edgedashanalytics.event.AddEvent;
-import com.example.edgedashanalytics.event.RemoveEvent;
-import com.example.edgedashanalytics.event.Type;
+import com.example.edgedashanalytics.event.result.AddResultEvent;
+import com.example.edgedashanalytics.event.video.RemoveEvent;
+import com.example.edgedashanalytics.event.video.Type;
+import com.example.edgedashanalytics.model.Result;
 import com.example.edgedashanalytics.model.Video;
+import com.example.edgedashanalytics.util.file.FileManager;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -48,7 +50,8 @@ public class VideoAnalysisIntentService extends IntentService {
         VideoAnalysis videoAnalysis = new VideoAnalysis(video.getData(), output);
         videoAnalysis.analyse(getApplicationContext());
 
-        EventBus.getDefault().post(new AddEvent(video, Type.COMPLETE));
+        Result result = new Result(output, FileManager.getFilenameFromPath(output));
+        EventBus.getDefault().post(new AddResultEvent(result));
         EventBus.getDefault().post(new RemoveEvent(video, Type.PROCESSING));
     }
 }

@@ -1,4 +1,4 @@
-package com.example.edgedashanalytics.event;
+package com.example.edgedashanalytics.event.video;
 
 public class RemoveByNameEvent {
     public final String name;

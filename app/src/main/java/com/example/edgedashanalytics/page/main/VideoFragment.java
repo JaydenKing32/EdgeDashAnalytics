@@ -24,12 +24,12 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.edgedashanalytics.R;
-import com.example.edgedashanalytics.data.VideoViewModel;
-import com.example.edgedashanalytics.data.VideoViewModelFactory;
-import com.example.edgedashanalytics.data.VideosRepository;
+import com.example.edgedashanalytics.data.video.VideoViewModel;
+import com.example.edgedashanalytics.data.video.VideoViewModelFactory;
+import com.example.edgedashanalytics.data.video.VideosRepository;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.util.video.VideoDetailsLookup;
-import com.example.edgedashanalytics.util.video.videoeventhandler.VideoEventHandler;
+import com.example.edgedashanalytics.util.video.eventhandler.VideoEventHandler;
 import com.example.edgedashanalytics.util.video.viewholderprocessor.VideoViewHolderProcessor;
 
 import org.greenrobot.eventbus.EventBus;

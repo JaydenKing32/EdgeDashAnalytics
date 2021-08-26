@@ -2,13 +2,13 @@
 <androidx.recyclerview.widget.RecyclerView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/video_list"
-    android:name=".page.main.VideoFragment"
+    android:id="@+id/result_list"
+    android:name=".page.main.ResultsFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_marginLeft="@dimen/activity_horizontal_margin"
     android:layout_marginTop="2dp"
     android:layout_marginRight="@dimen/activity_horizontal_margin"
     app:layoutManager="LinearLayoutManager"
-    tools:context=".page.main.VideoFragment"
-    tools:listitem="@layout/video_list_item" />
+    tools:context=".page.main.ResultsFragment"
+    tools:listitem="@layout/result_list_item" />

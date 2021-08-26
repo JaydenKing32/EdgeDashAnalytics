@@ -3,8 +3,8 @@ package com.example.edgedashanalytics.util.dashcam;
 import android.content.Context;
 import android.util.Log;
 
-import com.example.edgedashanalytics.event.AddEvent;
-import com.example.edgedashanalytics.event.Type;
+import com.example.edgedashanalytics.event.video.AddEvent;
+import com.example.edgedashanalytics.event.video.Type;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.video.VideoManager;

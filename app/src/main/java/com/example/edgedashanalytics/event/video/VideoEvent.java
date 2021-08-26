@@ -1,4 +1,4 @@
-package com.example.edgedashanalytics.event;
+package com.example.edgedashanalytics.event.video;
 
 import com.example.edgedashanalytics.model.Video;
 

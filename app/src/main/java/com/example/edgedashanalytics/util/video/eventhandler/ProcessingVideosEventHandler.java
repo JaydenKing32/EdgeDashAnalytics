@@ -1,13 +1,13 @@
-package com.example.edgedashanalytics.util.video.videoeventhandler;
+package com.example.edgedashanalytics.util.video.eventhandler;
 
 import android.util.Log;
 
-import com.example.edgedashanalytics.data.VideosRepository;
-import com.example.edgedashanalytics.event.AddEvent;
-import com.example.edgedashanalytics.event.RemoveByNameEvent;
-import com.example.edgedashanalytics.event.RemoveEvent;
-import com.example.edgedashanalytics.event.Type;
-import com.example.edgedashanalytics.event.VideoEvent;
+import com.example.edgedashanalytics.data.video.VideosRepository;
+import com.example.edgedashanalytics.event.video.AddEvent;
+import com.example.edgedashanalytics.event.video.RemoveByNameEvent;
+import com.example.edgedashanalytics.event.video.RemoveEvent;
+import com.example.edgedashanalytics.event.video.Type;
+import com.example.edgedashanalytics.event.video.VideoEvent;
 import com.example.edgedashanalytics.util.file.FileManager;
 
 import org.greenrobot.eventbus.Subscribe;

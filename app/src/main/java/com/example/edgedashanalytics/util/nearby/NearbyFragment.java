@@ -17,10 +17,12 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.collection.SimpleArrayMap;
 import androidx.fragment.app.Fragment;
 
-import com.example.edgedashanalytics.event.AddEvent;
-import com.example.edgedashanalytics.event.RemoveByNameEvent;
-import com.example.edgedashanalytics.event.RemoveEvent;
-import com.example.edgedashanalytics.event.Type;
+import com.example.edgedashanalytics.event.result.AddResultEvent;
+import com.example.edgedashanalytics.event.video.AddEvent;
+import com.example.edgedashanalytics.event.video.RemoveByNameEvent;
+import com.example.edgedashanalytics.event.video.RemoveEvent;
+import com.example.edgedashanalytics.event.video.Type;
+import com.example.edgedashanalytics.model.Result;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.nearby.Message.Command;
@@ -295,7 +297,7 @@ public class NearbyFragment extends Fragment {
 
         // Construct a message mapping the ID of the file payload to the desired filename and command.
         String bytesMessage = String.join(MESSAGE_SEPARATOR, message.command.toString(),
-                    Long.toString(filePayload.getId()), uri.getLastPathSegment());
+                Long.toString(filePayload.getId()), uri.getLastPathSegment());
 
         // Send the filename message as a bytes payload.
         // Master will send to all workers, workers will just send to master
@@ -316,7 +318,8 @@ public class NearbyFragment extends Fragment {
 
         File videoFile = new File(message.video.getData());
         String filename = videoFile.getName();
-        String outPath = String.format("%s/%s.json", FileManager.getCompleteDirPath(), filename);
+        String outPath = String.format("%s/%s", FileManager.getResultDirPath(),
+                FileManager.getResultNameFromVideoName(filename));
 
         analyse(context, videoFile, outPath);
     }
@@ -472,12 +475,13 @@ public class NearbyFragment extends Fragment {
                     return;
                 }
 
+                String resultsDestPath = String.format("%s/%s", FileManager.getResultDirPath(),
+                        FileManager.getResultNameFromVideoName(filename));
+
                 if (command.equals(Command.ANALYSE)) {
-                    String outPath = String.format("%s/%s.json", FileManager.getCompleteDirPath(), receivedFile.getName());
-                    analyse(getContext(), receivedFile, outPath);
+                    analyse(getContext(), receivedFile, resultsDestPath);
 
                 } else if (command.equals(Command.RETURN)) {
-                    String resultsDestPath = String.format("%s/%s.json", FileManager.getCompleteDirPath(), filename);
                     File resultsDest = new File(resultsDestPath);
 
                     try {
@@ -492,8 +496,8 @@ public class NearbyFragment extends Fragment {
                         return;
                     }
 
-                    Video video = VideoManager.getVideoFromPath(context, resultsDestPath);
-                    EventBus.getDefault().post(new AddEvent(video, Type.COMPLETE));
+                    Result result = new Result(resultsDestPath, FileManager.getFilenameFromPath(resultsDestPath));
+                    EventBus.getDefault().post(new AddResultEvent(result));
                     EventBus.getDefault().post(new RemoveByNameEvent(filename, Type.PROCESSING));
                 }
             }

@@ -16,26 +16,29 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
 import com.example.edgedashanalytics.R;
-import com.example.edgedashanalytics.data.ExternalStorageVideosRepository;
-import com.example.edgedashanalytics.data.ProcessingVideosRepository;
-import com.example.edgedashanalytics.data.VideosRepository;
+import com.example.edgedashanalytics.data.result.ResultRepository;
+import com.example.edgedashanalytics.data.video.ExternalStorageVideosRepository;
+import com.example.edgedashanalytics.data.video.ProcessingVideosRepository;
+import com.example.edgedashanalytics.data.video.VideosRepository;
+import com.example.edgedashanalytics.model.Result;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.file.FileManager;
-import com.example.edgedashanalytics.util.video.videoeventhandler.CompleteVideosEventHandler;
-import com.example.edgedashanalytics.util.video.videoeventhandler.ProcessingVideosEventHandler;
-import com.example.edgedashanalytics.util.video.videoeventhandler.RawVideosEventHandler;
-import com.example.edgedashanalytics.util.video.viewholderprocessor.CompleteVideosViewHolderProcessor;
+import com.example.edgedashanalytics.util.video.eventhandler.ProcessingVideosEventHandler;
+import com.example.edgedashanalytics.util.video.eventhandler.RawVideosEventHandler;
+import com.example.edgedashanalytics.util.video.eventhandler.ResultEventHandler;
 import com.example.edgedashanalytics.util.video.viewholderprocessor.ProcessingVideosViewHolderProcessor;
 import com.example.edgedashanalytics.util.video.viewholderprocessor.RawVideosViewHolderProcessor;
+import com.example.edgedashanalytics.util.video.viewholderprocessor.ResultViewHolderProcessor;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-public class MainActivity extends AppCompatActivity implements VideoFragment.OnListFragmentInteractionListener {
+public class MainActivity extends AppCompatActivity
+        implements VideoFragment.OnListFragmentInteractionListener, ResultsFragment.OnListFragmentInteractionListener {
     private static final String TAG = MainActivity.class.getSimpleName();
 
     private VideoFragment rawFragment;
     private VideoFragment processingFragment;
-    private VideoFragment completeFragment;
+    private ResultsFragment resultsFragment;
 
     private final FragmentManager supportFragmentManager = getSupportFragmentManager();
     private Fragment activeFragment;
@@ -56,7 +59,7 @@ public class MainActivity extends AppCompatActivity implements VideoFragment.OnL
                 return true;
             } else if (itemId == R.id.navigation_completed) {
                 Log.v(TAG, "Navigation completed button clicked");
-                showNewFragmentAndHideOldFragment(completeFragment);
+                showNewFragmentAndHideOldFragment(resultsFragment);
                 return true;
             }
             return false;
@@ -137,22 +140,22 @@ public class MainActivity extends AppCompatActivity implements VideoFragment.OnL
     private void setUpFragments() {
         VideosRepository rawRepository = new ExternalStorageVideosRepository(this, FileManager.getRawDirPath());
         VideosRepository processingRepository = new ProcessingVideosRepository();
-        VideosRepository completeRepository = new ProcessingVideosRepository();
+        ResultRepository resultRepository = new ResultRepository();
 
         rawFragment = VideoFragment.newInstance(new RawVideosViewHolderProcessor(), ActionButton.ADD,
                 new RawVideosEventHandler(rawRepository));
         processingFragment = VideoFragment.newInstance(new ProcessingVideosViewHolderProcessor(), ActionButton.REMOVE,
                 new ProcessingVideosEventHandler(processingRepository));
-        completeFragment = VideoFragment.newInstance(new CompleteVideosViewHolderProcessor(), ActionButton.NULL,
-                new CompleteVideosEventHandler(completeRepository));
+        resultsFragment = ResultsFragment.newInstance(new ResultViewHolderProcessor(), ActionButton.NULL,
+                new ResultEventHandler(resultRepository));
 
-        supportFragmentManager.beginTransaction().add(R.id.main_container, completeFragment, "3").hide(completeFragment).commit();
+        supportFragmentManager.beginTransaction().add(R.id.main_container, resultsFragment, "3").hide(resultsFragment).commit();
         supportFragmentManager.beginTransaction().add(R.id.main_container, processingFragment, "2").hide(processingFragment).commit();
         supportFragmentManager.beginTransaction().add(R.id.main_container, rawFragment, "1").commit();
 
         rawFragment.setRepository(rawRepository);
         processingFragment.setRepository(processingRepository);
-        completeFragment.setRepository(completeRepository);
+        resultsFragment.setRepository(resultRepository);
 
         setActiveFragment(rawFragment);
     }
@@ -186,11 +189,15 @@ public class MainActivity extends AppCompatActivity implements VideoFragment.OnL
         // rawFragment.cleanRepository(this);
 
         processingFragment.cleanRepository(this);
-        completeFragment.cleanRepository(this);
+        resultsFragment.cleanRepository(this);
         FileManager.cleanDirectories();
     }
 
     @Override
     public void onListFragmentInteraction(Video item) {
+    }
+
+    @Override
+    public void onListFragmentInteraction(Result result) {
     }
 }
