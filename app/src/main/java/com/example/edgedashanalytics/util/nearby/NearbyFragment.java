@@ -258,7 +258,7 @@ public class NearbyFragment extends Fragment {
         deviceAdapter.notifyDataSetChanged();
     }
 
-    public void sendCommandMessage(Command command, String filename, String toEndpointId) {
+    private void sendCommandMessage(Command command, String filename, String toEndpointId) {
         String commandMessage = String.join(MESSAGE_SEPARATOR, command.toString(), filename);
         Payload filenameBytesPayload = Payload.fromBytes(commandMessage.getBytes(UTF_8));
         connectionsClient.sendPayload(toEndpointId, filenameBytesPayload);
@@ -324,7 +324,7 @@ public class NearbyFragment extends Fragment {
         analyse(context, videoFile, outPath);
     }
 
-    void analyse(Context context, File videoFile, String outPath) {
+    private void analyse(Context context, File videoFile, String outPath) {
         Log.d(TAG, String.format("Summarising %s", videoFile.getName()));
 
         Video video = VideoManager.getVideoFromPath(context, videoFile.getAbsolutePath());
@@ -348,7 +348,7 @@ public class NearbyFragment extends Fragment {
         void onFragmentInteraction(String name);
     }
 
-    class ReceiveFilePayloadCallback extends PayloadCallback {
+    private class ReceiveFilePayloadCallback extends PayloadCallback {
         private final SimpleArrayMap<Long, Payload> incomingFilePayloads = new SimpleArrayMap<>();
         private final SimpleArrayMap<Long, Payload> completedFilePayloads = new SimpleArrayMap<>();
         private final SimpleArrayMap<Long, String> filePayloadFilenames = new SimpleArrayMap<>();

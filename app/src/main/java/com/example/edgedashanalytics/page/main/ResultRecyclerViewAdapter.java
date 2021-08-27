@@ -74,19 +74,19 @@ public class ResultRecyclerViewAdapter extends RecyclerView.Adapter<ResultRecycl
         return position;
     }
 
-    public void setResults(List<Result> results) {
+    void setResults(List<Result> results) {
         this.results = results;
         notifyDataSetChanged();
     }
 
     public static class ResultViewHolder extends RecyclerView.ViewHolder {
-        public final View view;
-        final TextView resultFileNameView;
+        private final View view;
+        private final TextView resultFileNameView;
         public final Button actionButton;
         public Result result;
-        final LinearLayout layout;
+        private final LinearLayout layout;
 
-        public ResultViewHolder(@NonNull View itemView) {
+        private ResultViewHolder(@NonNull View itemView) {
             super(itemView);
             view = itemView;
             resultFileNameView = itemView.findViewById(R.id.result_name);

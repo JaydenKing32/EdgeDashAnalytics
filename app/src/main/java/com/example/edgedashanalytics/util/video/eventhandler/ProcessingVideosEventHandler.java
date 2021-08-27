@@ -14,7 +14,7 @@ import org.greenrobot.eventbus.Subscribe;
 
 public class ProcessingVideosEventHandler implements VideoEventHandler {
     private static final String TAG = ProcessingVideosEventHandler.class.getSimpleName();
-    public VideosRepository repository;
+    private final VideosRepository repository;
 
     public ProcessingVideosEventHandler(VideosRepository repository) {
         this.repository = repository;
@@ -75,7 +75,7 @@ public class ProcessingVideosEventHandler implements VideoEventHandler {
         }
     }
 
-    public void nullCheck(VideoEvent event) {
+    private void nullCheck(VideoEvent event) {
         if (event == null) {
             Log.e(TAG, "Null event");
             return;

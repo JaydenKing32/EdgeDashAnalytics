@@ -63,7 +63,7 @@ public class VideoRecyclerViewAdapter extends RecyclerView.Adapter<VideoRecycler
         setHasStableIds(true);
     }
 
-    public void setTracker(SelectionTracker<Long> tracker) {
+    void setTracker(SelectionTracker<Long> tracker) {
         this.tracker = tracker;
     }
 
@@ -131,7 +131,7 @@ public class VideoRecyclerViewAdapter extends RecyclerView.Adapter<VideoRecycler
                 null);
     }
 
-    public void setVideos(List<Video> videos) {
+    void setVideos(List<Video> videos) {
         this.videos = videos;
         notifyDataSetChanged();
     }
@@ -139,13 +139,13 @@ public class VideoRecyclerViewAdapter extends RecyclerView.Adapter<VideoRecycler
 
     public static class VideoViewHolder extends RecyclerView.ViewHolder {
         public final View view;
-        final ImageView thumbnailView;
-        final TextView videoFileNameView;
+        private final ImageView thumbnailView;
+        private final TextView videoFileNameView;
         public final Button actionButton;
         public Video video;
-        final LinearLayout layout;
+        private final LinearLayout layout;
 
-        VideoViewHolder(View view) {
+        private VideoViewHolder(View view) {
             super(view);
             this.view = view;
             thumbnailView = view.findViewById(R.id.thumbnail);

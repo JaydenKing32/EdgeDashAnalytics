@@ -33,8 +33,8 @@ import java.util.regex.Pattern;
 
 public class DashCam {
     private static final String TAG = DashCam.class.getSimpleName();
-    static final String baseUrl = "http://10.99.77.1/";
-    static final String videoDirUrl = baseUrl + "Record/";
+    private static final String baseUrl = "http://10.99.77.1/";
+    private static final String videoDirUrl = baseUrl + "Record/";
 
     public static void startDownloadAll(Context context) {
         ExecutorService executor = Executors.newSingleThreadExecutor();

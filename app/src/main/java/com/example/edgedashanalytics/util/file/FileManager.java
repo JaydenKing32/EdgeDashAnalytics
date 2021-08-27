@@ -19,9 +19,9 @@ import java.util.List;
 public class FileManager {
     private static final String TAG = FileManager.class.getSimpleName();
 
-    public static final String VIDEO_EXTENSION = "mp4";
-    public static final String RAW_DIR_NAME = "raw";
-    public static final String RESULTS_DIR_NAME = "results";
+    private static final String VIDEO_EXTENSION = "mp4";
+    private static final String RAW_DIR_NAME = "raw";
+    private static final String RESULTS_DIR_NAME = "results";
 
     private static final File MOVIE_DIR = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES);
     private static final File RAW_DIR = new File(MOVIE_DIR, RAW_DIR_NAME);

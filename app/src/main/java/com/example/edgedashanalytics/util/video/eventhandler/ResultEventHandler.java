@@ -11,7 +11,7 @@ import org.greenrobot.eventbus.Subscribe;
 
 public class ResultEventHandler {
     private static final String TAG = ResultEventHandler.class.getSimpleName();
-    public ResultRepository repository;
+    private final ResultRepository repository;
 
     public ResultEventHandler(ResultRepository repository) {
         this.repository = repository;
@@ -41,7 +41,7 @@ public class ResultEventHandler {
         }
     }
 
-    public void nullCheck(ResultEvent event) {
+    private void nullCheck(ResultEvent event) {
         if (event == null) {
             Log.e(TAG, "Null event");
             return;

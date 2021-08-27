@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 // https://www.tensorflow.org/lite/guide/android
 // https://www.tensorflow.org/lite/inference_with_metadata/task_library/object_detector
 // https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/running_on_mobile_tf2.md
-public class VideoAnalysis {
+class VideoAnalysis {
     private static final String TAG = VideoAnalysis.class.getSimpleName();
 
     private final String inPath;
@@ -52,7 +52,7 @@ public class VideoAnalysis {
     private HashMap<Integer, List<Detection>> frameDetections;
     private long scaleFactor = 1;
 
-    public VideoAnalysis(String inPath, String outPath) {
+    VideoAnalysis(String inPath, String outPath) {
         this.inPath = inPath;
         this.outPath = outPath;
 
@@ -64,7 +64,7 @@ public class VideoAnalysis {
 
     // https://developer.android.com/guide/background/threading
     // https://developer.android.com/guide/components/processes-and-threads#WorkerThreads
-    public void analyse(Context context) {
+    void analyse(Context context) {
         processVideo(context);
     }
 

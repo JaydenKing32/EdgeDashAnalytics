@@ -24,7 +24,7 @@ public class Result implements Parcelable {
         this.name = name;
     }
 
-    protected Result(Parcel in) {
+    private Result(Parcel in) {
         data = in.readString();
         name = in.readString();
     }

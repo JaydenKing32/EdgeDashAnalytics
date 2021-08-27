@@ -67,13 +67,13 @@ public class DeviceListAdapter extends RecyclerView.Adapter<DeviceListAdapter.De
     }
 
     static class DeviceViewHolder extends RecyclerView.ViewHolder {
-        final DeviceListAdapter adapter;
-        final TextView deviceName;
-        final ImageView connectionStatus;
-        final ImageView disconnectButton;
-        final ImageView removeButton;
+        private final DeviceListAdapter adapter;
+        private final TextView deviceName;
+        private final ImageView connectionStatus;
+        private final ImageView disconnectButton;
+        private final ImageView removeButton;
 
-        DeviceViewHolder(View itemView, DeviceListAdapter adapter) {
+        private DeviceViewHolder(View itemView, DeviceListAdapter adapter) {
             super(itemView);
             this.adapter = adapter;
             this.deviceName = itemView.findViewById(R.id.device_item_text);
