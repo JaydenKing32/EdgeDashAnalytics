@@ -57,7 +57,7 @@ import java.util.LinkedList;
 import java.util.Objects;
 import java.util.Queue;
 
-public class NearbyFragment extends Fragment {
+public abstract class NearbyFragment extends Fragment {
     private static final String TAG = NearbyFragment.class.getSimpleName();
     private static final Strategy STRATEGY = Strategy.P2P_STAR;
     private static final String SERVICE_ID = "com.example.edgesum";
@@ -75,9 +75,9 @@ public class NearbyFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        discoveredEndpoints.add(new Endpoint("testing1", "testing1", true));
-//        discoveredEndpoints.add(new Endpoint("testing2", "testing2", false));
-        deviceAdapter = new DeviceListAdapter(getContext(), discoveredEndpoints);
+//        discoveredEndpoints.put("testing1", new Endpoint("testing1", "testing1"));
+//        discoveredEndpoints.put("testing2", new Endpoint("testing2", "testing2"));
+        deviceAdapter = new DeviceListAdapter(listener, getContext(), discoveredEndpoints);
 
         Context context = getContext();
         if (context != null) {
@@ -338,14 +338,28 @@ public class NearbyFragment extends Fragment {
     }
 
     @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+
+        if (context instanceof NearbyFragment.OnFragmentInteractionListener) {
+            listener = (NearbyFragment.OnFragmentInteractionListener) context;
+        } else {
+            throw new RuntimeException(context.toString() + " must implement OnFragmentInteractionListener");
+        }
+    }
+
+    @Override
     public void onDetach() {
         super.onDetach();
         listener = null;
     }
 
     public interface OnFragmentInteractionListener {
-        @SuppressWarnings("unused")
-        void onFragmentInteraction(String name);
+        void connectEndpoint(Endpoint endpoint);
+
+        void disconnectEndpoint(Endpoint endpoint);
+
+        void removeEndpoint(Endpoint endpoint);
     }
 
     private class ReceiveFilePayloadCallback extends PayloadCallback {

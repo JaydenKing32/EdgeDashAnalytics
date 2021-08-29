@@ -17,8 +17,6 @@ import org.jsoup.nodes.Document;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.ConnectException;
-import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.time.Duration;
 import java.time.Instant;
@@ -65,22 +63,15 @@ public class DashCam {
     }
 
     private static List<String> getFilenames() {
-        Document doc = null;
+        Document doc;
 
         try {
             doc = Jsoup.connect(baseUrl + "blackvue_vod.cgi").get();
-        } catch (SocketTimeoutException | ConnectException e) {
+        } catch (IOException e) {
             Log.e(TAG, "Could not connect to dashcam");
             return null;
-        } catch (IOException e) {
-            e.printStackTrace();
         }
         List<String> allFiles = new ArrayList<>();
-
-        if (doc == null) {
-            Log.e(TAG, "Couldn't parse dashcam web-page");
-            return null;
-        }
 
         String raw = doc.select("body").text();
         Pattern pat = Pattern.compile(Pattern.quote("Record/") + "(.*?)" + Pattern.quote(",s:"));

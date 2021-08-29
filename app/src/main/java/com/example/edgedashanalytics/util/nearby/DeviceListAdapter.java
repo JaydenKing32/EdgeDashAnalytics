@@ -17,10 +17,13 @@ import com.example.edgedashanalytics.R;
 import java.util.LinkedHashMap;
 
 public class DeviceListAdapter extends RecyclerView.Adapter<DeviceListAdapter.DeviceViewHolder> {
+    private final NearbyFragment.OnFragmentInteractionListener listener;
     private final LinkedHashMap<String, Endpoint> endpoints;
     private final LayoutInflater inflater;
 
-    DeviceListAdapter(Context context, LinkedHashMap<String, Endpoint> endpoints) {
+    DeviceListAdapter(NearbyFragment.OnFragmentInteractionListener listener,
+                      Context context, LinkedHashMap<String, Endpoint> endpoints) {
+        this.listener = listener;
         this.inflater = LayoutInflater.from(context);
         this.endpoints = endpoints;
     }
@@ -54,11 +57,11 @@ public class DeviceListAdapter extends RecyclerView.Adapter<DeviceListAdapter.De
         holder.deviceName.setOnClickListener(v -> {
             if (!endpoint.connected) {
                 Toast.makeText(v.getContext(), String.format("Connecting to %s", endpoint.name), Toast.LENGTH_LONG).show();
-//                deviceCallback.connectEndpoint(endpoint);
+                listener.connectEndpoint(endpoint);
             }
         });
-//        holder.disconnectButton.setOnClickListener(v -> deviceCallback.disconnectEndpoint(endpoint));
-//        holder.removeButton.setOnClickListener(v -> deviceCallback.removeEndpoint(endpoint));
+        holder.disconnectButton.setOnClickListener(v -> listener.disconnectEndpoint(endpoint));
+        holder.removeButton.setOnClickListener(v -> listener.removeEndpoint(endpoint));
     }
 
     @Override

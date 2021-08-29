@@ -5,7 +5,7 @@ import androidx.annotation.NonNull;
 import java.util.ArrayList;
 import java.util.List;
 
-class Endpoint {
+public class Endpoint {
     final String id;
     final String name;
     boolean connected;

@@ -24,6 +24,8 @@ import com.example.edgedashanalytics.model.Result;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.file.FileManager;
+import com.example.edgedashanalytics.util.nearby.Endpoint;
+import com.example.edgedashanalytics.util.nearby.NearbyFragment;
 import com.example.edgedashanalytics.util.video.eventhandler.ProcessingVideosEventHandler;
 import com.example.edgedashanalytics.util.video.eventhandler.RawVideosEventHandler;
 import com.example.edgedashanalytics.util.video.eventhandler.ResultEventHandler;
@@ -32,13 +34,16 @@ import com.example.edgedashanalytics.util.video.viewholderprocessor.RawVideosVie
 import com.example.edgedashanalytics.util.video.viewholderprocessor.ResultViewHolderProcessor;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-public class MainActivity extends AppCompatActivity
-        implements VideoFragment.OnListFragmentInteractionListener, ResultsFragment.OnListFragmentInteractionListener {
+public class MainActivity extends AppCompatActivity implements
+        VideoFragment.OnListFragmentInteractionListener,
+        ResultsFragment.OnListFragmentInteractionListener,
+        NearbyFragment.OnFragmentInteractionListener {
     private static final String TAG = MainActivity.class.getSimpleName();
 
     private VideoFragment rawFragment;
     private VideoFragment processingFragment;
     private ResultsFragment resultsFragment;
+    private ConnectionFragment connectionFragment;
 
     private final FragmentManager supportFragmentManager = getSupportFragmentManager();
     private Fragment activeFragment;
@@ -142,6 +147,7 @@ public class MainActivity extends AppCompatActivity
         VideosRepository processingRepository = new ProcessingVideosRepository();
         ResultRepository resultRepository = new ResultRepository();
 
+        connectionFragment = new ConnectionFragment();
         rawFragment = VideoFragment.newInstance(new RawVideosViewHolderProcessor(), ActionButton.ADD,
                 new RawVideosEventHandler(rawRepository));
         processingFragment = VideoFragment.newInstance(new ProcessingVideosViewHolderProcessor(), ActionButton.REMOVE,
@@ -149,6 +155,7 @@ public class MainActivity extends AppCompatActivity
         resultsFragment = ResultsFragment.newInstance(new ResultViewHolderProcessor(), ActionButton.NULL,
                 new ResultEventHandler(resultRepository));
 
+        supportFragmentManager.beginTransaction().add(R.id.main_container, connectionFragment, "4").hide(connectionFragment).commit();
         supportFragmentManager.beginTransaction().add(R.id.main_container, resultsFragment, "3").hide(resultsFragment).commit();
         supportFragmentManager.beginTransaction().add(R.id.main_container, processingFragment, "2").hide(processingFragment).commit();
         supportFragmentManager.beginTransaction().add(R.id.main_container, rawFragment, "1").commit();
@@ -170,7 +177,11 @@ public class MainActivity extends AppCompatActivity
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemId = item.getItemId();
 
-        if (itemId == R.id.action_download) {
+        if (itemId == R.id.action_connect) {
+            Log.v(TAG, "Connect button clicked");
+            showNewFragmentAndHideOldFragment(connectionFragment);
+            return true;
+        } else if (itemId == R.id.action_download) {
             Log.v(TAG, "Download button clicked");
             Toast.makeText(this, "Starting download", Toast.LENGTH_SHORT).show();
             DashCam.startDownloadAll(this);
@@ -199,5 +210,20 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onListFragmentInteraction(Result result) {
+    }
+
+    @Override
+    public void connectEndpoint(Endpoint endpoint) {
+        connectionFragment.connectEndpoint(endpoint);
+    }
+
+    @Override
+    public void disconnectEndpoint(Endpoint endpoint) {
+        connectionFragment.disconnectEndpoint(endpoint);
+    }
+
+    @Override
+    public void removeEndpoint(Endpoint endpoint) {
+        connectionFragment.removeEndpoint(endpoint);
     }
 }
