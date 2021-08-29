@@ -99,8 +99,8 @@ public class ResultsFragment extends Fragment {
                 recyclerView.setLayoutManager(new GridLayoutManager(context, columnCount));
             }
 
-            adapter = new ResultRecyclerViewAdapter(listener, getContext(), actionButton.toString(),
-                    holderProcessor, resultViewModel);
+            adapter = new ResultRecyclerViewAdapter(
+                    listener, actionButton.toString(), holderProcessor, resultViewModel);
             recyclerView.setAdapter(adapter);
 
             FragmentActivity activity = getActivity();

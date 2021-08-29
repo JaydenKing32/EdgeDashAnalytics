@@ -77,7 +77,7 @@ public class VideoFragment extends Fragment {
 
             if (itemId == R.id.send) {
                 if (actionButton.equals(ActionButton.ADD)) {
-                    adapter.processSelected(tracker.getSelection());
+                    adapter.processSelected(tracker.getSelection(), getContext());
                 }
 
                 mode.finish();
@@ -152,8 +152,7 @@ public class VideoFragment extends Fragment {
                 recyclerView.setLayoutManager(new GridLayoutManager(context, columnCount));
             }
 
-            adapter = new VideoRecyclerViewAdapter(listener, getContext(), actionButton.toString(),
-                    holderProcessor, videoViewModel);
+            adapter = new VideoRecyclerViewAdapter(listener, actionButton.toString(), holderProcessor, videoViewModel);
             recyclerView.setAdapter(adapter);
 
             FragmentActivity activity = getActivity();

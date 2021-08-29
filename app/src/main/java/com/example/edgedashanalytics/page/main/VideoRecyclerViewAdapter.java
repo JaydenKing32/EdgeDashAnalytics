@@ -43,16 +43,14 @@ public class VideoRecyclerViewAdapter extends RecyclerView.Adapter<VideoRecycler
     private final VideoFragment.Listener listener;
     private final String BUTTON_ACTION_TEXT;
 
-    private final Context context;
     private List<Video> videos;
     private SelectionTracker<Long> tracker;
     private final VideoViewHolderProcessor holderProcessor;
     private final VideoViewModel viewModel;
 
-    VideoRecyclerViewAdapter(VideoFragment.Listener listener, Context context, String buttonText,
+    VideoRecyclerViewAdapter(VideoFragment.Listener listener, String buttonText,
                              VideoViewHolderProcessor holderProcessor, VideoViewModel videoViewModel) {
         this.listener = listener;
-        this.context = context;
         this.BUTTON_ACTION_TEXT = buttonText;
         this.holderProcessor = holderProcessor;
         this.viewModel = videoViewModel;
@@ -63,7 +61,7 @@ public class VideoRecyclerViewAdapter extends RecyclerView.Adapter<VideoRecycler
         this.tracker = tracker;
     }
 
-    void processSelected(Selection<Long> positions) {
+    void processSelected(Selection<Long> positions, Context context) {
         for (Long pos : positions) {
             Video video = videos.get(pos.intValue());
             final String output = String.format("%s/%s", getResultDirPath(),
@@ -90,11 +88,11 @@ public class VideoRecyclerViewAdapter extends RecyclerView.Adapter<VideoRecycler
     @Override
     public void onBindViewHolder(final VideoViewHolder holder, final int position) {
         holder.video = videos.get(position);
-        holder.thumbnailView.setImageBitmap(getThumbnail(videos.get(position).getId()));
+        holder.thumbnailView.setImageBitmap(getThumbnail(videos.get(position).getId(), holder.view.getContext()));
         holder.videoFileNameView.setText(videos.get(position).getName());
         holder.actionButton.setText(BUTTON_ACTION_TEXT);
 
-        holderProcessor.process(context, viewModel, holder, position);
+        holderProcessor.process(holder.view.getContext(), viewModel, holder, position);
 
         holder.view.setOnClickListener(v -> {
             if (null != listener) {
@@ -119,12 +117,9 @@ public class VideoRecyclerViewAdapter extends RecyclerView.Adapter<VideoRecycler
         return position;
     }
 
-    private Bitmap getThumbnail(String id) {
+    private Bitmap getThumbnail(String id, Context context) {
         return MediaStore.Video.Thumbnails.getThumbnail(
-                this.context.getContentResolver(),
-                Integer.parseInt(id),
-                MediaStore.Video.Thumbnails.MICRO_KIND,
-                null);
+                context.getContentResolver(), Integer.parseInt(id), MediaStore.Video.Thumbnails.MICRO_KIND, null);
     }
 
     void setVideos(List<Video> videos) {

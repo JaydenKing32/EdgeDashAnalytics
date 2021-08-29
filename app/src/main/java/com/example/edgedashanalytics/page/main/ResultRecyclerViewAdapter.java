@@ -1,6 +1,5 @@
 package com.example.edgedashanalytics.page.main;
 
-import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,15 +22,13 @@ public class ResultRecyclerViewAdapter extends RecyclerView.Adapter<ResultRecycl
     private final ResultsFragment.Listener listener;
     private final String BUTTON_ACTION_TEXT;
 
-    private final Context context;
     private List<Result> results;
     private final ResultViewHolderProcessor holderProcessor;
     private final ResultViewModel viewModel;
 
-    ResultRecyclerViewAdapter(ResultsFragment.Listener listener, Context context, String buttonText,
+    ResultRecyclerViewAdapter(ResultsFragment.Listener listener, String buttonText,
                               ResultViewHolderProcessor holderProcessor, ResultViewModel viewModel) {
         this.listener = listener;
-        this.context = context;
         this.BUTTON_ACTION_TEXT = buttonText;
         this.holderProcessor = holderProcessor;
         this.viewModel = viewModel;
@@ -52,7 +49,7 @@ public class ResultRecyclerViewAdapter extends RecyclerView.Adapter<ResultRecycl
         holder.resultFileNameView.setText(results.get(position).getName());
         holder.actionButton.setText(BUTTON_ACTION_TEXT);
 
-        holderProcessor.process(context, viewModel, holder, position);
+        holderProcessor.process(holder.view.getContext(), viewModel, holder, position);
 
         holder.view.setOnClickListener(v -> {
             if (null != listener) {
