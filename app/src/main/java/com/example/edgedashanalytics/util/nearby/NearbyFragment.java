@@ -70,7 +70,7 @@ public abstract class NearbyFragment extends Fragment {
     private ConnectionsClient connectionsClient;
     protected DeviceListAdapter deviceAdapter;
     protected String localName = null;
-    private OnFragmentInteractionListener listener;
+    private Listener listener;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -341,10 +341,10 @@ public abstract class NearbyFragment extends Fragment {
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
 
-        if (context instanceof NearbyFragment.OnFragmentInteractionListener) {
-            listener = (NearbyFragment.OnFragmentInteractionListener) context;
+        if (context instanceof Listener) {
+            listener = (Listener) context;
         } else {
-            throw new RuntimeException(context.toString() + " must implement OnFragmentInteractionListener");
+            throw new RuntimeException(context.toString() + " must implement NearbyFragment.Listener");
         }
     }
 
@@ -354,7 +354,7 @@ public abstract class NearbyFragment extends Fragment {
         listener = null;
     }
 
-    public interface OnFragmentInteractionListener {
+    public interface Listener {
         void connectEndpoint(Endpoint endpoint);
 
         void disconnectEndpoint(Endpoint endpoint);

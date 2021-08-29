@@ -35,9 +35,7 @@ import com.example.edgedashanalytics.util.video.viewholderprocessor.ResultViewHo
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity implements
-        VideoFragment.OnListFragmentInteractionListener,
-        ResultsFragment.OnListFragmentInteractionListener,
-        NearbyFragment.OnFragmentInteractionListener {
+        VideoFragment.Listener, ResultsFragment.Listener, NearbyFragment.Listener {
     private static final String TAG = MainActivity.class.getSimpleName();
 
     private VideoFragment rawFragment;

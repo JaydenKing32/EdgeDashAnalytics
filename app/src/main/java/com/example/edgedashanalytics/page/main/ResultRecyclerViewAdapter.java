@@ -20,23 +20,20 @@ import java.util.List;
 
 public class ResultRecyclerViewAdapter extends RecyclerView.Adapter<ResultRecyclerViewAdapter.ResultViewHolder> {
     private static final String TAG = ResultRecyclerViewAdapter.class.getSimpleName();
-    private final ResultsFragment.OnListFragmentInteractionListener listFragmentInteractionListener;
+    private final ResultsFragment.Listener listener;
     private final String BUTTON_ACTION_TEXT;
 
     private final Context context;
     private List<Result> results;
-    private final ResultViewHolderProcessor resultViewHolderProcessor;
+    private final ResultViewHolderProcessor holderProcessor;
     private final ResultViewModel viewModel;
 
-    ResultRecyclerViewAdapter(ResultsFragment.OnListFragmentInteractionListener listener,
-                              Context context,
-                              String buttonText,
-                              ResultViewHolderProcessor resultViewHolderProcessor,
-                              ResultViewModel viewModel) {
-        this.listFragmentInteractionListener = listener;
+    ResultRecyclerViewAdapter(ResultsFragment.Listener listener, Context context, String buttonText,
+                              ResultViewHolderProcessor holderProcessor, ResultViewModel viewModel) {
+        this.listener = listener;
         this.context = context;
         this.BUTTON_ACTION_TEXT = buttonText;
-        this.resultViewHolderProcessor = resultViewHolderProcessor;
+        this.holderProcessor = holderProcessor;
         this.viewModel = viewModel;
         setHasStableIds(true);
     }
@@ -55,11 +52,11 @@ public class ResultRecyclerViewAdapter extends RecyclerView.Adapter<ResultRecycl
         holder.resultFileNameView.setText(results.get(position).getName());
         holder.actionButton.setText(BUTTON_ACTION_TEXT);
 
-        resultViewHolderProcessor.process(context, viewModel, holder, position);
+        holderProcessor.process(context, viewModel, holder, position);
 
         holder.view.setOnClickListener(v -> {
-            if (null != listFragmentInteractionListener) {
-                listFragmentInteractionListener.onListFragmentInteraction(holder.result);
+            if (null != listener) {
+                listener.onListFragmentInteraction(holder.result);
             }
         });
     }

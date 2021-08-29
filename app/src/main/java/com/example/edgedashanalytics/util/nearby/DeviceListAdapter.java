@@ -17,12 +17,11 @@ import com.example.edgedashanalytics.R;
 import java.util.LinkedHashMap;
 
 public class DeviceListAdapter extends RecyclerView.Adapter<DeviceListAdapter.DeviceViewHolder> {
-    private final NearbyFragment.OnFragmentInteractionListener listener;
+    private final NearbyFragment.Listener listener;
     private final LinkedHashMap<String, Endpoint> endpoints;
     private final LayoutInflater inflater;
 
-    DeviceListAdapter(NearbyFragment.OnFragmentInteractionListener listener,
-                      Context context, LinkedHashMap<String, Endpoint> endpoints) {
+    DeviceListAdapter(NearbyFragment.Listener listener, Context context, LinkedHashMap<String, Endpoint> endpoints) {
         this.listener = listener;
         this.inflater = LayoutInflater.from(context);
         this.endpoints = endpoints;

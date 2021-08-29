@@ -2,6 +2,10 @@ package com.example.edgedashanalytics.page.main;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -10,11 +14,6 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-import android.provider.MediaStore;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.data.result.ResultRepository;
@@ -38,8 +37,8 @@ public class ResultsFragment extends Fragment {
     private static final String ARG_COLUMN_COUNT = "column-count";
 
     private int columnCount = 1;
-    private OnListFragmentInteractionListener listener;
-    private ResultViewHolderProcessor resultViewHolderProcessor;
+    private Listener listener;
+    private ResultViewHolderProcessor holderProcessor;
     private ActionButton actionButton;
     private ResultRepository repository;
     private ResultViewModel resultViewModel;
@@ -53,14 +52,14 @@ public class ResultsFragment extends Fragment {
     public ResultsFragment() {
     }
 
-    public static ResultsFragment newInstance(ResultViewHolderProcessor resultViewHolderProcessor,
+    public static ResultsFragment newInstance(ResultViewHolderProcessor holderProcessor,
                                               ActionButton actionButton, ResultEventHandler handler) {
         ResultsFragment fragment = new ResultsFragment();
         Bundle args = new Bundle();
         int columnCount = 1;
         args.putInt(ARG_COLUMN_COUNT, columnCount);
         fragment.setArguments(args);
-        fragment.resultViewHolderProcessor = resultViewHolderProcessor;
+        fragment.holderProcessor = holderProcessor;
         fragment.actionButton = actionButton;
         fragment.resultEventHandler = handler;
         return fragment;
@@ -101,7 +100,7 @@ public class ResultsFragment extends Fragment {
             }
 
             adapter = new ResultRecyclerViewAdapter(listener, getContext(), actionButton.toString(),
-                    resultViewHolderProcessor, resultViewModel);
+                    holderProcessor, resultViewModel);
             recyclerView.setAdapter(adapter);
 
             FragmentActivity activity = getActivity();
@@ -118,10 +117,10 @@ public class ResultsFragment extends Fragment {
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
 
-        if (context instanceof ResultsFragment.OnListFragmentInteractionListener) {
-            listener = (ResultsFragment.OnListFragmentInteractionListener) context;
+        if (context instanceof Listener) {
+            listener = (Listener) context;
         } else {
-            throw new RuntimeException(context.toString() + " must implement OnListFragmentInteractionListener");
+            throw new RuntimeException(context.toString() + " must implement ResultsFragment.Listener");
         }
     }
 
@@ -162,7 +161,7 @@ public class ResultsFragment extends Fragment {
      * "http://developer.android.com/training/basics/fragments/communicating.html"
      * >Communicating with Other Fragments</a> for more information.
      */
-    public interface OnListFragmentInteractionListener {
+    public interface Listener {
         void onListFragmentInteraction(Result result);
     }
 }

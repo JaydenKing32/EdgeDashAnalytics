@@ -46,8 +46,8 @@ public class VideoFragment extends Fragment {
     private static final String ARG_COLUMN_COUNT = "column-count";
 
     private int columnCount = 1;
-    private OnListFragmentInteractionListener listener;
-    private VideoViewHolderProcessor videoViewHolderProcessor;
+    private Listener listener;
+    private VideoViewHolderProcessor holderProcessor;
     private ActionButton actionButton;
     private VideosRepository repository;
     private VideoViewModel videoViewModel;
@@ -106,14 +106,14 @@ public class VideoFragment extends Fragment {
     public VideoFragment() {
     }
 
-    public static VideoFragment newInstance(VideoViewHolderProcessor videoViewHolderProcessor,
+    public static VideoFragment newInstance(VideoViewHolderProcessor holderProcessor,
                                             ActionButton actionButton, VideoEventHandler handler) {
         VideoFragment fragment = new VideoFragment();
         Bundle args = new Bundle();
         int columnCount = 1;
         args.putInt(ARG_COLUMN_COUNT, columnCount);
         fragment.setArguments(args);
-        fragment.videoViewHolderProcessor = videoViewHolderProcessor;
+        fragment.holderProcessor = holderProcessor;
         fragment.actionButton = actionButton;
         fragment.videoEventHandler = handler;
         return fragment;
@@ -137,8 +137,7 @@ public class VideoFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_video_list, container, false);
 
         EventBus.getDefault().register(videoEventHandler);
@@ -154,7 +153,7 @@ public class VideoFragment extends Fragment {
             }
 
             adapter = new VideoRecyclerViewAdapter(listener, getContext(), actionButton.toString(),
-                    videoViewHolderProcessor, videoViewModel);
+                    holderProcessor, videoViewModel);
             recyclerView.setAdapter(adapter);
 
             FragmentActivity activity = getActivity();
@@ -206,10 +205,10 @@ public class VideoFragment extends Fragment {
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
 
-        if (context instanceof OnListFragmentInteractionListener) {
-            listener = (OnListFragmentInteractionListener) context;
+        if (context instanceof Listener) {
+            listener = (Listener) context;
         } else {
-            throw new RuntimeException(context.toString() + " must implement OnListFragmentInteractionListener");
+            throw new RuntimeException(context.toString() + " must implement VideoFragment.Listener");
         }
     }
 
@@ -254,7 +253,7 @@ public class VideoFragment extends Fragment {
      * "http://developer.android.com/training/basics/fragments/communicating.html"
      * >Communicating with Other Fragments</a> for more information.
      */
-    public interface OnListFragmentInteractionListener {
+    public interface Listener {
         void onListFragmentInteraction(Video item);
     }
 }

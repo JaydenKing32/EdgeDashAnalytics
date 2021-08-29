@@ -26,7 +26,6 @@ import com.example.edgedashanalytics.event.video.AddEvent;
 import com.example.edgedashanalytics.event.video.RemoveEvent;
 import com.example.edgedashanalytics.event.video.Type;
 import com.example.edgedashanalytics.model.Video;
-import com.example.edgedashanalytics.page.main.VideoFragment.OnListFragmentInteractionListener;
 import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.video.analysis.VideoAnalysisIntentService;
 import com.example.edgedashanalytics.util.video.viewholderprocessor.VideoViewHolderProcessor;
@@ -37,28 +36,25 @@ import java.util.List;
 
 /**
  * {@link RecyclerView.Adapter} that can display a {@link Video} and makes a call to the
- * specified {@link OnListFragmentInteractionListener}.
+ * specified {@link VideoFragment.Listener}.
  */
 public class VideoRecyclerViewAdapter extends RecyclerView.Adapter<VideoRecyclerViewAdapter.VideoViewHolder> {
     private static final String TAG = VideoRecyclerViewAdapter.class.getSimpleName();
-    private final OnListFragmentInteractionListener listFragmentInteractionListener;
+    private final VideoFragment.Listener listener;
     private final String BUTTON_ACTION_TEXT;
 
     private final Context context;
     private List<Video> videos;
     private SelectionTracker<Long> tracker;
-    private final VideoViewHolderProcessor videoViewHolderProcessor;
+    private final VideoViewHolderProcessor holderProcessor;
     private final VideoViewModel viewModel;
 
-    VideoRecyclerViewAdapter(OnListFragmentInteractionListener listener,
-                             Context context,
-                             String buttonText,
-                             VideoViewHolderProcessor videoViewHolderProcessor,
-                             VideoViewModel videoViewModel) {
-        this.listFragmentInteractionListener = listener;
+    VideoRecyclerViewAdapter(VideoFragment.Listener listener, Context context, String buttonText,
+                             VideoViewHolderProcessor holderProcessor, VideoViewModel videoViewModel) {
+        this.listener = listener;
         this.context = context;
         this.BUTTON_ACTION_TEXT = buttonText;
-        this.videoViewHolderProcessor = videoViewHolderProcessor;
+        this.holderProcessor = holderProcessor;
         this.viewModel = videoViewModel;
         setHasStableIds(true);
     }
@@ -98,11 +94,11 @@ public class VideoRecyclerViewAdapter extends RecyclerView.Adapter<VideoRecycler
         holder.videoFileNameView.setText(videos.get(position).getName());
         holder.actionButton.setText(BUTTON_ACTION_TEXT);
 
-        videoViewHolderProcessor.process(context, viewModel, holder, position);
+        holderProcessor.process(context, viewModel, holder, position);
 
         holder.view.setOnClickListener(v -> {
-            if (null != listFragmentInteractionListener) {
-                listFragmentInteractionListener.onListFragmentInteraction(holder.video);
+            if (null != listener) {
+                listener.onListFragmentInteraction(holder.video);
             }
         });
 
