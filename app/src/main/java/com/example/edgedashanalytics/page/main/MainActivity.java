@@ -29,9 +29,6 @@ import com.example.edgedashanalytics.util.nearby.NearbyFragment;
 import com.example.edgedashanalytics.util.video.eventhandler.ProcessingVideosEventHandler;
 import com.example.edgedashanalytics.util.video.eventhandler.RawVideosEventHandler;
 import com.example.edgedashanalytics.util.video.eventhandler.ResultEventHandler;
-import com.example.edgedashanalytics.util.video.viewholderprocessor.ProcessingVideosViewHolderProcessor;
-import com.example.edgedashanalytics.util.video.viewholderprocessor.RawVideosViewHolderProcessor;
-import com.example.edgedashanalytics.util.video.viewholderprocessor.ResultViewHolderProcessor;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity implements
@@ -146,12 +143,10 @@ public class MainActivity extends AppCompatActivity implements
         ResultRepository resultRepository = new ResultRepository();
 
         connectionFragment = new ConnectionFragment();
-        rawFragment = VideoFragment.newInstance(new RawVideosViewHolderProcessor(), ActionButton.ADD,
-                new RawVideosEventHandler(rawRepository));
-        processingFragment = VideoFragment.newInstance(new ProcessingVideosViewHolderProcessor(), ActionButton.REMOVE,
+        rawFragment = VideoFragment.newInstance(ActionButton.ADD, new RawVideosEventHandler(rawRepository));
+        processingFragment = VideoFragment.newInstance(ActionButton.REMOVE,
                 new ProcessingVideosEventHandler(processingRepository));
-        resultsFragment = ResultsFragment.newInstance(new ResultViewHolderProcessor(), ActionButton.NULL,
-                new ResultEventHandler(resultRepository));
+        resultsFragment = ResultsFragment.newInstance(ActionButton.NULL, new ResultEventHandler(resultRepository));
 
         supportFragmentManager.beginTransaction().add(R.id.main_container, connectionFragment, "4").hide(connectionFragment).commit();
         supportFragmentManager.beginTransaction().add(R.id.main_container, resultsFragment, "3").hide(resultsFragment).commit();

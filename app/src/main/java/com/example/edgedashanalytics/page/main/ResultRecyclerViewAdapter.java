@@ -6,14 +6,13 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.edgedashanalytics.R;
-import com.example.edgedashanalytics.data.result.ResultViewModel;
 import com.example.edgedashanalytics.model.Result;
-import com.example.edgedashanalytics.util.video.viewholderprocessor.ResultViewHolderProcessor;
 
 import java.util.List;
 
@@ -23,15 +22,10 @@ public class ResultRecyclerViewAdapter extends RecyclerView.Adapter<ResultRecycl
     private final String BUTTON_ACTION_TEXT;
 
     private List<Result> results;
-    private final ResultViewHolderProcessor holderProcessor;
-    private final ResultViewModel viewModel;
 
-    ResultRecyclerViewAdapter(ResultsFragment.Listener listener, String buttonText,
-                              ResultViewHolderProcessor holderProcessor, ResultViewModel viewModel) {
+    ResultRecyclerViewAdapter(ResultsFragment.Listener listener, String buttonText) {
         this.listener = listener;
         this.BUTTON_ACTION_TEXT = buttonText;
-        this.holderProcessor = holderProcessor;
-        this.viewModel = viewModel;
         setHasStableIds(true);
     }
 
@@ -49,12 +43,13 @@ public class ResultRecyclerViewAdapter extends RecyclerView.Adapter<ResultRecycl
         holder.resultFileNameView.setText(results.get(position).getName());
         holder.actionButton.setText(BUTTON_ACTION_TEXT);
 
-        holderProcessor.process(holder.view.getContext(), viewModel, holder, position);
-
-        holder.view.setOnClickListener(v -> {
-            if (null != listener) {
-                listener.onListFragmentInteraction(holder.result);
-            }
+        holder.actionButton.setOnClickListener(v -> {
+            final Result result = holder.result;
+            Toast.makeText(v.getContext(), String.format("Completed analysis of %s", result.getName()),
+                    Toast.LENGTH_SHORT).show();
+//            if (null != listener) {
+//                listener.onListFragmentInteraction(holder.result);
+//            }
         });
     }
 
@@ -76,7 +71,7 @@ public class ResultRecyclerViewAdapter extends RecyclerView.Adapter<ResultRecycl
     public static class ResultViewHolder extends RecyclerView.ViewHolder {
         private final View view;
         private final TextView resultFileNameView;
-        public final Button actionButton;
+        private final Button actionButton;
         public Result result;
         private final LinearLayout layout;
 

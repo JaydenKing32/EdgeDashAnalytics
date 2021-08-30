@@ -30,7 +30,6 @@ import com.example.edgedashanalytics.data.video.VideosRepository;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.util.video.VideoDetailsLookup;
 import com.example.edgedashanalytics.util.video.eventhandler.VideoEventHandler;
-import com.example.edgedashanalytics.util.video.viewholderprocessor.VideoViewHolderProcessor;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -47,7 +46,6 @@ public class VideoFragment extends Fragment {
 
     private int columnCount = 1;
     private Listener listener;
-    private VideoViewHolderProcessor holderProcessor;
     private ActionButton actionButton;
     private VideosRepository repository;
     private VideoViewModel videoViewModel;
@@ -106,14 +104,12 @@ public class VideoFragment extends Fragment {
     public VideoFragment() {
     }
 
-    public static VideoFragment newInstance(VideoViewHolderProcessor holderProcessor,
-                                            ActionButton actionButton, VideoEventHandler handler) {
+    public static VideoFragment newInstance(ActionButton actionButton, VideoEventHandler handler) {
         VideoFragment fragment = new VideoFragment();
         Bundle args = new Bundle();
         int columnCount = 1;
         args.putInt(ARG_COLUMN_COUNT, columnCount);
         fragment.setArguments(args);
-        fragment.holderProcessor = holderProcessor;
         fragment.actionButton = actionButton;
         fragment.videoEventHandler = handler;
         return fragment;
@@ -152,7 +148,7 @@ public class VideoFragment extends Fragment {
                 recyclerView.setLayoutManager(new GridLayoutManager(context, columnCount));
             }
 
-            adapter = new VideoRecyclerViewAdapter(listener, actionButton.toString(), holderProcessor, videoViewModel);
+            adapter = new VideoRecyclerViewAdapter(listener, actionButton.toString());
             recyclerView.setAdapter(adapter);
 
             FragmentActivity activity = getActivity();

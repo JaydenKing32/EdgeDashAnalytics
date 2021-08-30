@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +14,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.selection.ItemDetailsLookup;
@@ -21,14 +23,12 @@ import androidx.recyclerview.selection.SelectionTracker;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.edgedashanalytics.R;
-import com.example.edgedashanalytics.data.video.VideoViewModel;
 import com.example.edgedashanalytics.event.video.AddEvent;
 import com.example.edgedashanalytics.event.video.RemoveEvent;
 import com.example.edgedashanalytics.event.video.Type;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.video.analysis.VideoAnalysisIntentService;
-import com.example.edgedashanalytics.util.video.viewholderprocessor.VideoViewHolderProcessor;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -45,15 +45,10 @@ public class VideoRecyclerViewAdapter extends RecyclerView.Adapter<VideoRecycler
 
     private List<Video> videos;
     private SelectionTracker<Long> tracker;
-    private final VideoViewHolderProcessor holderProcessor;
-    private final VideoViewModel viewModel;
 
-    VideoRecyclerViewAdapter(VideoFragment.Listener listener, String buttonText,
-                             VideoViewHolderProcessor holderProcessor, VideoViewModel videoViewModel) {
+    VideoRecyclerViewAdapter(VideoFragment.Listener listener, String buttonText) {
         this.listener = listener;
         this.BUTTON_ACTION_TEXT = buttonText;
-        this.holderProcessor = holderProcessor;
-        this.viewModel = videoViewModel;
         setHasStableIds(true);
     }
 
@@ -92,16 +87,41 @@ public class VideoRecyclerViewAdapter extends RecyclerView.Adapter<VideoRecycler
         holder.videoFileNameView.setText(videos.get(position).getName());
         holder.actionButton.setText(BUTTON_ACTION_TEXT);
 
-        holderProcessor.process(holder.view.getContext(), viewModel, holder, position);
+        holder.actionButton.setOnClickListener(v -> {
+//            if (null != listener) {
+//                listener.onListFragmentInteraction(holder.video);
+//            }
+            if (BUTTON_ACTION_TEXT.equals(ActionButton.REMOVE.toString())) {
+                final Video video = holder.video;
+                Log.v(TAG, String.format("Removed %s from processing queue", video));
 
-        holder.view.setOnClickListener(v -> {
-            if (null != listener) {
-                listener.onListFragmentInteraction(holder.video);
+                EventBus.getDefault().post(new RemoveEvent(video, Type.PROCESSING));
+                EventBus.getDefault().post(new AddEvent(video, Type.RAW));
+
+                Toast.makeText(v.getContext(), "Remove from processing queue", Toast.LENGTH_SHORT).show();
+            } else {
+                final Video video = holder.video;
+                Log.v(TAG, String.format("User selected %s", video));
+                final String output = String.format("%s/%s", getResultDirPath(),
+                        FileManager.getResultNameFromVideoName(video.getName()));
+
+                Intent analyseIntent = new Intent(v.getContext(), VideoAnalysisIntentService.class);
+                analyseIntent.putExtra(VideoAnalysisIntentService.VIDEO_KEY, video);
+                analyseIntent.putExtra(VideoAnalysisIntentService.OUTPUT_KEY, output);
+                v.getContext().startService(analyseIntent);
+
+                EventBus.getDefault().post(new AddEvent(video, Type.PROCESSING));
+                EventBus.getDefault().post(new RemoveEvent(video, Type.RAW));
+
+                Toast.makeText(v.getContext(), "Add to processing queue", Toast.LENGTH_SHORT).show();
             }
         });
 
         if (tracker.isSelected(getItemId(position))) {
             holder.layout.setBackgroundResource(android.R.color.darker_gray);
+        } else if (BUTTON_ACTION_TEXT.equals(ActionButton.REMOVE.toString()) && position == 0) {
+            holder.layout.setBackgroundResource(android.R.color.holo_green_light);
+            holder.actionButton.setEnabled(false);
         } else {
             holder.layout.setBackgroundResource(android.R.color.transparent);
         }
@@ -129,10 +149,10 @@ public class VideoRecyclerViewAdapter extends RecyclerView.Adapter<VideoRecycler
 
 
     public static class VideoViewHolder extends RecyclerView.ViewHolder {
-        public final View view;
+        private final View view;
         private final ImageView thumbnailView;
         private final TextView videoFileNameView;
-        public final Button actionButton;
+        private final Button actionButton;
         public Video video;
         private final LinearLayout layout;
 

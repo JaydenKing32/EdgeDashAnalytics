@@ -264,6 +264,20 @@ public abstract class NearbyFragment extends Fragment {
         connectionsClient.sendPayload(toEndpointId, filenameBytesPayload);
     }
 
+    private void queueVideo(Video video, Command command) {
+        transferQueue.add(new Message(video, command));
+    }
+
+    public void addVideo(Video video) {
+        Context context = getContext();
+        if (context == null) {
+            Log.e(TAG, "No context");
+            return;
+        }
+
+        queueVideo(video, Command.ANALYSE);
+    }
+
     private void sendFile(Message message, Endpoint toEndpoint) {
         if (message == null || toEndpoint == null) {
             Log.e(TAG, "No message or endpoint selected");
@@ -360,6 +374,10 @@ public abstract class NearbyFragment extends Fragment {
         void disconnectEndpoint(Endpoint endpoint);
 
         void removeEndpoint(Endpoint endpoint);
+
+//        boolean isConnected();
+//
+//        void addVideo(Video video);
     }
 
     private class ReceiveFilePayloadCallback extends PayloadCallback {

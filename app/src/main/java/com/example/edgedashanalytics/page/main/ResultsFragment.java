@@ -21,7 +21,6 @@ import com.example.edgedashanalytics.data.result.ResultViewModel;
 import com.example.edgedashanalytics.data.result.ResultViewModelFactory;
 import com.example.edgedashanalytics.model.Result;
 import com.example.edgedashanalytics.util.video.eventhandler.ResultEventHandler;
-import com.example.edgedashanalytics.util.video.viewholderprocessor.ResultViewHolderProcessor;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -38,7 +37,6 @@ public class ResultsFragment extends Fragment {
 
     private int columnCount = 1;
     private Listener listener;
-    private ResultViewHolderProcessor holderProcessor;
     private ActionButton actionButton;
     private ResultRepository repository;
     private ResultViewModel resultViewModel;
@@ -52,14 +50,12 @@ public class ResultsFragment extends Fragment {
     public ResultsFragment() {
     }
 
-    public static ResultsFragment newInstance(ResultViewHolderProcessor holderProcessor,
-                                              ActionButton actionButton, ResultEventHandler handler) {
+    public static ResultsFragment newInstance(ActionButton actionButton, ResultEventHandler handler) {
         ResultsFragment fragment = new ResultsFragment();
         Bundle args = new Bundle();
         int columnCount = 1;
         args.putInt(ARG_COLUMN_COUNT, columnCount);
         fragment.setArguments(args);
-        fragment.holderProcessor = holderProcessor;
         fragment.actionButton = actionButton;
         fragment.resultEventHandler = handler;
         return fragment;
@@ -83,8 +79,7 @@ public class ResultsFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_result_list, container, false);
 
         EventBus.getDefault().register(resultEventHandler);
@@ -99,8 +94,7 @@ public class ResultsFragment extends Fragment {
                 recyclerView.setLayoutManager(new GridLayoutManager(context, columnCount));
             }
 
-            adapter = new ResultRecyclerViewAdapter(
-                    listener, actionButton.toString(), holderProcessor, resultViewModel);
+            adapter = new ResultRecyclerViewAdapter(listener, actionButton.toString());
             recyclerView.setAdapter(adapter);
 
             FragmentActivity activity = getActivity();
