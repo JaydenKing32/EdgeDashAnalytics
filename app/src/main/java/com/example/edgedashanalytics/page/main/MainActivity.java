@@ -199,7 +199,18 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     @Override
-    public void onListFragmentInteraction(Video item) {
+    public boolean getIsConnected() {
+        return isConnected();
+    }
+
+    @Override
+    public void getAddVideo(Video video) {
+        addVideo(video);
+    }
+
+    @Override
+    public void getNextTransfer() {
+        nextTransfer();
     }
 
     @Override
@@ -219,5 +230,20 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public void removeEndpoint(Endpoint endpoint) {
         connectionFragment.removeEndpoint(endpoint);
+    }
+
+    @Override
+    public boolean isConnected() {
+        return connectionFragment.isConnected();
+    }
+
+    @Override
+    public void addVideo(Video video) {
+        connectionFragment.addVideo(video);
+    }
+
+    @Override
+    public void nextTransfer() {
+        connectionFragment.nextTransfer();
     }
 }

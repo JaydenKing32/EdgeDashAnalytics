@@ -32,15 +32,28 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
 
     List<Video> videos;
     SelectionTracker<Long> tracker;
+    VideoFragment.Listener listener;
+
+    VideoRecyclerViewAdapter(VideoFragment.Listener listener) {
+        this.listener = listener;
+        setHasStableIds(true);
+    }
 
     void setTracker(SelectionTracker<Long> tracker) {
         this.tracker = tracker;
     }
 
     void processSelected(Selection<Long> positions, Context context) {
-        for (Long pos : positions) {
-            Video video = videos.get(pos.intValue());
-            AnalysisTools.processVideo(video, context);
+        if (listener.getIsConnected()) {
+            for (Long pos : positions) {
+                Video video = videos.get(pos.intValue());
+                listener.getAddVideo(video);
+            }
+        } else {
+            for (Long pos : positions) {
+                Video video = videos.get(pos.intValue());
+                AnalysisTools.processVideo(video, context);
+            }
         }
     }
 

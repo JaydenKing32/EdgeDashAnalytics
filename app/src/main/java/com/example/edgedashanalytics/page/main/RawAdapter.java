@@ -3,17 +3,14 @@ package com.example.edgedashanalytics.page.main;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.util.video.analysis.AnalysisTools;
 
 public class RawAdapter extends VideoRecyclerViewAdapter {
     private static final String BUTTON_TEXT = ActionButton.ADD.toString();
     private static final String TAG = RawAdapter.class.getSimpleName();
-    private VideoFragment.Listener listener;
 
     RawAdapter(VideoFragment.Listener listener) {
-        this.listener = listener;
-        setHasStableIds(true);
+        super(listener);
     }
 
     @Override
@@ -24,14 +21,20 @@ public class RawAdapter extends VideoRecyclerViewAdapter {
         holder.actionButton.setText(BUTTON_TEXT);
 
         holder.actionButton.setOnClickListener(v -> {
-//            if (null != listener) {
-//                listener.onListFragmentInteraction(holder.video);
-//            }
-                final Video video = holder.video;
-                Log.v(TAG, String.format("User selected %s", video));
-                AnalysisTools.processVideo(video, v.getContext());
+            if (listener == null) {
+                Log.e(TAG, "Null listener");
+                return;
+            }
+
+            if (listener.getIsConnected()) {
+                listener.getAddVideo(holder.video);
+                listener.getNextTransfer();
+            } else {
+                Log.v(TAG, String.format("User selected %s", holder.video));
+                AnalysisTools.processVideo(holder.video, v.getContext());
 
                 Toast.makeText(v.getContext(), "Add to processing queue", Toast.LENGTH_SHORT).show();
+            }
         });
 
         if (tracker.isSelected(getItemId(position))) {

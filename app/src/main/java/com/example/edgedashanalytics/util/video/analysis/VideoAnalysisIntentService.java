@@ -15,6 +15,9 @@ import com.example.edgedashanalytics.util.file.FileManager;
 
 import org.greenrobot.eventbus.EventBus;
 
+// TODO: Replace with either:
+//  https://developer.android.com/reference/android/app/job/JobScheduler
+//  https://developer.android.com/reference/androidx/work/WorkManager
 public class VideoAnalysisIntentService extends IntentService {
     private static final String TAG = VideoAnalysisIntentService.class.getSimpleName();
 

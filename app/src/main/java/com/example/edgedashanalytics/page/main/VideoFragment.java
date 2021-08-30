@@ -253,6 +253,10 @@ public class VideoFragment extends Fragment {
      * >Communicating with Other Fragments</a> for more information.
      */
     public interface Listener {
-        void onListFragmentInteraction(Video item);
+        boolean getIsConnected();
+
+        void getAddVideo(Video video);
+
+        void getNextTransfer();
     }
 }

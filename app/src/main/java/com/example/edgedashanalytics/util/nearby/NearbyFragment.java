@@ -50,6 +50,7 @@ import org.greenrobot.eventbus.EventBus;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -63,6 +64,8 @@ public abstract class NearbyFragment extends Fragment {
     private static final String SERVICE_ID = "com.example.edgesum";
     private static final String LOCAL_NAME_KEY = "LOCAL_NAME";
     private static final String MESSAGE_SEPARATOR = "~";
+    private static int transferCount = 0;
+
     private final PayloadCallback payloadCallback = new ReceiveFilePayloadCallback();
     private final Queue<Message> transferQueue = new LinkedList<>();
     private final LinkedHashMap<String, Endpoint> discoveredEndpoints = new LinkedHashMap<>();
@@ -269,13 +272,26 @@ public abstract class NearbyFragment extends Fragment {
     }
 
     public void addVideo(Video video) {
+        queueVideo(video, Command.ANALYSE);
+    }
+
+    public void nextTransfer() {
+        if (transferQueue.isEmpty()) {
+            Log.i(TAG, "Transfer queue is empty");
+            return;
+        }
+
         Context context = getContext();
         if (context == null) {
             Log.e(TAG, "No context");
             return;
         }
 
-        queueVideo(video, Command.ANALYSE);
+        int nextIndex = transferCount % discoveredEndpoints.size();
+        Endpoint toEndpoint = (Endpoint) discoveredEndpoints.values().toArray()[nextIndex];
+        sendFile(transferQueue.remove(), toEndpoint);
+
+        transferCount++;
     }
 
     private void sendFile(Message message, Endpoint toEndpoint) {
@@ -339,7 +355,7 @@ public abstract class NearbyFragment extends Fragment {
     }
 
     private void analyse(Context context, File videoFile, String outPath) {
-        Log.d(TAG, String.format("Summarising %s", videoFile.getName()));
+        Log.d(TAG, String.format("Analysing %s", videoFile.getName()));
 
         Video video = VideoManager.getVideoFromPath(context, videoFile.getAbsolutePath());
         EventBus.getDefault().post(new AddEvent(video, Type.PROCESSING));
@@ -375,9 +391,11 @@ public abstract class NearbyFragment extends Fragment {
 
         void removeEndpoint(Endpoint endpoint);
 
-//        boolean isConnected();
-//
-//        void addVideo(Video video);
+        boolean isConnected();
+
+        void addVideo(Video video);
+
+        void nextTransfer();
     }
 
     private class ReceiveFilePayloadCallback extends PayloadCallback {
@@ -493,12 +511,12 @@ public abstract class NearbyFragment extends Fragment {
                     return;
                 }
 
-                Uri payloadUri = payload.asUri();
-                if (payloadUri == null) {
+                //noinspection deprecation
+                File payloadFile = payload.asJavaFile();
+                if (payloadFile == null) {
                     Log.e(TAG, String.format("Could not create file payload for %s", filename));
                     return;
                 }
-                File payloadFile = new File(payloadUri.getPath());
 
                 // Rename the file.
                 File receivedFile = new File(payloadFile.getParentFile(), filename);
@@ -517,7 +535,7 @@ public abstract class NearbyFragment extends Fragment {
                     File resultsDest = new File(resultsDestPath);
 
                     try {
-                        FileManager.copy(receivedFile, resultsDest);
+                        Files.copy(receivedFile.toPath(), resultsDest.toPath());
                     } catch (IOException e) {
                         Log.e(TAG, String.format("processFilePayload copy error: \n%s", e.getMessage()));
                     }

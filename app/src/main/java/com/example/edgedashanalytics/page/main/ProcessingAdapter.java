@@ -13,11 +13,9 @@ import org.greenrobot.eventbus.EventBus;
 public class ProcessingAdapter extends VideoRecyclerViewAdapter {
     private static final String BUTTON_TEXT = ActionButton.REMOVE.toString();
     private static final String TAG = ProcessingAdapter.class.getSimpleName();
-    private VideoFragment.Listener listener;
 
     ProcessingAdapter(VideoFragment.Listener listener) {
-        this.listener = listener;
-        setHasStableIds(true);
+        super(listener);
     }
 
     @Override
@@ -28,9 +26,9 @@ public class ProcessingAdapter extends VideoRecyclerViewAdapter {
         holder.actionButton.setText(BUTTON_TEXT);
 
         holder.actionButton.setOnClickListener(v -> {
-//            if (null != listener) {
-//                listener.onListFragmentInteraction(holder.video);
-//            }
+            if (null != listener) {
+                listener.getIsConnected();
+            }
             final Video video = holder.video;
             Log.v(TAG, String.format("Removed %s from processing queue", video));
 
