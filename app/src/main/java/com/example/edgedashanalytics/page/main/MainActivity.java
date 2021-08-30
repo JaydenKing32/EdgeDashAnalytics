@@ -143,9 +143,10 @@ public class MainActivity extends AppCompatActivity implements
         ResultRepository resultRepository = new ResultRepository();
 
         connectionFragment = new ConnectionFragment();
-        rawFragment = VideoFragment.newInstance(ActionButton.ADD, new RawVideosEventHandler(rawRepository));
+        rawFragment = VideoFragment.newInstance(ActionButton.ADD,
+                new RawVideosEventHandler(rawRepository), RawAdapter::new);
         processingFragment = VideoFragment.newInstance(ActionButton.REMOVE,
-                new ProcessingVideosEventHandler(processingRepository));
+                new ProcessingVideosEventHandler(processingRepository), ProcessingAdapter::new);
         resultsFragment = ResultsFragment.newInstance(ActionButton.NULL, new ResultEventHandler(resultRepository));
 
         supportFragmentManager.beginTransaction().add(R.id.main_container, connectionFragment, "4").hide(connectionFragment).commit();

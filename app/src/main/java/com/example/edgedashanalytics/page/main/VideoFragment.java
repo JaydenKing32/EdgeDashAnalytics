@@ -35,6 +35,7 @@ import org.greenrobot.eventbus.EventBus;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -51,6 +52,7 @@ public class VideoFragment extends Fragment {
     private VideoViewModel videoViewModel;
     private VideoEventHandler videoEventHandler;
     private VideoRecyclerViewAdapter adapter;
+    private Function<Listener, VideoRecyclerViewAdapter> adapterCreator;
 
     private ActionMode actionMode;
     private SelectionTracker<Long> tracker;
@@ -104,7 +106,8 @@ public class VideoFragment extends Fragment {
     public VideoFragment() {
     }
 
-    public static VideoFragment newInstance(ActionButton actionButton, VideoEventHandler handler) {
+    public static VideoFragment newInstance(ActionButton actionButton, VideoEventHandler handler,
+                                            Function<Listener, VideoRecyclerViewAdapter> adapterCreator) {
         VideoFragment fragment = new VideoFragment();
         Bundle args = new Bundle();
         int columnCount = 1;
@@ -112,6 +115,7 @@ public class VideoFragment extends Fragment {
         fragment.setArguments(args);
         fragment.actionButton = actionButton;
         fragment.videoEventHandler = handler;
+        fragment.adapterCreator = adapterCreator;
         return fragment;
     }
 
@@ -148,7 +152,7 @@ public class VideoFragment extends Fragment {
                 recyclerView.setLayoutManager(new GridLayoutManager(context, columnCount));
             }
 
-            adapter = new VideoRecyclerViewAdapter(listener, actionButton.toString());
+            adapter = adapterCreator.apply(listener);
             recyclerView.setAdapter(adapter);
 
             FragmentActivity activity = getActivity();
