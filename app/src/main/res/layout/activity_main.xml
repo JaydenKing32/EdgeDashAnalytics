@@ -23,7 +23,7 @@
         android:id="@+id/appBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+        android:theme="@style/Theme.EdgeDashAnalytics"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -33,7 +33,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
-            app:popupTheme="@style/ThemeOverlay.AppCompat.Dark" />
+            app:popupTheme="@style/Theme.EdgeDashAnalytics" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -42,7 +42,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        app:itemBackground="@android:color/background_dark"
+        app:itemBackground="?attr/colorPrimary"
         app:itemIconTint="@drawable/item_color_state"
         app:itemTextColor="@drawable/item_color_state"
         app:layout_constraintBottom_toBottomOf="parent"
