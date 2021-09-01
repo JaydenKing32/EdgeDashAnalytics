@@ -79,6 +79,7 @@ class VideoAnalysis {
                             .setLabelAllowList(Collections.singletonList("person"))
                             .build();
 
+            // TODO: add preference to select model
             String modelFile = "lite-model_ssd_mobilenet_v1_1_metadata_2.tflite";
             // String modelFile = "lite-model_efficientdet_lite4_detection_metadata_2.tflite";
             detector = ObjectDetector.createFromFileAndOptions(context, modelFile, objectDetectorOptions);
@@ -367,7 +368,7 @@ class VideoAnalysis {
             other.getBoundingBox().roundOut(boxB);
             // expandRect(boxB, offset);
 
-            if (!boxA.equals(boxB) && boxA.intersect(boxB)) {
+            if (!object.equals(other) && boxA.intersect(boxB)) {
                 return true;
             }
         }
