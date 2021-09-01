@@ -149,7 +149,7 @@ public class MainActivity extends AppCompatActivity implements
                 new RawVideosEventHandler(rawRepository), RawAdapter::new);
         processingFragment = VideoFragment.newInstance(ActionButton.REMOVE,
                 new ProcessingVideosEventHandler(processingRepository), ProcessingAdapter::new);
-        resultsFragment = ResultsFragment.newInstance(ActionButton.NULL, new ResultEventHandler(resultRepository));
+        resultsFragment = ResultsFragment.newInstance(ActionButton.OPEN, new ResultEventHandler(resultRepository));
 
         supportFragmentManager.beginTransaction().add(R.id.main_container, connectionFragment, "4").hide(connectionFragment).commit();
         supportFragmentManager.beginTransaction().add(R.id.main_container, resultsFragment, "3").hide(resultsFragment).commit();

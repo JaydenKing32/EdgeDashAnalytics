@@ -1,19 +1,22 @@
 package com.example.edgedashanalytics.page.main;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.model.Result;
 
+import java.io.File;
 import java.util.List;
 
 public class ResultRecyclerViewAdapter extends RecyclerView.Adapter<ResultRecyclerViewAdapter.ResultViewHolder> {
@@ -44,9 +47,13 @@ public class ResultRecyclerViewAdapter extends RecyclerView.Adapter<ResultRecycl
         holder.actionButton.setText(BUTTON_ACTION_TEXT);
 
         holder.actionButton.setOnClickListener(v -> {
-            final Result result = holder.result;
-            Toast.makeText(v.getContext(), String.format("Completed analysis of %s", result.getName()),
-                    Toast.LENGTH_SHORT).show();
+            File resultFile = new File(holder.result.getData());
+            Uri contentUri = FileProvider.getUriForFile(v.getContext(), "com.example.edgedashanalytics.fileprovider", resultFile);
+
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(contentUri, "text/*");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            v.getContext().startActivity(intent);
 //            if (null != listener) {
 //                listener.onListFragmentInteraction(holder.result);
 //            }
