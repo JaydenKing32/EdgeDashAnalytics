@@ -3,8 +3,12 @@ package com.example.edgedashanalytics.util.video.analysis;
 import static com.example.edgedashanalytics.util.file.FileManager.getResultDirPath;
 
 import android.content.Context;
-import android.content.Intent;
 import android.util.Log;
+
+import androidx.work.Data;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
+import androidx.work.WorkRequest;
 
 import com.example.edgedashanalytics.event.video.AddEvent;
 import com.example.edgedashanalytics.event.video.RemoveEvent;
@@ -23,10 +27,13 @@ public class AnalysisTools {
         final String output = String.format("%s/%s", getResultDirPath(),
                 FileManager.getResultNameFromVideoName(video.getName()));
 
-        Intent analyseIntent = new Intent(context, VideoAnalysisIntentService.class);
-        analyseIntent.putExtra(VideoAnalysisIntentService.VIDEO_KEY, video);
-        analyseIntent.putExtra(VideoAnalysisIntentService.OUTPUT_KEY, output);
-        context.startService(analyseIntent);
+        WorkRequest analysisWorkRequest = new OneTimeWorkRequest.Builder(AnalysisWorker.class)
+                .setInputData(new Data.Builder()
+                        .putString(AnalysisWorker.IN_KEY, video.getData())
+                        .putString(AnalysisWorker.OUT_KEY, output).build())
+                .build();
+        WorkManager workManager = WorkManager.getInstance(context);
+        workManager.enqueue(analysisWorkRequest);
 
         EventBus.getDefault().post(new AddEvent(video, Type.PROCESSING));
         EventBus.getDefault().post(new RemoveEvent(video, Type.RAW));
