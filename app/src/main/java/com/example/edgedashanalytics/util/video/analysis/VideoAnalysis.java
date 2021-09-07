@@ -26,9 +26,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map.Entry;
 import java.util.StringJoiner;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 // https://www.tensorflow.org/lite/models/object_detection/overview
@@ -48,7 +45,6 @@ public class VideoAnalysis {
     private final int threadNum;
     private final int bufferSize;
 
-    private CountDownLatch completionLatch;
     private HashMap<Integer, List<Detection>> frameDetections;
     private long scaleFactor = 1;
 
@@ -105,36 +101,26 @@ public class VideoAnalysis {
         String startString = String.format("Starting analysis of %s", videoName);
         Log.d(String.format("!%s", TAG), startString);
         Log.d(TAG, String.format("Total frames of %s: %d", videoName, totalFrames));
+
         startFrameProcessing(detector, retriever, totalFrames);
+        writeResultsToJson(outPath);
 
-        try {
-            completionLatch.await();
-            writeResultsToJson(outPath);
+        long duration = Duration.between(start, Instant.now()).toMillis();
+        String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
 
-            long duration = Duration.between(start, Instant.now()).toMillis();
-            String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
-
-            String endString = String.format(Locale.ENGLISH, "Completed analysis of %s in %ss with %d threads",
-                    videoName, time, threadNum);
-            Log.d(String.format("!%s", TAG), endString);
-        } catch (InterruptedException e) {
-            Log.w(TAG, String.format("Interrupted task:\n  %s", e.getMessage()));
-        }
+        String endString = String.format(Locale.ENGLISH, "Completed analysis of %s in %ss with %d threads",
+                videoName, time, threadNum);
+        Log.d(String.format("!%s", TAG), endString);
     }
 
-    private void startFrameProcessing(ObjectDetector detector, MediaMetadataRetriever retriever,
-                                      int totalFrames) {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        completionLatch = new CountDownLatch(totalFrames);
+    private void startFrameProcessing(ObjectDetector detector, MediaMetadataRetriever retriever, int totalFrames) {
         frameDetections = new HashMap<>(totalFrames);
 
-        simpleFramesLoop(detector, retriever, totalFrames, executor);
-//        delayedFramesLoop(detector, retriever, totalFrames, executor);
-//        scaledFramesLoop(detector, retriever, totalFrames, executor);
+        simpleFramesLoop(detector, retriever, totalFrames);
+        // scaledFramesLoop(detector, retriever, totalFrames);
     }
 
-    private void simpleFramesLoop(ObjectDetector detector, MediaMetadataRetriever retriever,
-                                  int totalFrames, ExecutorService executor) {
+    private void simpleFramesLoop(ObjectDetector detector, MediaMetadataRetriever retriever, int totalFrames) {
         // getFramesAtIndex is inconsistent, seems to only reliably with x264, may fail with other codecs
         // Using getFramesAtIndex on a full video requires too much memory, while extracting each frame separately
         // through getFrameAtIndex is too slow. Instead use a buffer, extracting groups of frames
@@ -154,46 +140,12 @@ public class VideoAnalysis {
                     continue;
                 }
 
-                Runnable imageRunnable = processFrame(detector, bitmap, curFrame);
-                executor.submit(imageRunnable);
-//                Runnable testRunnable = () -> Log.v(TAG, Integer.toString(curFrame));
-//                executor.submit(testRunnable);
+                processFrame(detector, bitmap, curFrame);
             }
         }
     }
 
-    private void delayedFramesLoop(ObjectDetector detector, MediaMetadataRetriever retriever,
-                                   int totalFrames, ExecutorService executor) {
-        for (int i = 0; i < totalFrames; i += bufferSize) {
-            if (Thread.currentThread().isInterrupted()) {
-                return;
-            }
-            int frameBuffSize = Integer.min(bufferSize, totalFrames - i);
-            List<Bitmap> frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize);
-            completionLatch = new CountDownLatch(frameBuffSize);
-
-            for (int k = 0; k < frameBuffSize; k++) {
-                Bitmap bitmap = frameBuffer.get(k);
-                int curFrame = i + k;
-
-                if (bitmap == null) {
-                    Log.w(TAG, String.format("Could not extract frame at index %d", curFrame));
-                    continue;
-                }
-
-                Runnable imageRunnable = processFrame(detector, bitmap, curFrame);
-                executor.submit(imageRunnable);
-            }
-            try {
-                completionLatch.await();
-            } catch (InterruptedException e) {
-                Log.w(TAG, String.format("Interrupted task:\n  %s", e.getMessage()));
-            }
-        }
-    }
-
-    private void scaledFramesLoop(ObjectDetector detector, MediaMetadataRetriever retriever,
-                                  int totalFrames, ExecutorService executor) {
+    private void scaledFramesLoop(ObjectDetector detector, MediaMetadataRetriever retriever, int totalFrames) {
         String videoWidthString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH);
         String videoHeightString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT);
 
@@ -227,44 +179,38 @@ public class VideoAnalysis {
                     continue;
                 }
 
-                Runnable imageRunnable = processFrame(detector, bitmap, curFrame);
-                executor.submit(imageRunnable);
+                processFrame(detector, bitmap, curFrame);
             }
         }
     }
 
 
-    private Runnable processFrame(ObjectDetector detector, Bitmap bitmap, int frameIndex) {
-        return () -> {
-            if (Thread.currentThread().isInterrupted()) {
-                Log.e(TAG, String.format("Stopping at frame %d", frameIndex));
-                return;
-            }
-            TensorImage image = TensorImage.fromBitmap(bitmap);
-            List<Detection> detectionList = detector.detect(image);
-            frameDetections.put(frameIndex, detectionList);
+    private void processFrame(ObjectDetector detector, Bitmap bitmap, int frameIndex) {
+        if (Thread.currentThread().isInterrupted()) {
+            Log.e(TAG, String.format("Stopping at frame %d", frameIndex));
+            return;
+        }
+        TensorImage image = TensorImage.fromBitmap(bitmap);
+        List<Detection> detectionList = detector.detect(image);
+        frameDetections.put(frameIndex, detectionList);
 
-            String resultHead = String.format(Locale.ENGLISH,
-                    "Analysis completed for frame: %04d\nDetected objects: %02d\n",
-                    frameIndex, detectionList.size());
-            StringBuilder builder = new StringBuilder(resultHead);
+        String resultHead = String.format(Locale.ENGLISH,
+                "Analysis completed for frame: %04d\nDetected objects: %02d\n",
+                frameIndex, detectionList.size());
+        StringBuilder builder = new StringBuilder(resultHead);
 
-            for (Detection detection : detectionList) {
-                String resultBody = getDetectionString(detection);
-                builder.append(resultBody);
+        for (Detection detection : detectionList) {
+            String resultBody = getDetectionString(detection);
+            builder.append(resultBody);
 
-                if (isClose(detection, detectionList)) {
-                    System.out.println(frameIndex);
-                }
-            }
-            builder.append('\n');
+            // if (isClose(detection, detectionList)) {
+            //     System.out.println(frameIndex);
+            // }
+        }
+        builder.append('\n');
 
-            String resultMessage = builder.toString();
-            Log.v(TAG, resultMessage);
-
-//            Log.v(TAG, String.format("Latch count: %d", frameLatch.getCount()));
-            completionLatch.countDown();
-        };
+        String resultMessage = builder.toString();
+        Log.v(TAG, resultMessage);
     }
 
     private String getDetectionString(Detection detection) {
