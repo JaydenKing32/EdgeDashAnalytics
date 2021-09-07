@@ -4,17 +4,14 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.os.Build;
 import android.os.Parcel;
-import android.os.Parcelable;
 import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
 
 import java.math.BigInteger;
 
-public class Video implements Parcelable {
+public class Video extends Content {
     private final String id;
-    private final String data;
-    private final String name;
     private final BigInteger size;
     private final boolean visible;
     private final String mimeType;
@@ -33,45 +30,40 @@ public class Video implements Parcelable {
     };
 
     public Video(String id, String name, String data, String mimeType, BigInteger size) {
+        super(data, name);
         this.id = id;
-        this.data = data;
-        this.name = name;
         this.size = size;
         this.mimeType = mimeType;
         this.visible = true;
     }
 
     public Video(String id, String name, String data, String mimeType, BigInteger size, boolean visible) {
+        super(data, name);
         this.id = id;
-        this.data = data;
-        this.name = name;
         this.size = size;
         this.mimeType = mimeType;
         this.visible = visible;
     }
 
     public Video(Video video) {
+        super(video.data, video.name);
         this.id = video.id;
-        this.data = video.data;
-        this.name = video.name;
         this.size = video.size;
         this.mimeType = video.mimeType;
         this.visible = video.visible;
     }
 
     public Video(Video video, boolean visible) {
+        super(video.data, video.name);
         this.id = video.id;
-        this.data = video.data;
-        this.name = video.name;
         this.size = video.size;
         this.mimeType = video.mimeType;
         this.visible = visible;
     }
 
     private Video(Parcel in) {
+        super(in.readString(), in.readString());
         this.id = in.readString();
-        this.data = in.readString();
-        this.name = in.readString();
         String size = in.readString();
         if (size != null) {
             this.size = new BigInteger(size);
@@ -84,14 +76,6 @@ public class Video implements Parcelable {
 
     public String getId() {
         return id;
-    }
-
-    public String getData() {
-        return data;
-    }
-
-    public String getName() {
-        return name;
     }
 
     public BigInteger getSize() {
@@ -110,9 +94,9 @@ public class Video implements Parcelable {
     @Override
     public String toString() {
         return "Video{" +
-                "id='" + id + '\'' +
-                ", data='" + data + '\'' +
+                "data='" + data + '\'' +
                 ", name='" + name + '\'' +
+                ", id='" + id + '\'' +
                 ", size=" + size +
                 ", visible=" + visible +
                 ", mimeType='" + mimeType + '\'' +
@@ -126,9 +110,9 @@ public class Video implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel parcel, int i) {
-        parcel.writeString(id);
         parcel.writeString(data);
         parcel.writeString(name);
+        parcel.writeString(id);
         parcel.writeString(size.toString());
         parcel.writeString(mimeType);
         parcel.writeByte(visible ? (byte) 1 : 0);

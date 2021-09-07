@@ -1,12 +1,10 @@
 package com.example.edgedashanalytics.model;
 
 import android.os.Parcel;
-import android.os.Parcelable;
 
-public class Result implements Parcelable {
-    private final String data;
-    private final String name;
+import androidx.annotation.NonNull;
 
+public class Result extends Content {
     public static final Creator<Result> CREATOR = new Creator<Result>() {
         @Override
         public Result createFromParcel(Parcel in) {
@@ -20,13 +18,11 @@ public class Result implements Parcelable {
     };
 
     public Result(String data, String name) {
-        this.data = data;
-        this.name = name;
+        super(data, name);
     }
 
     private Result(Parcel in) {
-        data = in.readString();
-        name = in.readString();
+        super(in.readString(), in.readString());
     }
 
     @Override
@@ -34,17 +30,18 @@ public class Result implements Parcelable {
         return 0;
     }
 
+    @NonNull
+    @Override
+    public String toString() {
+        return "Result{" +
+                "data='" + data + '\'' +
+                ", name='" + name + '\'' +
+                '}';
+    }
+
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(data);
         dest.writeString(name);
-    }
-
-    public String getData() {
-        return data;
-    }
-
-    public String getName() {
-        return name;
     }
 }

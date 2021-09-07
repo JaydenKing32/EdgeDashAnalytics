@@ -39,7 +39,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name=".util.video.analysis.VideoAnalysisIntentService" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

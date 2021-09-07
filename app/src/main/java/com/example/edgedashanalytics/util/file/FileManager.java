@@ -19,6 +19,7 @@ public class FileManager {
     private static final String TAG = FileManager.class.getSimpleName();
 
     private static final String VIDEO_EXTENSION = "mp4";
+    private static final String RESULT_EXTENSION = "json";
     private static final String RAW_DIR_NAME = "raw";
     private static final String RESULTS_DIR_NAME = "results";
     private static final String NEARBY_DIR_NAME = ".nearby";
@@ -97,7 +98,11 @@ public class FileManager {
     }
 
     public static String getResultNameFromVideoName(String filename) {
-        return String.format("%s.json", getBaseName(filename));
+        return String.format("%s.%s", getBaseName(filename), RESULT_EXTENSION);
+    }
+
+    public static String getVideoNameFromResultName(String filename) {
+        return String.format("%s.%s", getBaseName(filename), VIDEO_EXTENSION);
     }
 
     public static File uriToFile(Uri sourceUri, String destPath, Context context) {
