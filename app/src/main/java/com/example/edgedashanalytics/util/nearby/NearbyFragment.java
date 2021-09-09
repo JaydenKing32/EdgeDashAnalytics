@@ -24,6 +24,7 @@ import com.example.edgedashanalytics.event.video.Type;
 import com.example.edgedashanalytics.model.Content;
 import com.example.edgedashanalytics.model.Result;
 import com.example.edgedashanalytics.model.Video;
+import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.nearby.Message.Command;
 import com.example.edgedashanalytics.util.video.VideoManager;
@@ -60,6 +61,8 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public abstract class NearbyFragment extends Fragment {
@@ -74,6 +77,7 @@ public abstract class NearbyFragment extends Fragment {
     private final Queue<Message> transferQueue = new LinkedList<>();
     private final LinkedHashMap<String, Endpoint> discoveredEndpoints = new LinkedHashMap<>();
     private final ExecutorService analysisExecutor = Executors.newSingleThreadExecutor();
+    private final ScheduledExecutorService downloadTaskExecutor = Executors.newSingleThreadScheduledExecutor();
 
     private ConnectionsClient connectionsClient;
     protected DeviceListAdapter deviceAdapter;
@@ -231,6 +235,42 @@ public abstract class NearbyFragment extends Fragment {
         connectionsClient.stopDiscovery();
     }
 
+    // https://stackoverflow.com/a/11944965/8031185
+    protected void startDashDownload() {
+        Context context = getContext();
+        if (context == null) {
+            Log.e(TAG, "No context");
+            return;
+        }
+        // TODO: add preference to select delay
+        int delay = 1;
+
+        Log.i(String.format("!%s", TAG), String.format("Download delay: %ds", delay));
+        Log.i(String.format("!%s", TAG), "Started downloading from dashcam");
+
+        downloadTaskExecutor.scheduleWithFixedDelay(DashCam.downloadTestVideos(this::downloadCallback, context),
+                0, delay, TimeUnit.SECONDS);
+    }
+
+    public void stopDashDownload() {
+        Log.i(String.format("!%s", TAG), "Stopped downloading from dashcam");
+        downloadTaskExecutor.shutdown();
+    }
+
+    private void downloadCallback(Video video) {
+        if (video == null) {
+            stopDashDownload();
+            return;
+        }
+        if (isConnected()) {
+            EventBus.getDefault().post(new AddEvent(video, Type.RAW));
+            addVideo(video);
+            nextTransfer();
+        } else {
+            analyse(video);
+        }
+    }
+
     private List<Endpoint> getConnectedEndpoints() {
         return discoveredEndpoints.values().stream().filter(e -> e.connected).collect(Collectors.toList());
     }
@@ -381,6 +421,22 @@ public abstract class NearbyFragment extends Fragment {
         EventBus.getDefault().post(new AddEvent(video, Type.PROCESSING));
         EventBus.getDefault().post(new RemoveEvent(video, Type.RAW));
 
+        analysisExecutor.submit(analysisRunnable(video, outPath, context));
+    }
+
+    private void analyse(Video video) {
+        Context context = getContext();
+        if (context == null) {
+            Log.e(TAG, "No context");
+            return;
+        }
+
+        Log.d(TAG, String.format("Analysing %s", video.getName()));
+
+        EventBus.getDefault().post(new AddEvent(video, Type.PROCESSING));
+        EventBus.getDefault().post(new RemoveEvent(video, Type.RAW));
+
+        String outPath = FileManager.getResultPathFromVideoName(video.getName());
         analysisExecutor.submit(analysisRunnable(video, outPath, context));
     }
 

@@ -7,6 +7,7 @@
 
     <string name="discover_switch_label">Discover nearby devices</string>
     <string name="advertise_switch_label">Share device information</string>
+    <string name="auto_download_switch_label">Auto-download videos</string>
     <string name="local_name_label">Local Name:</string>
     <string name="connection_status_content_description">connection status</string>
     <string name="disconnect_button_content_description">disconnect button</string>

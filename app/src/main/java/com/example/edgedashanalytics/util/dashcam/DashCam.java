@@ -9,6 +9,7 @@ import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.video.VideoManager;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.greenrobot.eventbus.EventBus;
@@ -21,8 +22,11 @@ import java.net.URL;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -33,6 +37,41 @@ public class DashCam {
     private static final String TAG = DashCam.class.getSimpleName();
     private static final String baseUrl = "http://10.99.77.1/";
     private static final String videoDirUrl = baseUrl + "Record/";
+    private static final Set<String> downloads = new HashSet<>();
+    private static final ArrayList<String> testVideos = new ArrayList<>(Arrays.asList(
+            "./S0=City_Center=Time_12-34=View_001.mp4",
+            "./S0=City_Center=Time_12-34=View_002.mp4",
+            "./S0=City_Center=Time_12-34=View_003.mp4",
+            "./S0=City_Center=Time_12-34=View_004.mp4",
+            "./S0=City_Center=Time_12-34=View_005.mp4",
+            "./S0=City_Center=Time_12-34=View_006.mp4",
+            "./S0=City_Center=Time_12-34=View_007.mp4",
+            "./S0=City_Center=Time_12-34=View_008.mp4",
+            "./S0=City_Center=Time_14-55=View_001.mp4",
+            "./S0=City_Center=Time_14-55=View_002.mp4",
+            "./S0=City_Center=Time_14-55=View_003.mp4",
+            "./S0=City_Center=Time_14-55=View_004.mp4",
+            "./S0=Regular_Flow=Time_13-57=View_001.mp4",
+            "./S0=Regular_Flow=Time_13-57=View_002.mp4",
+            "./S0=Regular_Flow=Time_13-57=View_003.mp4",
+            "./S0=Regular_Flow=Time_13-57=View_004.mp4",
+            "./S0=Regular_Flow=Time_13-59=View_001.mp4",
+            "./S0=Regular_Flow=Time_13-59=View_002.mp4",
+            "./S0=Regular_Flow=Time_13-59=View_003.mp4",
+            "./S0=Regular_Flow=Time_13-59=View_004.mp4",
+            "./S0=Regular_Flow=Time_14-03=View_001.mp4",
+            "./S0=Regular_Flow=Time_14-03=View_002.mp4",
+            "./S0=Regular_Flow=Time_14-03=View_003.mp4",
+            "./S0=Regular_Flow=Time_14-03=View_004.mp4",
+            "./S0=Regular_Flow=Time_14-06=View_001.mp4",
+            "./S0=Regular_Flow=Time_14-06=View_002.mp4",
+            "./S0=Regular_Flow=Time_14-06=View_003.mp4",
+            "./S0=Regular_Flow=Time_14-06=View_004.mp4",
+            "./S0=Regular_Flow=Time_14-29=View_001.mp4",
+            "./S0=Regular_Flow=Time_14-29=View_002.mp4",
+            "./S0=Regular_Flow=Time_14-29=View_003.mp4",
+            "./S0=Regular_Flow=Time_14-29=View_004.mp4"
+    ));
 
     public static void startDownloadAll(Context context) {
         ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -103,6 +142,22 @@ public class DashCam {
         Video video = VideoManager.getVideoFromPath(context, filePath);
         Log.i(String.format("!%s", TAG), String.format("Successfully downloaded %s in %ss", filename, time));
         downloadCallback.accept(video);
+    }
+
+    public static Runnable downloadTestVideos(Consumer<Video> downloadCallback, Context context) {
+        return () -> {
+            List<String> newVideos = new ArrayList<>(CollectionUtils.disjunction(testVideos, downloads));
+            newVideos.sort(Comparator.comparing(String::toString));
+
+            if (newVideos.size() != 0) {
+                // Get oldest new video, testVideos should already be sorted
+                String toDownload = newVideos.get(0);
+                downloads.add(toDownload);
+                downloadVideo(videoDirUrl + toDownload, downloadCallback, context);
+            } else {
+                downloadCallback.accept(null);
+            }
+        };
     }
 }
 
