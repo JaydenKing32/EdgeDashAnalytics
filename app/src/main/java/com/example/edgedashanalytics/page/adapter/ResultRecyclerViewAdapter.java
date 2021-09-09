@@ -80,8 +80,8 @@ public class ResultRecyclerViewAdapter extends RecyclerView.Adapter<ResultRecycl
         private final View view;
         private final TextView resultFileNameView;
         private final Button actionButton;
-        public Result result;
         private final LinearLayout layout;
+        private Result result;
 
         private ResultViewHolder(@NonNull View itemView) {
             super(itemView);

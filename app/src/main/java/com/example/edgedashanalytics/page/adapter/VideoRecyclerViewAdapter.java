@@ -33,7 +33,7 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
 
     List<Video> videos;
     SelectionTracker<Long> tracker;
-    VideoFragment.Listener listener;
+    final VideoFragment.Listener listener;
 
     VideoRecyclerViewAdapter(VideoFragment.Listener listener) {
         this.listener = listener;
@@ -92,7 +92,7 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
         final ImageView thumbnailView;
         final TextView videoFileNameView;
         final Button actionButton;
-        public Video video;
+        Video video;
         final LinearLayout layout;
 
         private VideoViewHolder(View view) {

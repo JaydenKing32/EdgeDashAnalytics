@@ -252,7 +252,7 @@ public abstract class NearbyFragment extends Fragment {
                 0, delay, TimeUnit.SECONDS);
     }
 
-    public void stopDashDownload() {
+    protected void stopDashDownload() {
         Log.i(String.format("!%s", TAG), "Stopped downloading from dashcam");
         downloadTaskExecutor.shutdown();
     }

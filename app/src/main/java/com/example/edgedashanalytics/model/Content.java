@@ -6,7 +6,7 @@ public abstract class Content implements Parcelable {
     final String data;
     final String name;
 
-    public Content(String data, String name) {
+    Content(String data, String name) {
         this.data = data;
         this.name = name;
     }
