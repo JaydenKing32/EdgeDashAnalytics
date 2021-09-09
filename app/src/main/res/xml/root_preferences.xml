@@ -1,0 +1,30 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <CheckBoxPreference
+        android:id="@+id/remove_raw_preference"
+        android:defaultValue="false"
+        android:key="@string/remove_raw_key"
+        android:persistent="true"
+        android:summary="@string/remove_raw_summary"
+        android:title="@string/remove_raw_title" />
+    <SeekBarPreference
+        android:id="@+id/download_delay_preference"
+        android:defaultValue="1"
+        android:key="@string/download_delay_key"
+        android:max="100"
+        android:min="1"
+        android:persistent="true"
+        android:title="@string/download_delay_title"
+        app:showSeekBarValue="true" />
+    <ListPreference
+        android:id="@+id/model_preference"
+        android:defaultValue="@string/mobilenet_v1_key"
+        android:entries="@array/model_titles"
+        android:entryValues="@array/model_keys"
+        android:key="@string/model_key"
+        android:persistent="true"
+        android:title="@string/model_title"
+        app:useSimpleSummaryProvider="true" />
+
+</PreferenceScreen>

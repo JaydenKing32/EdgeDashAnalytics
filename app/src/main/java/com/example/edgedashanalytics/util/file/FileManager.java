@@ -3,9 +3,14 @@ package com.example.edgedashanalytics.util.file;
 import static org.apache.commons.io.FilenameUtils.getBaseName;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Environment;
 import android.util.Log;
+
+import androidx.preference.PreferenceManager;
+
+import com.example.edgedashanalytics.R;
 
 import org.apache.commons.io.FileUtils;
 
@@ -79,9 +84,11 @@ public class FileManager {
         return filename.regionMatches(true, extensionStartIndex, VIDEO_EXTENSION, 0, VIDEO_EXTENSION.length());
     }
 
-    public static void cleanDirectories() {
-        // TODO add preference to choose removing raw videos
-        List<File> dirs = Arrays.asList(RESULTS_DIR, NEARBY_DIR);
+    public static void cleanDirectories(Context context) {
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        List<File> dirs = pref.getBoolean(context.getString(R.string.remove_raw_key), false) ?
+                DIRS :
+                Arrays.asList(RESULTS_DIR, NEARBY_DIR);
 
         for (File dir : dirs) {
             try {

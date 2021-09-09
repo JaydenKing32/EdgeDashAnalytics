@@ -27,15 +27,23 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.EdgeDashAnalytics"
         android:usesCleartextTraffic="true"
-        tools:ignore="AllowBackup">
+        tools:ignore="AllowBackup,LockedOrientationActivity">
+        <activity
+            android:name=".page.setting.SettingsActivity"
+            android:exported="true"
+            android:label="@string/settings"
+            android:parentActivityName=".page.main.MainActivity"
+            android:screenOrientation="portrait">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".page.main.MainActivity" />
+        </activity>
         <activity
             android:name=".page.main.MainActivity"
             android:exported="true"
-            android:screenOrientation="portrait"
-            tools:ignore="LockedOrientationActivity">
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>

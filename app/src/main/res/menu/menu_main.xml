@@ -2,23 +2,30 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context=".page.main.MainActivity">
+    tools:context=".page.main.MainActivity"
+    tools:ignore="AlwaysShowAction">
     <item
         android:id="@+id/action_connect"
         android:icon="@drawable/ic_connection"
         android:orderInCategory="100"
         android:title="@string/connect"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="always" />
     <item
         android:id="@+id/action_download"
         android:icon="@drawable/ic_download"
         android:orderInCategory="200"
         android:title="@string/download"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="always" />
     <item
         android:id="@+id/action_clean"
         android:icon="@drawable/ic_clean"
         android:orderInCategory="300"
         android:title="@string/clean_directories"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/action_settings"
+        android:icon="@drawable/ic_settings"
+        android:orderInCategory="400"
+        android:title="@string/settings"
+        app:showAsAction="always" />
 </menu>

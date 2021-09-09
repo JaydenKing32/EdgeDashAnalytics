@@ -1,11 +1,16 @@
 package com.example.edgedashanalytics.util.video.analysis;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.media.MediaMetadataRetriever;
 import android.util.JsonWriter;
 import android.util.Log;
+
+import androidx.preference.PreferenceManager;
+
+import com.example.edgedashanalytics.R;
 
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.tensorflow.lite.support.image.TensorImage;
@@ -29,7 +34,7 @@ import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 // https://www.tensorflow.org/lite/models/object_detection/overview
-// https://tfhub.dev/tensorflow/lite-model/ssd_mobilenet_v1/1/metadata/2
+// https://tfhub.dev/tensorflow/collections/lite/task-library/object-detector/1
 // https://www.tensorflow.org/lite/performance/best_practices
 // https://www.tensorflow.org/lite/guide/android
 // https://www.tensorflow.org/lite/inference_with_metadata/task_library/object_detector
@@ -58,8 +63,6 @@ public class VideoAnalysis {
         this.bufferSize = 50;
     }
 
-    // https://developer.android.com/guide/background/threading
-    // https://developer.android.com/guide/components/processes-and-threads#WorkerThreads
     public void analyse(Context context) {
         processVideo(context);
     }
@@ -75,10 +78,11 @@ public class VideoAnalysis {
                             .setLabelAllowList(Collections.singletonList("person"))
                             .build();
 
-            // TODO: add preference to select model
-            String modelFile = "lite-model_ssd_mobilenet_v1_1_metadata_2.tflite";
-            // String modelFile = "lite-model_efficientdet_lite4_detection_metadata_2.tflite";
-            detector = ObjectDetector.createFromFileAndOptions(context, modelFile, objectDetectorOptions);
+            String defaultModel = context.getString(R.string.mobilenet_v1_key);
+            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+            String modelFilename = pref.getString(context.getString(R.string.model_key), defaultModel);
+
+            detector = ObjectDetector.createFromFileAndOptions(context, modelFilename, objectDetectorOptions);
         } catch (IOException e) {
             Log.w(TAG, String.format("Model failure:\n  %s", e.getMessage()));
             return;

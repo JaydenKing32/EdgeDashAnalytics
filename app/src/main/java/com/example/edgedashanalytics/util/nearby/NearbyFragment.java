@@ -15,7 +15,9 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.collection.SimpleArrayMap;
 import androidx.fragment.app.Fragment;
+import androidx.preference.PreferenceManager;
 
+import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.event.result.AddResultEvent;
 import com.example.edgedashanalytics.event.video.AddEvent;
 import com.example.edgedashanalytics.event.video.RemoveByNameEvent;
@@ -242,8 +244,9 @@ public abstract class NearbyFragment extends Fragment {
             Log.e(TAG, "No context");
             return;
         }
-        // TODO: add preference to select delay
-        int delay = 1;
+        int defaultDelay = 1;
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        int delay = pref.getInt(getString(R.string.download_delay_key), defaultDelay);
 
         Log.i(String.format("!%s", TAG), String.format("Download delay: %ds", delay));
         Log.i(String.format("!%s", TAG), "Started downloading from dashcam");
