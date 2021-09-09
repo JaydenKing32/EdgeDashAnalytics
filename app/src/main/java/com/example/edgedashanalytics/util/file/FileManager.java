@@ -97,12 +97,16 @@ public class FileManager {
         return filePath.substring(filePath.lastIndexOf('/') + 1);
     }
 
-    public static String getResultNameFromVideoName(String filename) {
+    private static String getResultNameFromVideoName(String filename) {
         return String.format("%s.%s", getBaseName(filename), RESULT_EXTENSION);
     }
 
     public static String getVideoNameFromResultName(String filename) {
         return String.format("%s.%s", getBaseName(filename), VIDEO_EXTENSION);
+    }
+
+    public static String getResultPathFromVideoName(String filename) {
+        return String.format("%s/%s", getResultDirPath(), getResultNameFromVideoName(filename));
     }
 
     public static File uriToFile(Uri sourceUri, String destPath, Context context) {

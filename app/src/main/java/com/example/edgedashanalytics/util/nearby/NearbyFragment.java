@@ -369,8 +369,7 @@ public abstract class NearbyFragment extends Fragment {
 
         File videoFile = new File(message.content.getData());
         String filename = videoFile.getName();
-        String outPath = String.format("%s/%s", FileManager.getResultDirPath(),
-                FileManager.getResultNameFromVideoName(filename));
+        String outPath = FileManager.getResultPathFromVideoName(filename);
 
         analyse(videoFile, outPath, context);
     }
@@ -556,7 +555,7 @@ public abstract class NearbyFragment extends Fragment {
                     return;
                 }
 
-                String resultsDestPath = String.format("%s/%s", FileManager.getResultDirPath(), filename);
+                String resultsDestPath = FileManager.getResultPathFromVideoName(filename);
 
                 if (command.equals(Command.ANALYSE)) {
                     analyse(receivedFile, resultsDestPath, getContext());

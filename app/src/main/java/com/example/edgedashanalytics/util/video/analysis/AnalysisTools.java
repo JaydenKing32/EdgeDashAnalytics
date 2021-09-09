@@ -1,7 +1,5 @@
 package com.example.edgedashanalytics.util.video.analysis;
 
-import static com.example.edgedashanalytics.util.file.FileManager.getResultDirPath;
-
 import android.content.Context;
 import android.util.Log;
 
@@ -29,8 +27,7 @@ public class AnalysisTools {
     public static void processVideo(Video video, Context context) {
         Log.d(TAG, String.format("Analysing %s", video.getName()));
 
-        final String output = String.format("%s/%s", getResultDirPath(),
-                FileManager.getResultNameFromVideoName(video.getName()));
+        final String output = FileManager.getResultPathFromVideoName(video.getName());
 
         Future<?> future = executor.submit(processRunnable(video, output, context));
         analysisFutures.put(video.getData(), future);
