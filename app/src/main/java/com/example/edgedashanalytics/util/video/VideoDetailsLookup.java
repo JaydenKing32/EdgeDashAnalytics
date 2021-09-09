@@ -8,7 +8,7 @@ import androidx.annotation.Nullable;
 import androidx.recyclerview.selection.ItemDetailsLookup;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.edgedashanalytics.page.main.VideoRecyclerViewAdapter;
+import com.example.edgedashanalytics.page.adapter.VideoRecyclerViewAdapter;
 
 public class VideoDetailsLookup extends ItemDetailsLookup<Long> {
     private final RecyclerView recyclerView;

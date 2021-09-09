@@ -1,4 +1,4 @@
-package com.example.edgedashanalytics.page.main;
+package com.example.edgedashanalytics.page.adapter;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.model.Video;
+import com.example.edgedashanalytics.page.main.VideoFragment;
 import com.example.edgedashanalytics.util.video.analysis.AnalysisTools;
 
 import java.util.List;
@@ -39,11 +40,11 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
         setHasStableIds(true);
     }
 
-    void setTracker(SelectionTracker<Long> tracker) {
+    public void setTracker(SelectionTracker<Long> tracker) {
         this.tracker = tracker;
     }
 
-    void processSelected(Selection<Long> positions, Context context) {
+    public void processSelected(Selection<Long> positions, Context context) {
         if (listener.getIsConnected()) {
             for (Long pos : positions) {
                 Video video = videos.get(pos.intValue());
@@ -80,7 +81,7 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
                 context.getContentResolver(), Integer.parseInt(id), MediaStore.Video.Thumbnails.MICRO_KIND, null);
     }
 
-    void setVideos(List<Video> videos) {
+    public void setVideos(List<Video> videos) {
         this.videos = videos;
         notifyDataSetChanged();
     }

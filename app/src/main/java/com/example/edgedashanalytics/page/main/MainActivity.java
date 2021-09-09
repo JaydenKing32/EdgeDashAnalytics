@@ -22,6 +22,8 @@ import com.example.edgedashanalytics.data.video.ProcessingVideosRepository;
 import com.example.edgedashanalytics.data.video.VideosRepository;
 import com.example.edgedashanalytics.model.Result;
 import com.example.edgedashanalytics.model.Video;
+import com.example.edgedashanalytics.page.adapter.ProcessingAdapter;
+import com.example.edgedashanalytics.page.adapter.RawAdapter;
 import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.nearby.Endpoint;

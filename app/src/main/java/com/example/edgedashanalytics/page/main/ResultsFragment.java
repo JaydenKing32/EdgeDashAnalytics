@@ -20,6 +20,7 @@ import com.example.edgedashanalytics.data.result.ResultRepository;
 import com.example.edgedashanalytics.data.result.ResultViewModel;
 import com.example.edgedashanalytics.data.result.ResultViewModelFactory;
 import com.example.edgedashanalytics.model.Result;
+import com.example.edgedashanalytics.page.adapter.ResultRecyclerViewAdapter;
 import com.example.edgedashanalytics.util.video.eventhandler.ResultEventHandler;
 
 import org.greenrobot.eventbus.EventBus;
