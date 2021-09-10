@@ -534,7 +534,7 @@ public abstract class NearbyFragment extends Fragment {
                         Log.v(TAG, String.format("Started downloading %s from %s", videoName, fromEndpoint));
                         payloadId = addPayloadFilename(parts);
                         startTimes.put(payloadId, Instant.now());
-                        fromEndpoint.removeJob(videoName);
+                        fromEndpoint.removeJob(FileManager.getVideoNameFromResultName(videoName));
 
                         processFilePayload(payloadId, endpointId);
                         break;
