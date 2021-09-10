@@ -52,6 +52,7 @@ public class VideoAnalysis {
 
     private HashMap<Integer, List<Detection>> frameDetections;
     private long scaleFactor = 1;
+    private boolean verbose = false;
 
     public VideoAnalysis(String inPath, String outPath) {
         this.inPath = inPath;
@@ -64,6 +65,10 @@ public class VideoAnalysis {
     }
 
     public void analyse(Context context) {
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        if (pref.getBoolean(context.getString(R.string.verbose_output_key), verbose)) {
+            verbose = true;
+        }
         processVideo(context);
     }
 
@@ -198,23 +203,25 @@ public class VideoAnalysis {
         List<Detection> detectionList = detector.detect(image);
         frameDetections.put(frameIndex, detectionList);
 
-        String resultHead = String.format(Locale.ENGLISH,
-                "Analysis completed for frame: %04d\nDetected objects: %02d\n",
-                frameIndex, detectionList.size());
-        StringBuilder builder = new StringBuilder(resultHead);
+        if (verbose) {
+            String resultHead = String.format(Locale.ENGLISH,
+                    "Analysis completed for frame: %04d\nDetected objects: %02d\n",
+                    frameIndex, detectionList.size());
+            StringBuilder builder = new StringBuilder(resultHead);
 
-        for (Detection detection : detectionList) {
-            String resultBody = getDetectionString(detection);
-            builder.append(resultBody);
+            for (Detection detection : detectionList) {
+                String resultBody = getDetectionString(detection);
+                builder.append(resultBody);
 
-            // if (isClose(detection, detectionList)) {
-            //     System.out.println(frameIndex);
-            // }
+                // if (isClose(detection, detectionList)) {
+                //     System.out.println(frameIndex);
+                // }
+            }
+            builder.append('\n');
+
+            String resultMessage = builder.toString();
+            Log.v(TAG, resultMessage);
         }
-        builder.append('\n');
-
-        String resultMessage = builder.toString();
-        Log.v(TAG, resultMessage);
     }
 
     private String getDetectionString(Detection detection) {

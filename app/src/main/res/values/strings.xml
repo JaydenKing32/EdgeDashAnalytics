@@ -33,10 +33,12 @@
     <string name="remove_raw_title">Remove raw</string>
     <string name="remove_raw_summary">Remove raw videos during clean</string>
     <string name="remove_raw_key">remove_raw</string>
-    <string name="download_delay_title">Download Delay</string>
+    <string name="download_delay_title">Download delay</string>
     <string name="download_delay_key">download_delay</string>
     <string name="model_title">Model</string>
     <string name="model_key">model</string>
+    <string name="verbose_output_title">Verbose output</string>
+    <string name="verbose_output_key">verbose_output</string>
 
     <!-- Models -->
     <string name="mobilenet_v1_title" tools:ignore="Typos">MobileNetV1</string>

@@ -26,5 +26,11 @@
         android:persistent="true"
         android:title="@string/model_title"
         app:useSimpleSummaryProvider="true" />
+    <CheckBoxPreference
+        android:id="@+id/verbose_output_preference"
+        android:defaultValue="false"
+        android:key="@string/verbose_output_key"
+        android:persistent="true"
+        android:title="@string/verbose_output_title" />
 
 </PreferenceScreen>
