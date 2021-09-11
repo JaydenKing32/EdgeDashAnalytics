@@ -10,6 +10,7 @@ public class Endpoint {
     final String name;
     boolean connected;
     private final List<String> jobList = new ArrayList<>();
+    int completeCount = 0;
 
     Endpoint(String id, String name) {
         this.id = id;
@@ -17,7 +18,7 @@ public class Endpoint {
         this.connected = false;
     }
 
-    public boolean isActive() {
+    boolean isActive() {
         return !jobList.isEmpty();
     }
 

@@ -28,6 +28,7 @@ import com.example.edgedashanalytics.model.Result;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.file.FileManager;
+import com.example.edgedashanalytics.util.nearby.Algorithm.AlgorithmKey;
 import com.example.edgedashanalytics.util.nearby.Message.Command;
 import com.example.edgedashanalytics.util.video.VideoManager;
 import com.example.edgedashanalytics.util.video.analysis.VideoAnalysis;
@@ -351,9 +352,24 @@ public abstract class NearbyFragment extends Fragment {
             return;
         }
 
-        int nextIndex = transferCount % discoveredEndpoints.size();
-        Endpoint toEndpoint = (Endpoint) discoveredEndpoints.values().toArray()[nextIndex];
-        sendFile(transferQueue.remove(), toEndpoint);
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        String algorithmKey = getString(R.string.scheduling_algorithm_key);
+        AlgorithmKey selected = AlgorithmKey.valueOf(pref.getString(algorithmKey, Algorithm.DEFAULT_ALGORITHM.name()));
+        Log.v(TAG, String.format("nextTransfer with selected algorithm: %s", selected.name()));
+
+        List<Endpoint> endpoints = getConnectedEndpoints();
+
+        switch (selected) {
+            case round_robin:
+                sendFile(transferQueue.remove(), Algorithm.getRoundRobinEndpoint(endpoints, transferCount));
+                break;
+            case fastest:
+                sendFile(transferQueue.remove(), Algorithm.getFastestEndpoint(endpoints));
+                break;
+            case least_busy:
+                sendFile(transferQueue.remove(), Algorithm.getLeastBusyEndpoint(endpoints));
+                break;
+        }
 
         transferCount++;
     }
@@ -535,6 +551,7 @@ public abstract class NearbyFragment extends Fragment {
                         payloadId = addPayloadFilename(parts);
                         startTimes.put(payloadId, Instant.now());
                         fromEndpoint.removeJob(FileManager.getVideoNameFromResultName(videoName));
+                        fromEndpoint.completeCount++;
 
                         processFilePayload(payloadId, endpointId);
                         break;

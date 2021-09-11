@@ -8,15 +8,15 @@
         android:persistent="true"
         android:summary="@string/remove_raw_summary"
         android:title="@string/remove_raw_title" />
-    <SeekBarPreference
-        android:id="@+id/download_delay_preference"
-        android:defaultValue="1"
-        android:key="@string/download_delay_key"
-        android:max="100"
-        android:min="1"
+    <ListPreference
+        android:id="@+id/algorithm_preference"
+        android:defaultValue="@string/fastest_algorithm_key"
+        android:entries="@array/algorithm_titles"
+        android:entryValues="@array/algorithm_keys"
+        android:key="@string/scheduling_algorithm_key"
         android:persistent="true"
-        android:title="@string/download_delay_title"
-        app:showSeekBarValue="true" />
+        android:title="@string/scheduling_algorithm_title"
+        app:useSimpleSummaryProvider="true" />
     <ListPreference
         android:id="@+id/model_preference"
         android:defaultValue="@string/mobilenet_v1_key"
@@ -26,6 +26,15 @@
         android:persistent="true"
         android:title="@string/model_title"
         app:useSimpleSummaryProvider="true" />
+    <SeekBarPreference
+        android:id="@+id/download_delay_preference"
+        android:defaultValue="1"
+        android:key="@string/download_delay_key"
+        android:max="100"
+        android:min="1"
+        android:persistent="true"
+        android:title="@string/download_delay_title"
+        app:showSeekBarValue="true" />
     <CheckBoxPreference
         android:id="@+id/verbose_output_preference"
         android:defaultValue="false"

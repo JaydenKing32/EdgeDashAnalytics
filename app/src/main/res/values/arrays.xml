@@ -1,9 +1,19 @@
 <resources>
+    <string-array name="algorithm_titles">
+        <item>@string/round_robin_algorithm_title</item>
+        <item>@string/fastest_algorithm_title</item>
+        <item>@string/least_busy_algorithm_title</item>
+    </string-array>
+    <string-array name="algorithm_keys">
+        <item>@string/round_robin_algorithm_key</item>
+        <item>@string/fastest_algorithm_key</item>
+        <item>@string/least_busy_algorithm_key</item>
+    </string-array>
+
     <string-array name="model_titles">
         <item>@string/mobilenet_v1_title</item>
         <item>@string/efficientdet_lite4_title</item>
     </string-array>
-
     <string-array name="model_keys">
         <item>@string/mobilenet_v1_key</item>
         <item>@string/efficientdet_lite4_key</item>
