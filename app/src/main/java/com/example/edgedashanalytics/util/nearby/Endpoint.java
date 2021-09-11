@@ -2,6 +2,8 @@ package com.example.edgedashanalytics.util.nearby;
 
 import androidx.annotation.NonNull;
 
+import com.example.edgedashanalytics.util.hardware.HardwareInfo;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,6 +13,7 @@ public class Endpoint {
     boolean connected;
     private final List<String> jobList = new ArrayList<>();
     int completeCount = 0;
+    HardwareInfo hardwareInfo;
 
     Endpoint(String id, String name) {
         this.id = id;

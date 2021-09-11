@@ -53,5 +53,6 @@ dependencies {
     implementation 'org.tensorflow:tensorflow-lite-task-vision:0.2.0'
     implementation 'org.greenrobot:eventbus:3.2.0'
     implementation 'org.jsoup:jsoup:1.14.2'
+    implementation 'com.google.code.gson:gson:2.8.8'
     implementation 'com.google.android.gms:play-services-nearby:18.0.0'
 }

@@ -15,6 +15,8 @@ class Message {
         ERROR, // Error during transfer
         ANALYSE, // Analyse the transferred file
         COMPLETE, // Completed file transfer
-        RETURN // Returning results file
+        RETURN, // Returning results file
+        HW_INFO, // Message contains hardware information
+        HW_INFO_REQUEST // Requesting hardware information
     }
 }

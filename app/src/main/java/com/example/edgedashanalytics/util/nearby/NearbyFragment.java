@@ -28,6 +28,7 @@ import com.example.edgedashanalytics.model.Result;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.file.FileManager;
+import com.example.edgedashanalytics.util.hardware.HardwareInfo;
 import com.example.edgedashanalytics.util.nearby.Algorithm.AlgorithmKey;
 import com.example.edgedashanalytics.util.nearby.Message.Command;
 import com.example.edgedashanalytics.util.video.VideoManager;
@@ -46,6 +47,7 @@ import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
+import com.google.gson.Gson;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
@@ -81,6 +83,7 @@ public abstract class NearbyFragment extends Fragment {
     private final LinkedHashMap<String, Endpoint> discoveredEndpoints = new LinkedHashMap<>();
     private final ExecutorService analysisExecutor = Executors.newSingleThreadExecutor();
     private final ScheduledExecutorService downloadTaskExecutor = Executors.newSingleThreadScheduledExecutor();
+    private final Gson gson = new Gson();
 
     private ConnectionsClient connectionsClient;
     protected DeviceListAdapter deviceAdapter;
@@ -181,6 +184,7 @@ public abstract class NearbyFragment extends Fragment {
 
                             if (endpoint != null) {
                                 endpoint.connected = true;
+                                requestHardwareInfo(endpointId);
                                 deviceAdapter.notifyDataSetChanged();
                             }
                             break;
@@ -318,6 +322,27 @@ public abstract class NearbyFragment extends Fragment {
         String commandMessage = String.join(MESSAGE_SEPARATOR, command.toString(), filename);
         Payload filenameBytesPayload = Payload.fromBytes(commandMessage.getBytes(UTF_8));
         connectionsClient.sendPayload(toEndpointId, filenameBytesPayload);
+    }
+
+    void sendHardwareInfo(Context context) {
+        HardwareInfo hwi = new HardwareInfo(context);
+        String hwiMessage = String.join(MESSAGE_SEPARATOR, Command.HW_INFO.toString(), gson.toJson(hwi));
+        Payload messageBytesPayload = Payload.fromBytes(hwiMessage.getBytes(UTF_8));
+        Log.d(TAG, String.format("Sending hardware information: \n%s", hwi));
+
+        // Only sent from worker to master, might be better to make bidirectional
+        List<String> connectedEndpointIds = discoveredEndpoints.values().stream()
+                .filter(e -> e.connected)
+                .map(e -> e.id)
+                .collect(Collectors.toList());
+        connectionsClient.sendPayload(connectedEndpointIds, messageBytesPayload);
+    }
+
+    void requestHardwareInfo(String toEndpoint) {
+        Log.d(TAG, String.format("Requesting hardware information from %s", toEndpoint));
+        String hwrMessage = String.format("%s%s", Command.HW_INFO_REQUEST, MESSAGE_SEPARATOR);
+        Payload messageBytesPayload = Payload.fromBytes(hwrMessage.getBytes(UTF_8));
+        connectionsClient.sendPayload(toEndpoint, messageBytesPayload);
     }
 
     private void queueVideo(Video video, Command command) {
@@ -556,6 +581,7 @@ public abstract class NearbyFragment extends Fragment {
                         processFilePayload(payloadId, endpointId);
                         break;
                     case COMPLETE:
+                        requestHardwareInfo(endpointId);
                         videoName = parts[1];
                         Log.d(TAG, String.format("%s has finished downloading %s", fromEndpoint, videoName));
 
@@ -565,6 +591,14 @@ public abstract class NearbyFragment extends Fragment {
                         EventBus.getDefault().post(new AddEvent(video, Type.PROCESSING));
                         EventBus.getDefault().post(new RemoveEvent(video, Type.RAW));
 
+                        break;
+                    case HW_INFO:
+                        HardwareInfo hwi = gson.fromJson(parts[1], HardwareInfo.class);
+                        Log.i(TAG, String.format("Received hardware information from %s: \n%s", fromEndpoint, hwi));
+                        fromEndpoint.hardwareInfo = hwi;
+                        break;
+                    case HW_INFO_REQUEST:
+                        sendHardwareInfo(context);
                         break;
                 }
             } else if (payload.getType() == Payload.Type.FILE) {
