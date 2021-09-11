@@ -318,6 +318,7 @@ public abstract class NearbyFragment extends Fragment {
         deviceAdapter.notifyDataSetChanged();
     }
 
+    @SuppressWarnings("SameParameterValue")
     private void sendCommandMessage(Command command, String filename, String toEndpointId) {
         String commandMessage = String.join(MESSAGE_SEPARATOR, command.toString(), filename);
         Payload filenameBytesPayload = Payload.fromBytes(commandMessage.getBytes(UTF_8));
@@ -345,12 +346,8 @@ public abstract class NearbyFragment extends Fragment {
         connectionsClient.sendPayload(toEndpoint, messageBytesPayload);
     }
 
-    private void queueVideo(Video video, Command command) {
-        transferQueue.add(new Message(video, command));
-    }
-
     public void addVideo(Video video) {
-        queueVideo(video, Command.ANALYSE);
+        transferQueue.add(new Message(video, Command.ANALYSE));
     }
 
     private void returnContent(Content content) {
@@ -444,28 +441,8 @@ public abstract class NearbyFragment extends Fragment {
         toEndpoint.addJob(uri.getLastPathSegment());
     }
 
-    private void analyse(Message message) {
-        Context context = getContext();
-        if (context == null) {
-            Log.e(TAG, "No context");
-            return;
-        }
-
-        File videoFile = new File(message.content.getData());
-        String filename = videoFile.getName();
-        String outPath = FileManager.getResultPathFromVideoName(filename);
-
-        analyse(videoFile, outPath, context);
-    }
-
-    private void analyse(File videoFile, String outPath, Context context) {
-        Log.d(TAG, String.format("Analysing %s", videoFile.getName()));
-
-        Video video = VideoManager.getVideoFromPath(context, videoFile.getAbsolutePath());
-        EventBus.getDefault().post(new AddEvent(video, Type.PROCESSING));
-        EventBus.getDefault().post(new RemoveEvent(video, Type.RAW));
-
-        analysisExecutor.submit(analysisRunnable(video, outPath, context));
+    private void analyse(File videoFile) {
+        analyse(VideoManager.getVideoFromPath(getContext(), videoFile.getAbsolutePath()));
     }
 
     private void analyse(Video video) {
@@ -668,7 +645,7 @@ public abstract class NearbyFragment extends Fragment {
                 String resultsDestPath = FileManager.getResultPathFromVideoName(filename);
 
                 if (command.equals(Command.ANALYSE)) {
-                    analyse(receivedFile, resultsDestPath, getContext());
+                    analyse(receivedFile);
 
                 } else if (command.equals(Command.RETURN)) {
                     File resultsDest = new File(resultsDestPath);
@@ -677,12 +654,6 @@ public abstract class NearbyFragment extends Fragment {
                         Files.copy(receivedFile.toPath(), resultsDest.toPath());
                     } catch (IOException e) {
                         Log.e(TAG, String.format("processFilePayload copy error: \n%s", e.getMessage()));
-                    }
-
-                    Context context = getContext();
-                    if (context == null) {
-                        Log.e(TAG, "No context");
-                        return;
                     }
 
                     Result result = new Result(resultsDestPath, FileManager.getFilenameFromPath(resultsDestPath));
