@@ -568,6 +568,7 @@ public abstract class NearbyFragment extends Fragment {
 
                         EventBus.getDefault().post(new AddEvent(video, Type.PROCESSING));
                         EventBus.getDefault().post(new RemoveEvent(video, Type.RAW));
+                        nextTransfer();
 
                         break;
                     case HW_INFO:
