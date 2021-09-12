@@ -377,23 +377,40 @@ public abstract class NearbyFragment extends Fragment {
 
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         String algorithmKey = getString(R.string.scheduling_algorithm_key);
-        AlgorithmKey selected = AlgorithmKey.valueOf(pref.getString(algorithmKey, Algorithm.DEFAULT_ALGORITHM.name()));
-        Log.v(TAG, String.format("nextTransfer with selected algorithm: %s", selected.name()));
+        AlgorithmKey algorithm = AlgorithmKey.valueOf(pref.getString(algorithmKey, Algorithm.DEFAULT_ALGORITHM.name()));
+        Log.v(TAG, String.format("nextTransfer with selected algorithm: %s", algorithm.name()));
 
         List<Endpoint> endpoints = getConnectedEndpoints();
+        Endpoint selected = null;
 
-        switch (selected) {
+        switch (algorithm) {
             case round_robin:
-                sendFile(transferQueue.remove(), Algorithm.getRoundRobinEndpoint(endpoints, transferCount));
+                selected = Algorithm.getRoundRobinEndpoint(endpoints, transferCount);
                 break;
             case fastest:
-                sendFile(transferQueue.remove(), Algorithm.getFastestEndpoint(endpoints));
+                selected = Algorithm.getFastestEndpoint(endpoints);
                 break;
             case least_busy:
-                sendFile(transferQueue.remove(), Algorithm.getLeastBusyEndpoint(endpoints));
+                selected = Algorithm.getLeastBusyEndpoint(endpoints);
+                break;
+            case fastest_cpu:
+                selected = Algorithm.getFastestCpuEndpoint(endpoints);
+                break;
+            case most_cpu_cores:
+                selected = Algorithm.getMaxCpuCoreEndpoint(endpoints);
+                break;
+            case most_ram:
+                selected = Algorithm.getMaxRamEndpoint(endpoints);
+                break;
+            case most_storage:
+                selected = Algorithm.getMaxStorageEndpoint(endpoints);
+                break;
+            case highest_battery:
+                selected = Algorithm.getMaxBatteryEndpoint(endpoints);
                 break;
         }
 
+        sendFile(transferQueue.remove(), selected);
         transferCount++;
     }
 

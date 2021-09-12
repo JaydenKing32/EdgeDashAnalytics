@@ -53,10 +53,21 @@
     <string name="efficientdet_lite4_title">EfficientDet-Lite4</string>
     <string name="efficientdet_lite4_key">lite-model_efficientdet_lite4_detection_metadata_2.tflite</string>
 
+    <!-- Scheduling algorithms -->
     <string name="round_robin_algorithm_title">Round-robin</string>
     <string name="round_robin_algorithm_key">round_robin</string>
-    <string name="least_busy_algorithm_title">Least busy</string>
-    <string name="least_busy_algorithm_key">least_busy</string>
     <string name="fastest_algorithm_title">Fastest</string>
     <string name="fastest_algorithm_key">fastest</string>
+    <string name="least_busy_algorithm_title">Least busy</string>
+    <string name="least_busy_algorithm_key">least_busy</string>
+    <string name="fastest_cpu_algorithm_title">Fastest CPU</string>
+    <string name="fastest_cpu_algorithm_key">fastest_cpu</string>
+    <string name="most_cpu_cores_algorithm_title">Most CPU cores</string>
+    <string name="most_cpu_cores_algorithm_key">most_cpu_cores</string>
+    <string name="most_ram_algorithm_title">Most available RAM</string>
+    <string name="most_ram_algorithm_key">most_ram</string>
+    <string name="most_storage_algorithm_title">Most available storage</string>
+    <string name="most_storage_algorithm_key">most_storage</string>
+    <string name="highest_battery_algorithm_title">Highest battery</string>
+    <string name="highest_battery_algorithm_key">highest_battery</string>
 </resources>

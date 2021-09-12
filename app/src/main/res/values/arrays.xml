@@ -3,11 +3,21 @@
         <item>@string/round_robin_algorithm_title</item>
         <item>@string/fastest_algorithm_title</item>
         <item>@string/least_busy_algorithm_title</item>
+        <item>@string/fastest_algorithm_title</item>
+        <item>@string/most_cpu_cores_algorithm_title</item>
+        <item>@string/most_ram_algorithm_title</item>
+        <item>@string/most_storage_algorithm_title</item>
+        <item>@string/highest_battery_algorithm_title</item>
     </string-array>
     <string-array name="algorithm_keys">
         <item>@string/round_robin_algorithm_key</item>
         <item>@string/fastest_algorithm_key</item>
         <item>@string/least_busy_algorithm_key</item>
+        <item>@string/fastest_algorithm_key</item>
+        <item>@string/most_cpu_cores_algorithm_key</item>
+        <item>@string/most_ram_algorithm_key</item>
+        <item>@string/most_storage_algorithm_key</item>
+        <item>@string/highest_battery_algorithm_key</item>
     </string-array>
 
     <string-array name="model_titles">
