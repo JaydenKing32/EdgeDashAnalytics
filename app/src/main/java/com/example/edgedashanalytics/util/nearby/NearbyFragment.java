@@ -1,6 +1,7 @@
 package com.example.edgedashanalytics.util.nearby;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 import android.content.Context;
 import android.content.DialogInterface;
@@ -651,9 +652,10 @@ public abstract class NearbyFragment extends Fragment {
                     File resultsDest = new File(resultsDestPath);
 
                     try {
-                        Files.copy(receivedFile.toPath(), resultsDest.toPath());
+                        Files.copy(receivedFile.toPath(), resultsDest.toPath(), REPLACE_EXISTING);
                     } catch (IOException e) {
                         Log.e(TAG, String.format("processFilePayload copy error: \n%s", e.getMessage()));
+                        return;
                     }
 
                     Result result = new Result(resultsDestPath, FileManager.getFilenameFromPath(resultsDestPath));
