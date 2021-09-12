@@ -34,7 +34,7 @@ class Algorithm {
         Endpoint fastest = null;
 
         for (Endpoint endpoint : endpoints) {
-            if (!endpoint.isActive() && endpoint.completeCount > maxComplete) {
+            if (endpoint.isInactive() && endpoint.completeCount > maxComplete) {
                 maxComplete = endpoint.completeCount;
                 fastest = endpoint;
             }
@@ -70,7 +70,7 @@ class Algorithm {
         Endpoint fastest = null;
 
         for (Endpoint endpoint : endpoints) {
-            if (!endpoint.isActive() && endpoint.hardwareInfo.cpuFreq > maxCpuHz) {
+            if (endpoint.isInactive() && endpoint.hardwareInfo.cpuFreq > maxCpuHz) {
                 maxCpuHz = endpoint.hardwareInfo.cpuFreq;
                 fastest = endpoint;
             }
@@ -98,7 +98,7 @@ class Algorithm {
         Endpoint result = null;
 
         for (Endpoint endpoint : endpoints) {
-            if (!endpoint.isActive() && endpoint.hardwareInfo.cpuCores > maxCpuCores) {
+            if (endpoint.isInactive() && endpoint.hardwareInfo.cpuCores > maxCpuCores) {
                 maxCpuCores = endpoint.hardwareInfo.cpuCores;
                 result = endpoint;
             }
@@ -126,7 +126,7 @@ class Algorithm {
         Endpoint result = null;
 
         for (Endpoint endpoint : endpoints) {
-            if (!endpoint.isActive() && endpoint.hardwareInfo.availRam > maxRam) {
+            if (endpoint.isInactive() && endpoint.hardwareInfo.availRam > maxRam) {
                 maxRam = endpoint.hardwareInfo.availRam;
                 result = endpoint;
             }
@@ -154,7 +154,7 @@ class Algorithm {
         Endpoint result = null;
 
         for (Endpoint endpoint : endpoints) {
-            if (!endpoint.isActive() && endpoint.hardwareInfo.availStorage > maxStorage) {
+            if (endpoint.isInactive() && endpoint.hardwareInfo.availStorage > maxStorage) {
                 maxStorage = endpoint.hardwareInfo.availStorage;
                 result = endpoint;
             }
@@ -182,7 +182,7 @@ class Algorithm {
         Endpoint result = null;
 
         for (Endpoint endpoint : endpoints) {
-            if (!endpoint.isActive() && endpoint.hardwareInfo.batteryLevel > maxBattery) {
+            if (endpoint.isInactive() && endpoint.hardwareInfo.batteryLevel > maxBattery) {
                 maxBattery = endpoint.hardwareInfo.batteryLevel;
                 result = endpoint;
             }

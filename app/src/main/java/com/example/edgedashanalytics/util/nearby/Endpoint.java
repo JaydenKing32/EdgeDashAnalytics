@@ -21,8 +21,8 @@ public class Endpoint {
         this.connected = false;
     }
 
-    boolean isActive() {
-        return !jobList.isEmpty();
+    boolean isInactive() {
+        return jobList.isEmpty();
     }
 
     void addJob(String videoName) {
