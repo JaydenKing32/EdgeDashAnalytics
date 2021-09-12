@@ -33,10 +33,15 @@
     <string name="remove_raw_title">Remove raw</string>
     <string name="remove_raw_summary">Remove raw videos during clean</string>
     <string name="remove_raw_key">remove_raw</string>
-    <string name="scheduling_algorithm_title">Scheduling Algorithm</string>
+    <string name="scheduling_algorithm_title">Scheduling algorithm</string>
     <string name="scheduling_algorithm_key">scheduling_algorithm</string>
     <string name="model_title">Model</string>
     <string name="model_key">model</string>
+    <string name="enable_download_simulation_title">Simulate downloading</string>
+    <string name="enable_download_simulation_summary">When multiple videos are selected, add a delay between processing them to simulate downloading</string>
+    <string name="enable_download_simulation_key">simulate_download</string>
+    <string name="download_simulation_delay_title">Simulated download delay</string>
+    <string name="download_simulation_delay_key">download_simulation_delay</string>
     <string name="download_delay_title">Download delay</string>
     <string name="download_delay_key">download_delay</string>
     <string name="verbose_output_title">Verbose output</string>

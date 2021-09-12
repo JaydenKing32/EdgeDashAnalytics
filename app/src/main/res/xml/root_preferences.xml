@@ -36,6 +36,22 @@
         android:title="@string/download_delay_title"
         app:showSeekBarValue="true" />
     <CheckBoxPreference
+        android:id="@+id/enable_download_simulation_preference"
+        android:defaultValue="false"
+        android:key="@string/enable_download_simulation_key"
+        android:summary="@string/enable_download_simulation_summary"
+        android:title="@string/enable_download_simulation_title" />
+    <SeekBarPreference
+        android:id="@+id/simulate_download_delay_preference"
+        android:max="100"
+        android:defaultValue="15"
+        android:dependency="@string/enable_download_simulation_key"
+        android:key="@string/download_simulation_delay_key"
+        android:min="0"
+        android:persistent="true"
+        app:showSeekBarValue="true"
+        android:title="@string/download_simulation_delay_title" />
+    <CheckBoxPreference
         android:id="@+id/verbose_output_preference"
         android:defaultValue="false"
         android:key="@string/verbose_output_key"

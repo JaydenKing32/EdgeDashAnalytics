@@ -1,8 +1,10 @@
 package com.example.edgedashanalytics.page.adapter;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,6 +14,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.preference.PreferenceManager;
 import androidx.recyclerview.selection.ItemDetailsLookup;
 import androidx.recyclerview.selection.Selection;
 import androidx.recyclerview.selection.SelectionTracker;
@@ -22,6 +25,7 @@ import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.page.main.VideoFragment;
 import com.example.edgedashanalytics.util.video.analysis.AnalysisTools;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -30,6 +34,7 @@ import java.util.List;
  */
 public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<VideoRecyclerViewAdapter.VideoViewHolder> {
     private static final String TAG = VideoRecyclerViewAdapter.class.getSimpleName();
+    private static final int DEFAULT_DELAY = 15;
 
     List<Video> videos;
     SelectionTracker<Long> tracker;
@@ -45,17 +50,55 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
     }
 
     public void processSelected(Selection<Long> positions, Context context) {
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        boolean simDownload = pref.getBoolean(context.getString(R.string.enable_download_simulation_key), false);
+        int downloadDelay = pref.getInt(context.getString(R.string.download_simulation_delay_key), DEFAULT_DELAY);
+
+        if (simDownload) {
+            Thread transferDelayThread = new Thread(processSelectedDelay(positions, downloadDelay, context));
+            transferDelayThread.start();
+        } else {
+            processSelectedNow(positions, context);
+        }
+    }
+
+    private void processSelectedNow(Selection<Long> positions, Context context) {
         if (listener.getIsConnected()) {
             for (Long pos : positions) {
                 Video video = videos.get(pos.intValue());
                 listener.getAddVideo(video);
             }
+            listener.getNextTransfer();
         } else {
             for (Long pos : positions) {
                 Video video = videos.get(pos.intValue());
                 AnalysisTools.processVideo(video, context);
             }
         }
+    }
+
+    private Runnable processSelectedDelay(Selection<Long> positions, int delay, Context context) {
+        // Not safe to concurrently modify recycler view list, better to copy videos first
+        ArrayList<Video> selectedVideos = new ArrayList<>(positions.size());
+        positions.iterator().forEachRemaining(p -> selectedVideos.add(videos.get(p.intValue())));
+
+        return () -> {
+            for (Video video : selectedVideos) {
+                if (listener.getIsConnected()) {
+                    listener.getAddVideo(video);
+                    listener.getNextTransfer();
+                } else {
+                    AnalysisTools.processVideo(video, context);
+                }
+
+                try {
+                    // Seconds to milliseconds
+                    Thread.sleep(delay * 1000L);
+                } catch (InterruptedException e) {
+                    Log.e(TAG, String.format("Thread error: \n%s", e.getMessage()));
+                }
+            }
+        };
     }
 
     @NonNull
