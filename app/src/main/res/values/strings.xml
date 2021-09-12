@@ -33,6 +33,9 @@
     <string name="remove_raw_title">Remove raw</string>
     <string name="remove_raw_summary">Remove raw videos during clean</string>
     <string name="remove_raw_key">remove_raw</string>
+    <string name="local_process_title">Process locally</string>
+    <string name="local_process_summary">If all workers are busy, process the next video on the master device if it is not already processing a video</string>
+    <string name="local_process_key">local_process</string>
     <string name="scheduling_algorithm_title">Scheduling algorithm</string>
     <string name="scheduling_algorithm_key">scheduling_algorithm</string>
     <string name="model_title">Model</string>

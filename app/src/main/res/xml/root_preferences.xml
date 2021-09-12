@@ -8,6 +8,12 @@
         android:persistent="true"
         android:summary="@string/remove_raw_summary"
         android:title="@string/remove_raw_title" />
+    <CheckBoxPreference
+        android:id="@+id/local_process_preference"
+        android:defaultValue="false"
+        android:key="@string/local_process_key"
+        android:summary="@string/local_process_summary"
+        android:title="@string/local_process_title" />
     <ListPreference
         android:id="@+id/algorithm_preference"
         android:defaultValue="@string/fastest_algorithm_key"

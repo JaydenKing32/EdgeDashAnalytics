@@ -60,6 +60,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -67,6 +68,7 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -83,6 +85,7 @@ public abstract class NearbyFragment extends Fragment {
     private final Queue<Message> transferQueue = new LinkedList<>();
     private final LinkedHashMap<String, Endpoint> discoveredEndpoints = new LinkedHashMap<>();
     private final ExecutorService analysisExecutor = Executors.newSingleThreadExecutor();
+    private final List<Future<?>> analysisFutures = new ArrayList<>();
     private final ScheduledExecutorService downloadTaskExecutor = Executors.newSingleThreadScheduledExecutor();
     private final Gson gson = new Gson();
 
@@ -276,7 +279,7 @@ public abstract class NearbyFragment extends Fragment {
             addVideo(video);
             nextTransfer();
         } else {
-            analyse(video);
+            analyse(video, true);
         }
     }
 
@@ -377,12 +380,24 @@ public abstract class NearbyFragment extends Fragment {
 
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         String algorithmKey = getString(R.string.scheduling_algorithm_key);
+        String localProcessKey = getString(R.string.local_process_key);
+
         AlgorithmKey algorithm = AlgorithmKey.valueOf(pref.getString(algorithmKey, Algorithm.DEFAULT_ALGORITHM.name()));
+        boolean localProcess = pref.getBoolean(localProcessKey, false);
         Log.v(TAG, String.format("nextTransfer with selected algorithm: %s", algorithm.name()));
 
         List<Endpoint> endpoints = getConnectedEndpoints();
-        Endpoint selected = null;
+        boolean localFree = analysisFutures.stream().allMatch(Future::isDone);
+        boolean anyFreeEndpoint = endpoints.stream().anyMatch(Endpoint::isInactive);
 
+        if (localProcess && localFree && !anyFreeEndpoint) {
+            Video video = (Video) transferQueue.remove().content;
+            Log.d(String.format("!%s", TAG), String.format("Processing %s locally", video.getName()));
+            analyse(video, false);
+            return;
+        }
+
+        Endpoint selected = null;
         switch (algorithm) {
             case round_robin:
                 selected = Algorithm.getRoundRobinEndpoint(endpoints, transferCount);
@@ -460,10 +475,10 @@ public abstract class NearbyFragment extends Fragment {
     }
 
     private void analyse(File videoFile) {
-        analyse(VideoManager.getVideoFromPath(getContext(), videoFile.getAbsolutePath()));
+        analyse(VideoManager.getVideoFromPath(getContext(), videoFile.getAbsolutePath()), true);
     }
 
-    private void analyse(Video video) {
+    private void analyse(Video video, boolean returnResult) {
         Context context = getContext();
         if (context == null) {
             Log.e(TAG, "No context");
@@ -476,10 +491,11 @@ public abstract class NearbyFragment extends Fragment {
         EventBus.getDefault().post(new RemoveEvent(video, Type.RAW));
 
         String outPath = FileManager.getResultPathFromVideoName(video.getName());
-        analysisExecutor.submit(analysisRunnable(video, outPath, context));
+        Future<?> future = analysisExecutor.submit(analysisRunnable(video, outPath, context, returnResult));
+        analysisFutures.add(future);
     }
 
-    private Runnable analysisRunnable(Video video, String outPath, Context context) {
+    private Runnable analysisRunnable(Video video, String outPath, Context context, boolean returnResult) {
         return () -> {
             VideoAnalysis videoAnalysis = new VideoAnalysis(video.getData(), outPath);
             videoAnalysis.analyse(context);
@@ -488,7 +504,9 @@ public abstract class NearbyFragment extends Fragment {
             EventBus.getDefault().post(new AddResultEvent(result));
             EventBus.getDefault().post(new RemoveEvent(video, Type.PROCESSING));
 
-            returnContent(result);
+            if (returnResult) {
+                returnContent(result);
+            }
         };
     }
 
