@@ -4,13 +4,15 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.media.MediaMetadataRetriever;
-import android.util.JsonWriter;
 import android.util.Log;
 
 import androidx.preference.PreferenceManager;
 
 import com.example.edgedashanalytics.R;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.tensorflow.lite.support.image.TensorImage;
@@ -19,17 +21,15 @@ import org.tensorflow.lite.task.vision.detector.Detection;
 import org.tensorflow.lite.task.vision.detector.ObjectDetector;
 
 import java.io.File;
-import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
+import java.io.Writer;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map.Entry;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
@@ -49,9 +49,9 @@ public class VideoAnalysis {
     private final float minScore;
     private final int threadNum;
     private final int bufferSize;
+    private final List<Frame> frames = new ArrayList<>();
 
-    private HashMap<Integer, List<Detection>> frameDetections;
-    private long scaleFactor = 1;
+    private int scaleFactor = 1;
     private boolean verbose = false;
 
     public VideoAnalysis(String inPath, String outPath) {
@@ -123,7 +123,6 @@ public class VideoAnalysis {
     }
 
     private void startFrameProcessing(ObjectDetector detector, MediaMetadataRetriever retriever, int totalFrames) {
-        frameDetections = new HashMap<>(totalFrames);
 
         simpleFramesLoop(detector, retriever, totalFrames);
         // scaledFramesLoop(detector, retriever, totalFrames);
@@ -201,7 +200,26 @@ public class VideoAnalysis {
         }
         TensorImage image = TensorImage.fromBitmap(bitmap);
         List<Detection> detectionList = detector.detect(image);
-        frameDetections.put(frameIndex, detectionList);
+        List<Person> people = new ArrayList<>(detectionList.size());
+
+        for (Detection detection : detectionList) {
+            List<Category> categoryList = detection.getCategories();
+
+            if (categoryList == null || categoryList.size() == 0) {
+                continue;
+            }
+            Category category = categoryList.get(0);
+            RectF bb = detection.getBoundingBox();
+            Rect boundingBox = new Rect(
+                    (int) bb.left * scaleFactor,
+                    (int) bb.top * scaleFactor,
+                    (int) bb.right * scaleFactor,
+                    (int) bb.bottom * scaleFactor
+            );
+
+            people.add(new Person(category.getScore(), isClose(detection, detectionList), boundingBox));
+        }
+        frames.add(new Frame(frameIndex, people));
 
         if (verbose) {
             String resultHead = String.format(Locale.ENGLISH,
@@ -247,70 +265,16 @@ public class VideoAnalysis {
     }
 
     private void writeResultsToJson(String jsonFilePath) {
-        File jsonFile = new File(jsonFilePath);
-        JsonWriter writer;
         try {
-            FileOutputStream out = new FileOutputStream(jsonFile);
-            writer = new JsonWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8));
-            writer.setIndent(" ");
-            writer.beginArray();
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            Writer writer = new FileWriter(jsonFilePath);
+            gson.toJson(frames, writer);
 
-            for (Entry<Integer, List<Detection>> frameDetection : frameDetections.entrySet()) {
-                writeFrame(writer, frameDetection);
-            }
-
-            writer.endArray();
+            writer.flush();
             writer.close();
         } catch (Exception e) {
-            Log.w(TAG, String.format("Interrupted task:\n  %s", e.getMessage()));
+            Log.w(TAG, String.format("Failed to write results file:\n  %s", e.getMessage()));
         }
-    }
-
-    private void writeFrame(JsonWriter writer, Entry<Integer, List<Detection>> frameDetection) throws IOException {
-        int frameIndex = frameDetection.getKey();
-        List<Detection> detectionList = frameDetection.getValue();
-
-        writer.beginObject();
-        writer.name("frame").value(frameIndex);
-        writer.name("detections");
-
-        writer.beginArray();
-        for (Detection detection : detectionList) {
-            boolean close = isClose(detection, detectionList);
-
-            writeDetection(writer, detection, close);
-        }
-        writer.endArray();
-
-        writer.endObject();
-    }
-
-    private void writeDetection(JsonWriter writer, Detection detection, boolean close) throws IOException {
-        List<Category> categoryList = detection.getCategories();
-
-        if (categoryList == null || categoryList.size() == 0) {
-            Log.e(TAG, "No categories found");
-            return;
-        }
-        Category category = categoryList.get(0);
-
-        writer.beginObject();
-
-        writer.name("category").value(category.getLabel());
-        writer.name("confidence").value(category.getScore());
-        writer.name("close").value(close);
-
-        Rect boundingBox = new Rect();
-        detection.getBoundingBox().roundOut(boundingBox);
-        writer.name("BBox");
-        writer.beginArray();
-        writer.value(boundingBox.left * scaleFactor);
-        writer.value(boundingBox.top * scaleFactor);
-        writer.value(boundingBox.right * scaleFactor);
-        writer.value(boundingBox.bottom * scaleFactor);
-        writer.endArray();
-
-        writer.endObject();
     }
 
     private boolean isClose(Detection object, List<Detection> others) {
