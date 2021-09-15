@@ -4,6 +4,8 @@ import android.os.Parcel;
 
 import androidx.annotation.NonNull;
 
+import com.example.edgedashanalytics.util.file.FileManager;
+
 public class Result extends Content {
     public static final Creator<Result> CREATOR = new Creator<Result>() {
         @Override
@@ -19,6 +21,10 @@ public class Result extends Content {
 
     public Result(String data, String name) {
         super(data, name);
+    }
+
+    public Result(String data) {
+        super(data, FileManager.getFilenameFromPath(data));
     }
 
     private Result(Parcel in) {

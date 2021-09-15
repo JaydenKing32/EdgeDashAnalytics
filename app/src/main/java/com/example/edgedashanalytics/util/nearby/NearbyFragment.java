@@ -500,7 +500,7 @@ public abstract class NearbyFragment extends Fragment {
             VideoAnalysis videoAnalysis = new VideoAnalysis(video.getData(), outPath);
             videoAnalysis.analyse(context);
 
-            Result result = new Result(outPath, FileManager.getFilenameFromPath(outPath));
+            Result result = new Result(outPath);
             EventBus.getDefault().post(new AddResultEvent(result));
             EventBus.getDefault().post(new RemoveEvent(video, Type.PROCESSING));
 
@@ -694,7 +694,7 @@ public abstract class NearbyFragment extends Fragment {
                         return;
                     }
 
-                    Result result = new Result(resultsDestPath, FileManager.getFilenameFromPath(resultsDestPath));
+                    Result result = new Result(resultsDestPath);
                     EventBus.getDefault().post(new AddResultEvent(result));
                     String videoName = FileManager.getVideoNameFromResultName(filename);
                     EventBus.getDefault().post(new RemoveByNameEvent(videoName, Type.PROCESSING));

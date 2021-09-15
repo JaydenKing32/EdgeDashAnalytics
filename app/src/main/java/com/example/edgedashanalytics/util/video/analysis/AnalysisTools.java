@@ -43,7 +43,7 @@ public class AnalysisTools {
 
             analysisFutures.remove(video.getData());
 
-            Result result = new Result(outPath, FileManager.getFilenameFromPath(outPath));
+            Result result = new Result(outPath);
             EventBus.getDefault().post(new AddResultEvent(result));
             EventBus.getDefault().post(new RemoveEvent(video, Type.PROCESSING));
         };

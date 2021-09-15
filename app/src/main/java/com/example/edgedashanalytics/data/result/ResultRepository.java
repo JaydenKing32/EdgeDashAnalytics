@@ -40,7 +40,7 @@ public class ResultRepository {
         }
 
         for (File resultFile : resultFiles) {
-            Result result = new Result(resultFile.getAbsolutePath(), resultFile.getName());
+            Result result = new Result(resultFile.getAbsolutePath());
             results.add(result);
         }
         return results;
@@ -61,7 +61,7 @@ public class ResultRepository {
         liveData.postValue(results);
     }
 
-    public void update(Result result, int position) {
+    void update(Result result, int position) {
         results.set(position, result);
         liveData.postValue(results);
     }
