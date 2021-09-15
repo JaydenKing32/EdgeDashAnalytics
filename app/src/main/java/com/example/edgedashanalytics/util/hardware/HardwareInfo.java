@@ -7,6 +7,7 @@ import android.content.Context;
 import android.os.BatteryManager;
 import android.os.Environment;
 import android.os.StatFs;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -14,6 +15,8 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 
 public class HardwareInfo {
+    private static final String TAG = HardwareInfo.class.getSimpleName();
+
     public final long cpuFreq;
     public final int cpuCores;
     public final long totalRam;
@@ -45,7 +48,7 @@ public class HardwareInfo {
                 return Long.parseLong(line);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e(TAG, String.format("Could not retrieve CPU frequency: \n%s", e.getMessage()));
         }
 
         return freq;
