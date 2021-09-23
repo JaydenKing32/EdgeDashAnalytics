@@ -40,6 +40,12 @@
     <string name="scheduling_algorithm_key">scheduling_algorithm</string>
     <string name="model_title">Model</string>
     <string name="model_key">model</string>
+    <string name="enable_segment_title">Enable segmentation</string>
+    <string name="enable_segment_summary_off">Send whole video files to worker phones</string>
+    <string name="enable_segment_summary_on">Send video segments to worker phones</string>
+    <string name="enable_segment_key">enable_segment</string>
+    <string name="segment_number_title">Segment number</string>
+    <string name="segment_number_key">segment_number</string>
     <string name="enable_download_simulation_title">Simulate downloading</string>
     <string name="enable_download_simulation_summary">When multiple videos are selected, add a delay between processing them to simulate downloading</string>
     <string name="enable_download_simulation_key">simulate_download</string>

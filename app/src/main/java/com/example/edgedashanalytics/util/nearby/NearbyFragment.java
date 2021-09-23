@@ -32,6 +32,7 @@ import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.hardware.HardwareInfo;
 import com.example.edgedashanalytics.util.nearby.Algorithm.AlgorithmKey;
 import com.example.edgedashanalytics.util.nearby.Message.Command;
+import com.example.edgedashanalytics.util.video.FfmpegTools;
 import com.example.edgedashanalytics.util.video.VideoManager;
 import com.example.edgedashanalytics.util.video.analysis.VideoAnalysis;
 import com.google.android.gms.nearby.Nearby;
@@ -50,6 +51,7 @@ import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
 import com.google.gson.Gson;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.greenrobot.eventbus.EventBus;
@@ -350,8 +352,31 @@ public abstract class NearbyFragment extends Fragment {
         connectionsClient.sendPayload(toEndpoint, messageBytesPayload);
     }
 
+    private void queueVideo(Video video, Command command) {
+        transferQueue.add(new Message(video, command));
+    }
+
     public void addVideo(Video video) {
-        transferQueue.add(new Message(video, Command.ANALYSE));
+        Context context = getContext();
+        if (context == null) {
+            Log.e(TAG, "No context");
+            return;
+        }
+
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        boolean segmentationEnabled = pref.getBoolean(getString(R.string.enable_segment_key), false);
+        int segNum = pref.getInt(getString(R.string.segment_number_key), -1);
+
+        if (segmentationEnabled) {
+            if (segNum > 1) {
+                splitAndQueue(video.getData(), segNum);
+                return;
+            } else {
+                Log.i(TAG, String.format("Segmentation count too low (%d), analysing whole video instead", segNum));
+            }
+        }
+
+        queueVideo(video, Command.ANALYSE);
     }
 
     private void returnContent(Content content) {
@@ -363,6 +388,60 @@ public abstract class NearbyFragment extends Fragment {
             sendFile(message, endpoints.get(0));
         } else {
             Log.e(TAG, "Non-worker attempting to return a video");
+        }
+    }
+
+    private void splitAndQueue(String videoPath, int segNum) {
+        Context context = getContext();
+        if (context == null) {
+            Log.e(TAG, "No context");
+            return;
+        }
+
+        String baseVideoName = FilenameUtils.getBaseName(videoPath);
+        List<Video> videos = FfmpegTools.splitAndReturn(context, videoPath, segNum);
+
+        if (videos == null || videos.size() == 0) {
+            Log.e(TAG, String.format("Could not split %s", baseVideoName));
+            return;
+        }
+
+        int vidNum = videos.size();
+        if (vidNum != segNum) {
+            Log.w(TAG, String.format("Number of segmented videos (%d) does not match intended value (%d)",
+                    vidNum, segNum));
+        }
+
+        if (vidNum == 1) {
+            queueVideo(videos.get(0), Command.ANALYSE);
+            return;
+        }
+
+        for (Video segment : videos) {
+            queueVideo(segment, Command.SEGMENT);
+        }
+    }
+
+    private void handleSegment(String resultName) {
+        String baseName = FfmpegTools.getBaseName(resultName);
+        List<Result> results = FileManager.getResultsFromDir(FileManager.getSegmentResSubDirPath(resultName));
+        int resultTotal = FfmpegTools.getSegmentCount(resultName);
+
+        if (results == null) {
+            Log.d(TAG, "Couldn't retrieve results");
+            return;
+        }
+
+        if (results.size() == resultTotal) {
+            Log.d(TAG, String.format("Received all result segments of %s", baseName));
+            String parentName = String.format("%s.%s", baseName, FilenameUtils.getExtension(resultName));
+            Result result = FileManager.mergeResults(parentName);
+
+            EventBus.getDefault().post(new AddResultEvent(result));
+            EventBus.getDefault().post(new RemoveByNameEvent(parentName, Type.RAW));
+            EventBus.getDefault().post(new RemoveByNameEvent(parentName, Type.PROCESSING));
+        } else {
+            Log.v(TAG, String.format("Received a segment of %s", baseName));
         }
     }
 
@@ -490,7 +569,7 @@ public abstract class NearbyFragment extends Fragment {
         EventBus.getDefault().post(new AddEvent(video, Type.PROCESSING));
         EventBus.getDefault().post(new RemoveEvent(video, Type.RAW));
 
-        String outPath = FileManager.getResultPathFromVideoName(video.getName());
+        String outPath = FileManager.getResultPathOrSegmentResPathFromVideoName(video.getName());
         Future<?> future = analysisExecutor.submit(analysisRunnable(video, outPath, context, returnResult));
         analysisFutures.add(future);
     }
@@ -506,6 +585,10 @@ public abstract class NearbyFragment extends Fragment {
 
             if (returnResult) {
                 returnContent(result);
+            } else if (FfmpegTools.isSegment(result.getName())) {
+                // Master completed analysing a segment
+                handleSegment(result.getName());
+                nextTransfer();
             }
         };
     }
@@ -577,6 +660,7 @@ public abstract class NearbyFragment extends Fragment {
                         //
                         break;
                     case ANALYSE:
+                    case SEGMENT:
                         Log.v(TAG, String.format("Started downloading %s from %s", message, fromEndpoint));
                         payloadId = addPayloadFilename(parts);
                         startTimes.put(payloadId, Instant.now());
@@ -598,11 +682,13 @@ public abstract class NearbyFragment extends Fragment {
                         videoName = parts[1];
                         Log.d(TAG, String.format("%s has finished downloading %s", fromEndpoint, videoName));
 
-                        videoPath = String.format("%s/%s", FileManager.getRawDirPath(), videoName);
-                        video = VideoManager.getVideoFromPath(context, videoPath);
+                        if (!FfmpegTools.isSegment(videoName)) {
+                            videoPath = String.format("%s/%s", FileManager.getRawDirPath(), videoName);
+                            video = VideoManager.getVideoFromPath(context, videoPath);
 
-                        EventBus.getDefault().post(new AddEvent(video, Type.PROCESSING));
-                        EventBus.getDefault().post(new RemoveEvent(video, Type.RAW));
+                            EventBus.getDefault().post(new AddEvent(video, Type.PROCESSING));
+                            EventBus.getDefault().post(new RemoveEvent(video, Type.RAW));
+                        }
                         nextTransfer();
 
                         break;
@@ -654,7 +740,7 @@ public abstract class NearbyFragment extends Fragment {
                 filePayloadFilenames.remove(payloadId);
                 filePayloadCommands.remove(payloadId);
 
-                if (command.equals(Command.ANALYSE)) {
+                if (Message.isAnalyse(command)) {
                     sendCommandMessage(Command.COMPLETE, filename, fromEndpointId);
                 }
 
@@ -679,12 +765,12 @@ public abstract class NearbyFragment extends Fragment {
                     return;
                 }
 
-                String resultsDestPath = FileManager.getResultPathFromVideoName(filename);
-
-                if (command.equals(Command.ANALYSE)) {
+                if (Message.isAnalyse(command)) {
                     analyse(receivedFile);
 
                 } else if (command.equals(Command.RETURN)) {
+                    String resultName = FileManager.getResultNameFromVideoName(filename);
+                    String resultsDestPath = FileManager.getResultPathOrSegmentResPathFromVideoName(resultName);
                     File resultsDest = new File(resultsDestPath);
 
                     try {
@@ -692,6 +778,10 @@ public abstract class NearbyFragment extends Fragment {
                     } catch (IOException e) {
                         Log.e(TAG, String.format("processFilePayload copy error: \n%s", e.getMessage()));
                         return;
+                    }
+
+                    if (FfmpegTools.isSegment(resultName)) {
+                        handleSegment(resultName);
                     }
 
                     Result result = new Result(resultsDestPath);

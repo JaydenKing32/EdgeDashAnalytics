@@ -14,9 +14,14 @@ class Message {
     public enum Command {
         ERROR, // Error during transfer
         ANALYSE, // Analyse the transferred file
+        SEGMENT, // Analyse the transferred file as a video segment
         COMPLETE, // Completed file transfer
         RETURN, // Returning results file
         HW_INFO, // Message contains hardware information
         HW_INFO_REQUEST // Requesting hardware information
+    }
+
+    static boolean isAnalyse(Command command) {
+        return (command.equals(Command.ANALYSE) || command.equals(Command.SEGMENT));
     }
 }

@@ -32,6 +32,25 @@
         android:persistent="true"
         android:title="@string/model_title"
         app:useSimpleSummaryProvider="true" />
+    <SwitchPreferenceCompat
+        android:id="@+id/enable_segment_preference"
+        android:defaultValue="false"
+        android:key="@string/enable_segment_key"
+        android:summaryOff="@string/enable_segment_summary_off"
+        android:summaryOn="@string/enable_segment_summary_on"
+        android:title="@string/enable_segment_title" />
+    <SeekBarPreference
+        android:id="@+id/segment_number_preference"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:defaultValue="4"
+        android:dependency="@string/enable_segment_key"
+        android:key="@string/segment_number_key"
+        android:max="10"
+        android:min="2"
+        android:persistent="true"
+        android:title="@string/segment_number_title"
+        app:showSeekBarValue="true" />
     <SeekBarPreference
         android:id="@+id/download_delay_preference"
         android:defaultValue="1"
@@ -49,14 +68,14 @@
         android:title="@string/enable_download_simulation_title" />
     <SeekBarPreference
         android:id="@+id/simulate_download_delay_preference"
-        android:max="100"
         android:defaultValue="15"
         android:dependency="@string/enable_download_simulation_key"
         android:key="@string/download_simulation_delay_key"
+        android:max="100"
         android:min="0"
         android:persistent="true"
-        app:showSeekBarValue="true"
-        android:title="@string/download_simulation_delay_title" />
+        android:title="@string/download_simulation_delay_title"
+        app:showSeekBarValue="true" />
     <CheckBoxPreference
         android:id="@+id/verbose_output_preference"
         android:defaultValue="false"
