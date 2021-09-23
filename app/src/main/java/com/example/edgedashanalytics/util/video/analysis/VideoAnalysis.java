@@ -58,8 +58,8 @@ public class VideoAnalysis {
         this.inPath = inPath;
         this.outPath = outPath;
 
-        this.maxDetections = 10;
-        this.minScore = 0.5f;
+        this.maxDetections = -1;
+        this.minScore = 0.2f;
         this.threadNum = 4;
         this.bufferSize = 50;
     }
