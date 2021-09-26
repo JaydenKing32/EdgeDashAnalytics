@@ -38,40 +38,6 @@ public class DashCam {
     private static final String baseUrl = "http://10.99.77.1/";
     private static final String videoDirUrl = baseUrl + "Record/";
     private static final Set<String> downloads = new HashSet<>();
-    private static final ArrayList<String> testVideos = new ArrayList<>(Arrays.asList(
-            "./S0=City_Center=Time_12-34=View_001.mp4",
-            "./S0=City_Center=Time_12-34=View_002.mp4",
-            "./S0=City_Center=Time_12-34=View_003.mp4",
-            "./S0=City_Center=Time_12-34=View_004.mp4",
-            "./S0=City_Center=Time_12-34=View_005.mp4",
-            "./S0=City_Center=Time_12-34=View_006.mp4",
-            "./S0=City_Center=Time_12-34=View_007.mp4",
-            "./S0=City_Center=Time_12-34=View_008.mp4",
-            "./S0=City_Center=Time_14-55=View_001.mp4",
-            "./S0=City_Center=Time_14-55=View_002.mp4",
-            "./S0=City_Center=Time_14-55=View_003.mp4",
-            "./S0=City_Center=Time_14-55=View_004.mp4",
-            "./S0=Regular_Flow=Time_13-57=View_001.mp4",
-            "./S0=Regular_Flow=Time_13-57=View_002.mp4",
-            "./S0=Regular_Flow=Time_13-57=View_003.mp4",
-            "./S0=Regular_Flow=Time_13-57=View_004.mp4",
-            "./S0=Regular_Flow=Time_13-59=View_001.mp4",
-            "./S0=Regular_Flow=Time_13-59=View_002.mp4",
-            "./S0=Regular_Flow=Time_13-59=View_003.mp4",
-            "./S0=Regular_Flow=Time_13-59=View_004.mp4",
-            "./S0=Regular_Flow=Time_14-03=View_001.mp4",
-            "./S0=Regular_Flow=Time_14-03=View_002.mp4",
-            "./S0=Regular_Flow=Time_14-03=View_003.mp4",
-            "./S0=Regular_Flow=Time_14-03=View_004.mp4",
-            "./S0=Regular_Flow=Time_14-06=View_001.mp4",
-            "./S0=Regular_Flow=Time_14-06=View_002.mp4",
-            "./S0=Regular_Flow=Time_14-06=View_003.mp4",
-            "./S0=Regular_Flow=Time_14-06=View_004.mp4",
-            "./S0=Regular_Flow=Time_14-29=View_001.mp4",
-            "./S0=Regular_Flow=Time_14-29=View_002.mp4",
-            "./S0=Regular_Flow=Time_14-29=View_003.mp4",
-            "./S0=Regular_Flow=Time_14-29=View_004.mp4"
-    ));
 
     public static void startDownloadAll(Context context) {
         ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -159,5 +125,75 @@ public class DashCam {
             }
         };
     }
+
+    private static final ArrayList<String> testVideos = new ArrayList<>(Arrays.asList(
+            "b1c66a42-6f7d68ca.mp4",
+            "b1c9c847-3bda4659.mp4",
+            "b1ca2e5d-84cf9134.mp4",
+            "b1cd1e94-26dd524f.mp4",
+            "b1cd1e94-549d0bfe.mp4",
+            "b1ceb32e-a106591d.mp4",
+            "b1d0a191-03dcecc2.mp4",
+            "b1d0a191-06deb55d.mp4",
+            "b1d0a191-2ed2269e.mp4",
+            "b1d0a191-65deaeef.mp4",
+            "b1d0a191-de8948f6.mp4",
+            "b1d10d08-c35503b8.mp4",
+            "b1d22ed6-f1cac061.mp4",
+            "b1d7b3ac-2a92e19f.mp4",
+            "b1dac7f7-6b2e0382.mp4",
+            "b1e0c01d-dd9e6e2f.mp4",
+            "b1e1a7b8-0aec80e8.mp4",
+            "b1e1a7b8-65ec7612.mp4",
+            "b1ee702d-0ae1fc10.mp4",
+            "b1f0efd9-e900c6e5.mp4",
+            "b1f20aa0-3401c3bf.mp4",
+            "b1f4491b-16256d7c.mp4",
+            "b1f4491b-33824f31.mp4",
+            "b1f4491b-9958bd99.mp4",
+            "b1f62c41-ed0c6521.mp4",
+            "b1ff4656-0435391e.mp4",
+            "b2a8e8b4-50058f09.mp4",
+            "b2a8e8b4-a4e93829.mp4",
+            "b2a9d547-f7f6fa92.mp4",
+            "b2ae4fc5-d1082ddf.mp4"
+    ));
+
+    /*
+    private static final ArrayList<String> testVideos = new ArrayList<>(Arrays.asList(
+            "S0=City_Center=Time_12-34=View_001.mp4",
+            "S0=City_Center=Time_12-34=View_002.mp4",
+            "S0=City_Center=Time_12-34=View_003.mp4",
+            "S0=City_Center=Time_12-34=View_004.mp4",
+            "S0=City_Center=Time_12-34=View_005.mp4",
+            "S0=City_Center=Time_12-34=View_006.mp4",
+            "S0=City_Center=Time_12-34=View_007.mp4",
+            "S0=City_Center=Time_12-34=View_008.mp4",
+            "S0=City_Center=Time_14-55=View_001.mp4",
+            "S0=City_Center=Time_14-55=View_002.mp4",
+            "S0=City_Center=Time_14-55=View_003.mp4",
+            "S0=City_Center=Time_14-55=View_004.mp4",
+            "S0=Regular_Flow=Time_13-57=View_001.mp4",
+            "S0=Regular_Flow=Time_13-57=View_002.mp4",
+            "S0=Regular_Flow=Time_13-57=View_003.mp4",
+            "S0=Regular_Flow=Time_13-57=View_004.mp4",
+            "S0=Regular_Flow=Time_13-59=View_001.mp4",
+            "S0=Regular_Flow=Time_13-59=View_002.mp4",
+            "S0=Regular_Flow=Time_13-59=View_003.mp4",
+            "S0=Regular_Flow=Time_13-59=View_004.mp4",
+            "S0=Regular_Flow=Time_14-03=View_001.mp4",
+            "S0=Regular_Flow=Time_14-03=View_002.mp4",
+            "S0=Regular_Flow=Time_14-03=View_003.mp4",
+            "S0=Regular_Flow=Time_14-03=View_004.mp4",
+            "S0=Regular_Flow=Time_14-06=View_001.mp4",
+            "S0=Regular_Flow=Time_14-06=View_002.mp4",
+            "S0=Regular_Flow=Time_14-06=View_003.mp4",
+            "S0=Regular_Flow=Time_14-06=View_004.mp4",
+            "S0=Regular_Flow=Time_14-29=View_001.mp4",
+            "S0=Regular_Flow=Time_14-29=View_002.mp4",
+            "S0=Regular_Flow=Time_14-29=View_003.mp4",
+            "S0=Regular_Flow=Time_14-29=View_004.mp4"
+    ));
+     */
 }
 

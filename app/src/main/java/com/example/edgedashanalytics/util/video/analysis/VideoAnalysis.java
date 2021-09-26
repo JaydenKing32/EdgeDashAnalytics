@@ -61,7 +61,7 @@ public class VideoAnalysis {
         this.maxDetections = -1;
         this.minScore = 0.2f;
         this.threadNum = 4;
-        this.bufferSize = 50;
+        this.bufferSize = 10;
     }
 
     public void analyse(Context context) {
@@ -123,7 +123,6 @@ public class VideoAnalysis {
     }
 
     private void startFrameProcessing(ObjectDetector detector, MediaMetadataRetriever retriever, int totalFrames) {
-
         simpleFramesLoop(detector, retriever, totalFrames);
         // scaledFramesLoop(detector, retriever, totalFrames);
     }
