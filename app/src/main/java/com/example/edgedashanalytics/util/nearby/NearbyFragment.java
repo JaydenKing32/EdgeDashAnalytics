@@ -6,6 +6,7 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -558,6 +559,11 @@ public abstract class NearbyFragment extends Fragment {
     }
 
     private void analyse(Video video, boolean returnResult) {
+        if (video == null) {
+            Log.e(TAG, "No video");
+            return;
+        }
+
         Context context = getContext();
         if (context == null) {
             Log.e(TAG, "No context");
@@ -758,15 +764,18 @@ public abstract class NearbyFragment extends Fragment {
                     return;
                 }
 
-                // Rename the file.
-                File receivedFile = new File(payloadFile.getParentFile(), filename);
-                if (!payloadFile.renameTo(receivedFile)) {
-                    Log.e(TAG, String.format("Could not rename received file as %s", filename));
+                // Move the file.
+                File receivedFile = new File(FileManager.getRawDirPath(), filename);
+                try {
+                    Files.move(payloadFile.toPath(), receivedFile.toPath(), REPLACE_EXISTING);
+                } catch (IOException e) {
+                    Log.e(TAG, String.format("Could not move %s:\n%s", filename, e.getMessage()));
                     return;
                 }
 
                 if (Message.isAnalyse(command)) {
-                    analyse(receivedFile);
+                    MediaScannerConnection.scanFile(getContext(), new String[]{receivedFile.getAbsolutePath()}, null,
+                            (path, uri) -> analyse(receivedFile));
 
                 } else if (command.equals(Command.RETURN)) {
                     String resultName = FileManager.getResultNameFromVideoName(filename);
