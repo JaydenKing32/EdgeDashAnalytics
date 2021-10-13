@@ -1,5 +1,7 @@
 package com.example.edgedashanalytics.util.video.analysis;
 
+import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -108,7 +110,7 @@ public class VideoAnalysis {
 
         Instant start = Instant.now();
         String startString = String.format("Starting analysis of %s", videoName);
-        Log.d(String.format("!%s", TAG), startString);
+        Log.d(I_TAG, startString);
         Log.d(TAG, String.format("Total frames of %s: %d", videoName, totalFrames));
 
         startFrameProcessing(detector, retriever, totalFrames);
@@ -119,7 +121,7 @@ public class VideoAnalysis {
 
         String endString = String.format(Locale.ENGLISH, "Completed analysis of %s in %ss with %d threads",
                 videoName, time, threadNum);
-        Log.d(String.format("!%s", TAG), endString);
+        Log.d(I_TAG, endString);
     }
 
     private void startFrameProcessing(ObjectDetector detector, MediaMetadataRetriever retriever, int totalFrames) {

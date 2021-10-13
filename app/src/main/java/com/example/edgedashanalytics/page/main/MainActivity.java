@@ -40,6 +40,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 public class MainActivity extends AppCompatActivity implements
         VideoFragment.Listener, ResultsFragment.Listener, NearbyFragment.Listener {
     private static final String TAG = MainActivity.class.getSimpleName();
+    public static final String I_TAG = "Important";
 
     private VideoFragment rawFragment;
     private VideoFragment processingFragment;

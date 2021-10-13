@@ -1,5 +1,7 @@
 package com.example.edgedashanalytics.util.dashcam;
 
+import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
+
 import android.content.Context;
 import android.util.Log;
 
@@ -106,7 +108,7 @@ public class DashCam {
         String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
 
         Video video = VideoManager.getVideoFromPath(context, filePath);
-        Log.i(String.format("!%s", TAG), String.format("Successfully downloaded %s in %ss", filename, time));
+        Log.i(I_TAG, String.format("Successfully downloaded %s in %ss", filename, time));
         downloadCallback.accept(video);
     }
 

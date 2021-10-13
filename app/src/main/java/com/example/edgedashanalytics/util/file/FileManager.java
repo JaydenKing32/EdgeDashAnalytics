@@ -1,5 +1,6 @@
 package com.example.edgedashanalytics.util.file;
 
+import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 import static org.apache.commons.io.FilenameUtils.getBaseName;
 
 import android.content.Context;
@@ -253,7 +254,7 @@ public class FileManager {
 
             long duration = Duration.between(start, Instant.now()).toMillis();
             String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
-            Log.d(String.format("!%s", TAG), String.format("Merged results of %s in %ss", baseName, time));
+            Log.d(I_TAG, String.format("Merged results of %s in %ss", baseName, time));
 
             return new Result(outPath);
         } catch (IOException e) {

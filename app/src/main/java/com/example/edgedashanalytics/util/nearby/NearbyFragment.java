@@ -1,5 +1,6 @@
 package com.example.edgedashanalytics.util.nearby;
 
+import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
@@ -260,15 +261,15 @@ public abstract class NearbyFragment extends Fragment {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         int delay = pref.getInt(getString(R.string.download_delay_key), defaultDelay);
 
-        Log.i(String.format("!%s", TAG), String.format("Download delay: %ds", delay));
-        Log.i(String.format("!%s", TAG), "Started downloading from dashcam");
+        Log.i(I_TAG, String.format("Download delay: %ds", delay));
+        Log.i(I_TAG, "Started downloading from dashcam");
 
         downloadTaskExecutor.scheduleWithFixedDelay(DashCam.downloadTestVideos(this::downloadCallback, context),
                 0, delay, TimeUnit.SECONDS);
     }
 
     protected void stopDashDownload() {
-        Log.i(String.format("!%s", TAG), "Stopped downloading from dashcam");
+        Log.i(I_TAG, "Stopped downloading from dashcam");
         downloadTaskExecutor.shutdown();
     }
 
@@ -472,7 +473,7 @@ public abstract class NearbyFragment extends Fragment {
 
         if (localProcess && localFree && !anyFreeEndpoint) {
             Video video = (Video) transferQueue.remove().content;
-            Log.d(String.format("!%s", TAG), String.format("Processing %s locally", video.getName()));
+            Log.d(I_TAG, String.format("Processing %s locally", video.getName()));
             analyse(video, false);
             return;
         }
@@ -538,7 +539,7 @@ public abstract class NearbyFragment extends Fragment {
             Log.e(TAG, String.format("Could not create file payload for %s", message.content));
             return;
         }
-        Log.i(String.format("!%s", TAG), String.format("Sending %s to %s", message.content.getName(), toEndpoint.name));
+        Log.i(I_TAG, String.format("Sending %s to %s", message.content.getName(), toEndpoint.name));
 
         // Construct a message mapping the ID of the file payload to the desired filename and command.
         String bytesMessage = String.join(MESSAGE_SEPARATOR, message.command.toString(),
@@ -739,7 +740,7 @@ public abstract class NearbyFragment extends Fragment {
             if (filePayload != null && filename != null && command != null) {
                 long duration = Duration.between(startTimes.remove(payloadId), Instant.now()).toMillis();
                 String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
-                Log.i(String.format("!%s", TAG), String.format("Completed downloading %s from %s in %ss",
+                Log.i(I_TAG, String.format("Completed downloading %s from %s in %ss",
                         filename, discoveredEndpoints.get(fromEndpointId), time));
 
                 completedFilePayloads.remove(payloadId);
