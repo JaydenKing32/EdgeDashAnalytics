@@ -583,8 +583,8 @@ public abstract class NearbyFragment extends Fragment {
 
     private Runnable analysisRunnable(Video video, String outPath, Context context, boolean returnResult) {
         return () -> {
-            VideoAnalysis videoAnalysis = new VideoAnalysis(video.getData(), outPath);
-            videoAnalysis.analyse(context);
+            VideoAnalysis videoAnalysis = new VideoAnalysis();
+            videoAnalysis.analyse(video.getData(), outPath, context);
 
             Result result = new Result(outPath);
             EventBus.getDefault().post(new AddResultEvent(result));

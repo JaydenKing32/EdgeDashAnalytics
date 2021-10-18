@@ -44,9 +44,6 @@ import java.util.stream.Collectors;
 public class VideoAnalysis {
     private static final String TAG = VideoAnalysis.class.getSimpleName();
 
-    private final String inPath;
-    private final String outPath;
-
     private final int maxDetections;
     private final float minScore;
     private final int threadNum;
@@ -56,25 +53,22 @@ public class VideoAnalysis {
     private int scaleFactor = 1;
     private boolean verbose = false;
 
-    public VideoAnalysis(String inPath, String outPath) {
-        this.inPath = inPath;
-        this.outPath = outPath;
-
+    public VideoAnalysis() {
         this.maxDetections = -1;
         this.minScore = 0.2f;
         this.threadNum = 4;
         this.bufferSize = 10;
     }
 
-    public void analyse(Context context) {
+    public void analyse(String inPath, String outPath, Context context) {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         if (pref.getBoolean(context.getString(R.string.verbose_output_key), verbose)) {
             verbose = true;
         }
-        processVideo(context);
+        processVideo(inPath, outPath, context);
     }
 
-    private void processVideo(Context context) {
+    private void processVideo(String inPath, String outPath, Context context) {
         ObjectDetector detector;
         try {
             ObjectDetector.ObjectDetectorOptions objectDetectorOptions =
@@ -125,11 +119,11 @@ public class VideoAnalysis {
     }
 
     private void startFrameProcessing(ObjectDetector detector, MediaMetadataRetriever retriever, int totalFrames) {
-        simpleFramesLoop(detector, retriever, totalFrames);
+        processFramesLoop(detector, retriever, totalFrames);
         // scaledFramesLoop(detector, retriever, totalFrames);
     }
 
-    private void simpleFramesLoop(ObjectDetector detector, MediaMetadataRetriever retriever, int totalFrames) {
+    private void processFramesLoop(ObjectDetector detector, MediaMetadataRetriever retriever, int totalFrames) {
         // getFramesAtIndex is inconsistent, seems to only reliably with x264, may fail with other codecs
         // Using getFramesAtIndex on a full video requires too much memory, while extracting each frame separately
         // through getFrameAtIndex is too slow. Instead use a buffer, extracting groups of frames
@@ -166,8 +160,8 @@ public class VideoAnalysis {
 
         int videoWidth = Integer.parseInt(videoWidthString);
         int videoHeight = Integer.parseInt(videoHeightString);
-        int scaledWidth = (int) (videoWidth / scaleFactor);
-        int scaledHeight = (int) (videoHeight / scaleFactor);
+        int scaledWidth = videoWidth / scaleFactor;
+        int scaledHeight = videoHeight / scaleFactor;
 
         for (int i = 0; i < totalFrames; i += bufferSize) {
             if (Thread.currentThread().isInterrupted()) {
