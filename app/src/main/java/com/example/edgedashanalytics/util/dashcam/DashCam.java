@@ -112,6 +112,30 @@ public class DashCam {
         downloadCallback.accept(video);
     }
 
+    public static Runnable downloadLatestVideos(Consumer<Video> downloadCallback, Context context) {
+        return () -> {
+            Log.v(TAG, "Starting downloadLatestVideos");
+            List<String> allVideos = getFilenames();
+
+            if (allVideos == null || allVideos.size() == 0) {
+                Log.e(TAG, "Couldn't download videos");
+                return;
+            }
+            List<String> newVideos = new ArrayList<>(CollectionUtils.disjunction(allVideos, downloads));
+            newVideos.sort(Comparator.comparing(String::toString));
+
+            if (newVideos.size() != 0) {
+                // Get oldest new video
+                String toDownload = newVideos.get(0);
+                downloads.add(toDownload);
+
+                downloadVideo(videoDirUrl + toDownload, downloadCallback, context);
+            } else {
+                Log.d(TAG, "No new videos");
+            }
+        };
+    }
+
     public static Runnable downloadTestVideos(Consumer<Video> downloadCallback, Context context) {
         return () -> {
             List<String> newVideos = new ArrayList<>(CollectionUtils.disjunction(testVideos, downloads));
