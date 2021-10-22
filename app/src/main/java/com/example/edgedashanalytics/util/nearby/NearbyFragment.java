@@ -29,6 +29,7 @@ import com.example.edgedashanalytics.event.video.Type;
 import com.example.edgedashanalytics.model.Content;
 import com.example.edgedashanalytics.model.Result;
 import com.example.edgedashanalytics.model.Video;
+import com.example.edgedashanalytics.page.setting.SettingsActivity;
 import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.hardware.HardwareInfo;
@@ -261,6 +262,7 @@ public abstract class NearbyFragment extends Fragment {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         int delay = pref.getInt(getString(R.string.download_delay_key), defaultDelay);
 
+        SettingsActivity.printPreferences(true, context);
         Log.i(I_TAG, String.format("Download delay: %ds", delay));
         Log.i(I_TAG, "Started downloading from dashcam");
 

@@ -79,7 +79,7 @@ public class VideoAnalysis {
                             .setLabelAllowList(Collections.singletonList("person"))
                             .build();
 
-            String defaultModel = context.getString(R.string.mobilenet_v1_key);
+            String defaultModel = context.getString(R.string.default_model_key);
             SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
             String modelFilename = pref.getString(context.getString(R.string.model_key), defaultModel);
 

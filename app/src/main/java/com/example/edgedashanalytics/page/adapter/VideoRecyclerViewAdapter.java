@@ -1,5 +1,7 @@
 package com.example.edgedashanalytics.page.adapter;
 
+import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -55,6 +57,7 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
         int downloadDelay = pref.getInt(context.getString(R.string.download_simulation_delay_key), DEFAULT_DELAY);
 
         if (simDownload) {
+            Log.d(I_TAG, String.format("Starting simulated download with delay: %s", downloadDelay));
             Thread transferDelayThread = new Thread(processSelectedDelay(positions, downloadDelay, context));
             transferDelayThread.start();
         } else {

@@ -3,8 +3,8 @@ package com.example.edgedashanalytics.util.nearby;
 import java.util.Comparator;
 import java.util.List;
 
-class Algorithm {
-    enum AlgorithmKey {
+public class Algorithm {
+    public enum AlgorithmKey {
         round_robin,
         fastest,
         least_busy,
@@ -15,7 +15,7 @@ class Algorithm {
         highest_battery
     }
 
-    static final AlgorithmKey DEFAULT_ALGORITHM = AlgorithmKey.fastest;
+    public static final AlgorithmKey DEFAULT_ALGORITHM = AlgorithmKey.fastest;
 
     /**
      * @return next endpoint in round-robin sequence
