@@ -49,6 +49,8 @@ fi
 for serial in ${serials}; do
     # Get PID of app in order to filter out logs from other processes
     pid="$(adb.exe -s "${serial}" shell ps | awk '/com\.example\.edgedashanalytics/ {print $2}')"
+    # Clear logcat buffer, should also manually increase buffer size with `adb logcat -G`
+    adb.exe -s "${serial}" logcat -c
     # Filter out non-app logs and only keep logs tagged with "Important"
     adb.exe -s "${serial}" logcat --pid "${pid}" -s Important:V >"${out_dir}/${serial}.log" &
     # Save a copy of the verbose output
