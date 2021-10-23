@@ -264,14 +264,14 @@ public abstract class NearbyFragment extends Fragment {
 
         SettingsActivity.printPreferences(true, context);
         Log.i(I_TAG, String.format("Download delay: %ds", delay));
-        Log.i(I_TAG, "Started downloading from dashcam");
+        Log.w(I_TAG, "Started downloading from dashcam");
 
         downloadTaskExecutor.scheduleWithFixedDelay(DashCam.downloadTestVideos(this::downloadCallback, context),
                 0, delay, TimeUnit.SECONDS);
     }
 
     protected void stopDashDownload() {
-        Log.i(I_TAG, "Stopped downloading from dashcam");
+        Log.w(I_TAG, "Stopped downloading from dashcam");
         downloadTaskExecutor.shutdown();
     }
 
