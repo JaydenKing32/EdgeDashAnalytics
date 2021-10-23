@@ -335,7 +335,7 @@ public abstract class NearbyFragment extends Fragment {
         connectionsClient.sendPayload(toEndpointId, filenameBytesPayload);
     }
 
-    void sendHardwareInfo(Context context) {
+    private void sendHardwareInfo(Context context) {
         HardwareInfo hwi = new HardwareInfo(context);
         String hwiMessage = String.join(MESSAGE_SEPARATOR, Command.HW_INFO.toString(), gson.toJson(hwi));
         Payload messageBytesPayload = Payload.fromBytes(hwiMessage.getBytes(UTF_8));
@@ -349,7 +349,7 @@ public abstract class NearbyFragment extends Fragment {
         connectionsClient.sendPayload(connectedEndpointIds, messageBytesPayload);
     }
 
-    void requestHardwareInfo(String toEndpoint) {
+    private void requestHardwareInfo(String toEndpoint) {
         Log.d(TAG, String.format("Requesting hardware information from %s", toEndpoint));
         String hwrMessage = String.format("%s%s", Command.HW_INFO_REQUEST, MESSAGE_SEPARATOR);
         Payload messageBytesPayload = Payload.fromBytes(hwrMessage.getBytes(UTF_8));

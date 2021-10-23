@@ -20,6 +20,7 @@ import com.example.edgedashanalytics.page.main.ResultsFragment;
 import java.io.File;
 import java.util.List;
 
+@SuppressWarnings("FieldCanBeLocal")
 public class ResultRecyclerViewAdapter extends RecyclerView.Adapter<ResultRecyclerViewAdapter.ResultViewHolder> {
     private static final String TAG = ResultRecyclerViewAdapter.class.getSimpleName();
     private final ResultsFragment.Listener listener;
