@@ -13,6 +13,7 @@ import android.util.Log;
 import androidx.preference.PreferenceManager;
 
 import com.example.edgedashanalytics.R;
+import com.example.edgedashanalytics.util.hardware.HardwareInfo;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -53,11 +54,29 @@ public class VideoAnalysis {
     private int scaleFactor = 1;
     private boolean verbose = false;
 
-    public VideoAnalysis() {
+    public VideoAnalysis(Context context) {
         this.maxDetections = -1;
         this.minScore = 0.2f;
         this.threadNum = 4;
-        this.bufferSize = 10;
+
+        // Check if phone has at least (roughly) 2GB of RAM
+        HardwareInfo hwi = new HardwareInfo(context);
+        if (hwi.totalRam < 2000000000L) {
+            this.bufferSize = 5;
+        } else {
+            this.bufferSize = 50;
+        }
+    }
+
+    public void printParameters() {
+        StringJoiner paramMessage = new StringJoiner("\n  ");
+        paramMessage.add("Video analysis parameters:");
+        paramMessage.add(String.format("bufferSize: %s", bufferSize));
+        paramMessage.add(String.format("maxDetections: %s", maxDetections));
+        paramMessage.add(String.format("minScore: %s", minScore));
+        paramMessage.add(String.format("threadNum: %s", threadNum));
+
+        Log.i(I_TAG, paramMessage.toString());
     }
 
     public void analyse(String inPath, String outPath, Context context) {
@@ -113,8 +132,7 @@ public class VideoAnalysis {
         long duration = Duration.between(start, Instant.now()).toMillis();
         String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
 
-        String endString = String.format(Locale.ENGLISH, "Completed analysis of %s in %ss with %d threads",
-                videoName, time, threadNum);
+        String endString = String.format(Locale.ENGLISH, "Completed analysis of %s in %ss", videoName, time);
         Log.d(I_TAG, endString);
     }
 

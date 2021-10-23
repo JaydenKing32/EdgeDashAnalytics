@@ -15,6 +15,7 @@ import androidx.preference.PreferenceManager;
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.util.nearby.Algorithm;
 import com.example.edgedashanalytics.util.nearby.Algorithm.AlgorithmKey;
+import com.example.edgedashanalytics.util.video.analysis.VideoAnalysis;
 
 import java.util.StringJoiner;
 
@@ -55,6 +56,9 @@ public class SettingsActivity extends AppCompatActivity {
         prefMessage.add(String.format("Segment number: %s", segNum));
 
         Log.i(I_TAG, prefMessage.toString());
+
+        VideoAnalysis videoAnalysis = new VideoAnalysis(c);
+        videoAnalysis.printParameters();
     }
 
     public static class SettingsFragment extends PreferenceFragmentCompat {

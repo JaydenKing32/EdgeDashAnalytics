@@ -38,7 +38,7 @@ public class AnalysisTools {
 
     private static Runnable processRunnable(Video video, String outPath, Context context) {
         return () -> {
-            VideoAnalysis videoAnalysis = new VideoAnalysis();
+            VideoAnalysis videoAnalysis = new VideoAnalysis(context);
             videoAnalysis.analyse(video.getData(), outPath, context);
 
             analysisFutures.remove(video.getData());
