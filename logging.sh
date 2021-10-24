@@ -35,26 +35,39 @@ while :; do
     esac
 done
 
-out_dir="./out/$(date +%Y%m%d_%H%M%S)"
-verbose_dir="${out_dir}/verbose/"
+timestamp="$(date +%Y%m%d_%H%M%S)"
+phone_dir="/storage/emulated/0/Movies/out/${timestamp}"
 
-if [[ ! -d "${verbose_dir}" ]]; then
-    mkdir -p "${verbose_dir}"
-fi
 if [[ -z ${serials} ]]; then
     # Get `adb.exe devices` output, remove \r and "device", skip first line
     serials=$(tail -n +2 <<<"$(adb.exe devices | sed -r 's/(emulator.*)?(device)?\r$//')")
 fi
 
 for serial in ${serials}; do
+    # Create necessary directories on device
+    adb.exe -s "${serial}" shell mkdir -p "${phone_dir}"
     # Get PID of app in order to filter out logs from other processes
     pid="$(adb.exe -s "${serial}" shell ps | awk '/com\.example\.edgedashanalytics/ {print $2}')"
     # Clear logcat buffer, should also manually increase buffer size with `adb logcat -G`
     adb.exe -s "${serial}" logcat -c
-    # Filter out non-app logs and only keep logs tagged with "Important"
-    adb.exe -s "${serial}" logcat --pid "${pid}" -s Important:V >"${out_dir}/${serial}.log" &
-    # Save a copy of the verbose output
-    adb.exe -s "${serial}" logcat --pid "${pid}" >"${verbose_dir}/${serial}.log" &
+    # Write log messages to file on device
+    adb.exe -s "${serial}" logcat --pid "${pid}" -f "${phone_dir}/${serial}.log" &
 done
 
-wait
+# Wait until all phones complete processing to continue
+read -n1 -s -r -p $'Press any key to continue...\n'
+
+out_dir="./out/${timestamp}"
+verbose_dir="${out_dir}/verbose/"
+
+if [[ ! -d "${verbose_dir}" ]]; then
+    # Create necessary directories on computer
+    mkdir -p "${verbose_dir}"
+fi
+
+for serial in ${serials}; do
+    # Copy verbose log from devices to computer
+    adb.exe -s "${serial}" pull "${phone_dir}/${serial}.log" "${verbose_dir}"
+    # Filter out important messages from verbose logs
+    grep -P '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w Important' "${verbose_dir}/${serial}.log" >"$out_dir/${serial}.log"
+done
