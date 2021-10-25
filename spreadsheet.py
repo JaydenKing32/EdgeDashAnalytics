@@ -74,7 +74,7 @@ class Analysis:
 
 
 parser = ArgumentParser(description="Generates spreadsheets from logs")
-parser.add_argument("dir", help="directory of logs")
+parser.add_argument("-d", "--dir", default="out", help="directory of logs")
 parser.add_argument("-o", "--output", default="results.csv", help="name of output file")
 args = parser.parse_args()
 
@@ -99,6 +99,23 @@ re_down = re.compile(
     r"(.*)\.\w+ from Endpoint{id=\S{4}, name=(.*) \[(\w+)\]} in (\d*\.?\d*)s(?:\s+)?$")
 re_comp = re.compile(timestamp + r"D Important: Completed analysis of (.*)\.mp4 in (\d*\.?\d*)s(?:.*)?$")
 re_pref = re.compile(timestamp + r"I Important: Preferences:(?:\s+)?$")
+
+
+def is_master(log_path: str) -> bool:
+    with open(log_path, 'r') as log:
+        # Check first 10 lines for preferences message
+        for i in range(10):
+            pref = re_pref.match(log.readline())
+
+            if pref is not None:
+                return True
+    return False
+
+
+def get_master(log_dir: str) -> str:
+    for file in [os.path.join(log_dir, filename) for filename in os.listdir(log_dir)]:
+        if os.path.isfile(file) and is_master(file):
+            return file
 
 
 def get_video_name(name: str) -> str:
@@ -173,8 +190,7 @@ def parse_master_log(devices: Dict[str, Dict[str, Video]], master_filename: str,
     return videos
 
 
-def parse_worker_logs(devices: Dict[str, Dict[str, Video]], videos: Dict[str, Video], log_dir: str):
-    master_sn = serial_numbers[log_dir.split('master-')[1].split(os.sep)[0]]
+def parse_worker_logs(devices: Dict[str, Dict[str, Video]], videos: Dict[str, Video], log_dir: str, master_sn: str):
     worker_logs = [log for log in os.listdir(log_dir) if log.endswith(".log") and master_sn not in log]
 
     for log in worker_logs:
@@ -365,15 +381,14 @@ def spread(root: str, out: str):
 
     make_offline_spreadsheet(root, runs, out)
 
-    # TODO: don't rely on directory structure to identify master
     for (path, dirs, files) in sorted([(path, dirs, files) for (path, dirs, files) in os.walk(root)
-                                       if "master" in path and "verbose" in dirs]):
-        master_sn = serial_numbers[path.split('master-')[1].split(os.sep)[0]]
+                                       if "offline" not in path and "verbose" in dirs]):
+        master_sn = os.path.splitext(os.path.basename(get_master(path)))[0]
         logs = [log for log in os.listdir(path) if log.endswith(".log")]
         devices = {device[-8:-4]: {} for device in logs}  # Initialise device dictionary with empty dictionaries
 
         videos = parse_master_log(devices, "{}.log".format(master_sn), path)
-        parse_worker_logs(devices, videos, path)
+        parse_worker_logs(devices, videos, path, master_sn)
 
         run = Analysis(path, master_sn, devices, videos)
         make_spreadsheet(run, out)
