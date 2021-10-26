@@ -6,6 +6,18 @@ from argparse import ArgumentParser
 from datetime import datetime, timedelta
 from typing import Dict, List
 
+algorithms = [
+    "offline",
+    "round_robin",
+    "fastest",
+    "least_busy",
+    "fastest_cpu",
+    "most_cpu_cores",
+    "most_ram",
+    "most_storage",
+    "highest_battery"
+]
+
 
 class Video:
     def __init__(self, name: str, dash_down_time: float = 0, down_time: float = 0,
@@ -33,10 +45,11 @@ class Analysis:
         self.master_path = "{}.log".format(os.path.join(self.log_dir, self.master))
         self.devices = devices
         self.videos = videos
-        self.schedule = ""
         self.seg_num = -1
         self.nodes = len([log for log in os.listdir(self.log_dir) if log.endswith(".log")])
-        self.algorithm = ""
+        self.algorithm = "offline"
+        self.model = ""
+        self.local = False
         self.dash_down_time = -1.0
         self.down_time = -1.0
         self.analysis_time = -1.0
@@ -71,6 +84,10 @@ class Analysis:
             "{:.3f}".format(self.return_time / video_count) if self.down_time != 0 else "n/a",
             "{:.3f}".format(self.analysis_time / video_count)
         ]
+
+    def __str__(self) -> str:
+        # master-seg_num-node_num-algo
+        return "{}-{}-{}-{}".format(self.get_master_short_name(), abs(self.seg_num), self.nodes, self.algorithm)
 
 
 parser = ArgumentParser(description="Generates spreadsheets from logs")
@@ -279,13 +296,16 @@ def make_spreadsheet(run: Analysis, out: str):
             if pref is not None:
                 model = master_log.readline().split()[-1]
                 algo = master_log.readline().split()[-1]
-                local = master_log.readline().split()[-1]
+                local = master_log.readline().split()[-1] == "true"
                 master_log.readline()  # skip auto-download line
                 seg = master_log.readline().split()[-1] == "true"
                 seg_num = int(master_log.readline().split()[-1]) if seg else 1
 
                 run.algorithm = algo
                 run.seg_num = seg_num
+                run.model = model
+                run.local = local
+
                 break
 
     run.dash_down_time = sum(v.dash_down_time for v in run.videos.values())
@@ -301,6 +321,8 @@ def make_spreadsheet(run: Analysis, out: str):
             "Segments: {}".format(seg_num),
             "Nodes: {}".format(run.nodes),
             "Algorithm: {}".format(algo),
+            "Local Processing: {}".format(local),
+            "Model: {}".format(model),
             "Dir: {}".format(run.get_sub_log_dir())
         ])
 
@@ -394,12 +416,15 @@ def spread(root: str, out: str):
         make_spreadsheet(run, out)
         runs.append(run)
 
+    runs.sort(key=lambda r: (
+        r.nodes, r.seg_num, r.get_master_short_name(), algorithms.index(r.algorithm), r.get_sub_log_dir()))
+
     with open(out, 'a', newline='') as csv_f:
         writer = csv.writer(csv_f)
 
         writer.writerow(["Summary of total times"])
         writer.writerow([
-            "Dir",
+            "Run",
             "Download time (s)",
             "Transfer time (s)",
             "Return time (s)",
@@ -410,7 +435,7 @@ def spread(root: str, out: str):
 
         for run in runs:
             writer.writerow([
-                run.get_sub_log_dir(),
+                str(run),
                 run.dash_down_time,
                 run.down_time if run.down_time > 0 else "n/a",
                 run.return_time if run.down_time > 0 else "n/a",
