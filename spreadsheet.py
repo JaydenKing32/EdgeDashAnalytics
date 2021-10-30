@@ -88,8 +88,14 @@ class Analysis:
 
     def __str__(self) -> str:
         # master-seg_num-delay-node_num-algo
-        return "{}-{}-{}-{}-{}".format(
-            self.get_master_short_name(), abs(self.seg_num), abs(self.delay), self.nodes, self.algorithm)
+        return "{}-{}-{}-{}-{}-{}".format(
+            self.get_master_short_name(),
+            self.local,
+            abs(self.seg_num),
+            abs(self.delay),
+            self.nodes,
+            self.algorithm
+        )
 
 
 parser = ArgumentParser(description="Generates spreadsheets from logs")
@@ -424,7 +430,14 @@ def spread(root: str, out: str):
         runs.append(run)
 
     runs.sort(key=lambda r: (
-        r.nodes, r.seg_num, r.delay, r.get_master_short_name(), algorithms.index(r.algorithm), r.get_sub_log_dir()))
+        r.nodes,
+        r.seg_num,
+        r.delay,
+        r.local,
+        r.get_master_short_name(),
+        algorithms.index(r.algorithm),
+        r.get_sub_log_dir()
+    ))
 
     with open(out, 'a', newline='') as csv_f:
         writer = csv.writer(csv_f)
