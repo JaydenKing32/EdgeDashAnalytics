@@ -54,6 +54,7 @@ class Analysis:
         self.down_time = -1.0
         self.analysis_time = -1.0
         self.return_time = -1.0
+        self.delay = -1
         self.total_time = get_total_time(self.master_path)
 
     def get_master_short_name(self) -> str:
@@ -86,8 +87,9 @@ class Analysis:
         ]
 
     def __str__(self) -> str:
-        # master-seg_num-node_num-algo
-        return "{}-{}-{}-{}".format(self.get_master_short_name(), abs(self.seg_num), self.nodes, self.algorithm)
+        # master-seg_num-delay-node_num-algo
+        return "{}-{}-{}-{}-{}".format(
+            self.get_master_short_name(), abs(self.seg_num), abs(self.delay), self.nodes, self.algorithm)
 
 
 parser = ArgumentParser(description="Generates spreadsheets from logs")
@@ -98,7 +100,7 @@ args = parser.parse_args()
 serial_numbers = {
     "43e2": "105a43e2",  # OPPO Find X2 Pro/CPH2025
     "dd83": "4885dd83",  # OnePlus 8/IN2013
-    "2802": "ce12171c8a14c72802",  # Samsung Galaxy S8
+    "2802": "ce12171c8a14c72802",  # Samsung Galaxy S8/SM-G950F
     "34d8": "00a6a4630f4e34d8",  # Nexus 5X
     "9c8f": "00b7a59265959c8f",  # Nexus 5X
     "1825": "0b3b6fd50c371825"  # Nexus 5
@@ -116,6 +118,7 @@ re_down = re.compile(
     r"(.*)\.\w+ from Endpoint{id=\S{4}, name=(.*) \[(\w+)\]} in (\d*\.?\d*)s(?:\s+)?$")
 re_comp = re.compile(timestamp + r"D Important: Completed analysis of (.*)\.mp4 in (\d*\.?\d*)s(?:.*)?$")
 re_pref = re.compile(timestamp + r"I Important: Preferences:(?:\s+)?$")
+re_down_delay = re.compile(timestamp + r"I Important: Download delay: (\d*\.?\d*)s(?:\s+)?$")
 
 
 def is_master(log_path: str) -> bool:
@@ -292,6 +295,7 @@ def make_spreadsheet(run: Analysis, out: str):
     with open(run.master_path, 'r') as master_log:
         for line in master_log:
             pref = re_pref.match(line)
+            delay = re_down_delay.match(line)
 
             if pref is not None:
                 model = master_log.readline().split()[-1]
@@ -306,6 +310,8 @@ def make_spreadsheet(run: Analysis, out: str):
                 run.model = model
                 run.local = local
 
+            if delay is not None:
+                run.delay = int(delay.group(2))
                 break
 
     run.dash_down_time = sum(v.dash_down_time for v in run.videos.values())
@@ -322,6 +328,7 @@ def make_spreadsheet(run: Analysis, out: str):
             "Nodes: {}".format(run.nodes),
             "Algorithm: {}".format(algo),
             "Local Processing: {}".format(local),
+            "Download Delay: {}".format(run.delay),
             "Model: {}".format(model),
             "Dir: {}".format(run.get_sub_log_dir())
         ])
@@ -417,7 +424,7 @@ def spread(root: str, out: str):
         runs.append(run)
 
     runs.sort(key=lambda r: (
-        r.nodes, r.seg_num, r.get_master_short_name(), algorithms.index(r.algorithm), r.get_sub_log_dir()))
+        r.nodes, r.seg_num, r.delay, r.get_master_short_name(), algorithms.index(r.algorithm), r.get_sub_log_dir()))
 
     with open(out, 'a', newline='') as csv_f:
         writer = csv.writer(csv_f)
