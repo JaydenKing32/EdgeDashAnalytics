@@ -229,3 +229,4 @@ fabric.properties
 /.idea/deploymentTargetDropDown.xml
 /.idea/codeStyles/
 /app/src/main/assets/*.tflite
+*.mp4
