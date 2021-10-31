@@ -1,11 +1,20 @@
 #!/usr/bin/env bash
 
-# https://stackoverflow.com/a/2173421/8031185
+# https://stackoverflow.com/a/2173421
 trap 'trap - SIGTERM && kill -- -$$' SIGINT SIGTERM EXIT
 
 usage() {
     printf "Usage: ./logging.sh [-s SERIAL_NUMBER]\n"
     exit 1
+}
+
+# https://stackoverflow.com/a/17841619
+function join() {
+    local d=${1-} f=${2-}
+
+    if shift 2; then
+        printf %s "$f" "${@/#/$d}"
+    fi
 }
 
 serials=""
@@ -17,7 +26,7 @@ while :; do
             printf "ERROR: No serial number specified.\n"
             usage
         else
-            serials="${2}"
+            read -ra serials <<<"${2}"
             shift 2
         fi
         ;;
@@ -38,12 +47,13 @@ done
 timestamp="$(date +%Y%m%d_%H%M%S)"
 phone_dir="/storage/emulated/0/Movies/out/${timestamp}"
 
-if [[ -z ${serials} ]]; then
+# https://stackoverflow.com/a/30212526
+if [[ -z "${serials[*]}" ]]; then
     # Get `adb.exe devices` output, remove \r and "device", skip first line
-    serials=$(tail -n +2 <<<"$(adb.exe devices | sed -r 's/(emulator.*)?(device)?\r$//')")
+    read -ra serials -d '' <<<"$(tail -n +2 <<<"$(adb.exe devices | sed -r 's/(emulator.*)?(device)?\r$//')")"
 fi
 
-for serial in ${serials}; do
+for serial in "${serials[@]}"; do
     # Create necessary directories on device
     adb.exe -s "${serial}" shell mkdir -p "${phone_dir}"
     # Get PID of app in order to filter out logs from other processes
@@ -54,8 +64,11 @@ for serial in ${serials}; do
     adb.exe -s "${serial}" logcat --pid "${pid}" -f "${phone_dir}/${serial}.log" &
 done
 
+serial_string=$(join ", " "${serials[@]}")
+printf "Collecting logs from %s\n" "${serial_string}"
+
 # Wait until all phones complete processing to continue
-read -n1 -s -r -p $'Press any key to continue...\n'
+read -rsp $'Press any key to continue...\n'
 
 out_dir="./out/${timestamp}"
 verbose_dir="${out_dir}/verbose/"
@@ -65,7 +78,7 @@ if [[ ! -d "${verbose_dir}" ]]; then
     mkdir -p "${verbose_dir}"
 fi
 
-for serial in ${serials}; do
+for serial in "${serials[@]}"; do
     # Copy verbose log from devices to computer
     adb.exe -s "${serial}" pull "${phone_dir}/${serial}.log" "${verbose_dir}"
     # Filter out important messages from verbose logs
