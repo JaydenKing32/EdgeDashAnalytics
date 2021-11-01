@@ -589,8 +589,11 @@ public abstract class NearbyFragment extends Fragment {
             videoAnalysis.analyse(video.getData(), outPath, context);
 
             Result result = new Result(outPath);
-            EventBus.getDefault().post(new AddResultEvent(result));
             EventBus.getDefault().post(new RemoveEvent(video, Type.PROCESSING));
+
+            if (!FfmpegTools.isSegment(result.getName())) {
+                EventBus.getDefault().post(new AddResultEvent(result));
+            }
 
             if (returnResult) {
                 returnContent(result);
@@ -794,6 +797,7 @@ public abstract class NearbyFragment extends Fragment {
 
                     if (FfmpegTools.isSegment(resultName)) {
                         handleSegment(resultName);
+                        return;
                     }
 
                     Result result = new Result(resultsDestPath);
