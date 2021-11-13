@@ -56,6 +56,10 @@ class Analysis:
         self.return_time = -1.0
         self.delay = -1
         self.total_time = get_total_time(self.master_path)
+        self.avg_dash_down_time = 0
+        self.avg_down_time = 0
+        self.avg_return_time = 0
+        self.avg_analysis_time = 0
 
     def get_master_short_name(self) -> str:
         return self.master[-4:]
@@ -76,14 +80,20 @@ class Analysis:
             "{:.3f}".format(self.analysis_time)
         ]
 
-    def get_average_stats(self) -> List[str]:
+    def set_average_stats(self):
         video_count = len(self.videos)
 
+        self.avg_dash_down_time = self.dash_down_time / video_count
+        self.avg_down_time = self.down_time / video_count
+        self.avg_return_time = self.return_time / video_count
+        self.avg_analysis_time = self.analysis_time / video_count
+
+    def get_average_stats(self) -> List[str]:
         return [
-            "{:.3f}".format(self.dash_down_time / video_count),
-            "{:.3f}".format(self.down_time / video_count) if self.down_time != 0 else "n/a",
-            "{:.3f}".format(self.return_time / video_count) if self.down_time != 0 else "n/a",
-            "{:.3f}".format(self.analysis_time / video_count)
+            "{:.3f}".format(self.avg_dash_down_time),
+            "{:.3f}".format(self.avg_down_time) if self.avg_down_time != 0 else "n/a",
+            "{:.3f}".format(self.avg_return_time) if self.avg_return_time != 0 else "n/a",
+            "{:.3f}".format(self.avg_analysis_time)
         ]
 
     def __str__(self) -> str:
@@ -352,6 +362,7 @@ def make_spreadsheet(run: Analysis, out: str):
             for video in run.videos.values():
                 writer.writerow(video.get_stats())
 
+            run.set_average_stats()
             writer.writerow(["Total"] + run.get_total_stats())
             writer.writerow(["Average"] + run.get_average_stats())
 
@@ -403,6 +414,7 @@ def make_spreadsheet(run: Analysis, out: str):
                     ])
 
             if sum(1 for device in run.devices.values() if device) > 1:
+                run.set_average_stats()
                 writer.writerow(["Combined total"] + run.get_total_stats())
                 writer.writerow(["Combined average"] + run.get_average_stats())
 
@@ -463,6 +475,25 @@ def spread(root: str, out: str):
                 run.total_time.total_seconds(),
                 "{:.11}\t".format(str(run.total_time))
             ])
+
+        writer.writerow(["Total"] + [
+            str(sum(run.dash_down_time for run in runs)),
+            str(sum(run.down_time for run in runs)),
+            str(sum(run.return_time for run in runs)),
+            str(sum(run.analysis_time for run in runs))
+        ])
+        writer.writerow(["Total Average"] + [
+            str(sum(run.avg_dash_down_time for run in runs)),
+            str(sum(run.avg_down_time for run in runs)),
+            str(sum(run.avg_return_time for run in runs)),
+            str(sum(run.avg_analysis_time for run in runs))
+        ])
+        writer.writerow(["True Average"] + [
+            str(sum(run.avg_dash_down_time for run in runs) / len(runs)),
+            str(sum(run.avg_down_time for run in runs) / len(runs)),
+            str(sum(run.avg_return_time for run in runs) / len(runs)),
+            str(sum(run.avg_analysis_time for run in runs) / len(runs))
+        ])
 
 
 spread(args.dir, args.output)

@@ -49,10 +49,10 @@ dependencies {
     implementation 'commons-io:commons-io:2.8.0'
     implementation 'org.apache.commons:commons-lang3:3.12.0'
     implementation 'org.apache.commons:commons-collections4:4.4'
-    implementation 'org.tensorflow:tensorflow-lite-task-vision:0.2.0'
+    implementation 'org.tensorflow:tensorflow-lite-task-vision:0.3.0'
     implementation 'org.greenrobot:eventbus:3.2.0'
     implementation 'org.jsoup:jsoup:1.14.3'
-    implementation 'com.google.code.gson:gson:2.8.8'
+    implementation 'com.google.code.gson:gson:2.8.9'
     implementation 'com.google.android.gms:play-services-nearby:18.0.0'
     implementation 'com.arthenica:ffmpeg-kit-full-gpl:4.5'
 }
