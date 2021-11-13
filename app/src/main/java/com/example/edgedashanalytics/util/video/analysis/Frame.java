@@ -5,10 +5,10 @@ import java.util.List;
 @SuppressWarnings({"FieldCanBeLocal", "unused"})
 public class Frame {
     public int frame;
-    private final List<Person> people;
+    private final List<Plate> plates;
 
-    Frame(int frame, List<Person> people) {
+    Frame(int frame, List<Plate> plates) {
         this.frame = frame;
-        this.people = people;
+        this.plates = plates;
     }
 }

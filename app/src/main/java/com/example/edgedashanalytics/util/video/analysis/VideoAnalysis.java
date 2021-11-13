@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
-import android.graphics.RectF;
 import android.media.MediaMetadataRetriever;
 import android.util.Log;
 
@@ -16,21 +15,22 @@ import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.util.hardware.HardwareInfo;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.text.Text;
+import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import org.apache.commons.lang3.time.DurationFormatUtils;
-import org.tensorflow.lite.support.image.TensorImage;
-import org.tensorflow.lite.support.label.Category;
 import org.tensorflow.lite.task.vision.detector.Detection;
 import org.tensorflow.lite.task.vision.detector.ObjectDetector;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.io.Writer;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.StringJoiner;
@@ -88,25 +88,25 @@ public class VideoAnalysis {
     }
 
     private void processVideo(String inPath, String outPath, Context context) {
-        ObjectDetector detector;
-        try {
-            ObjectDetector.ObjectDetectorOptions objectDetectorOptions =
-                    ObjectDetector.ObjectDetectorOptions.builder()
-                            .setMaxResults(maxDetections)
-                            .setScoreThreshold(minScore)
-                            .setNumThreads(threadNum)
-                            .setLabelAllowList(Collections.singletonList("person"))
-                            .build();
-
-            String defaultModel = context.getString(R.string.default_model_key);
-            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-            String modelFilename = pref.getString(context.getString(R.string.model_key), defaultModel);
-
-            detector = ObjectDetector.createFromFileAndOptions(context, modelFilename, objectDetectorOptions);
-        } catch (IOException e) {
-            Log.w(TAG, String.format("Model failure:\n  %s", e.getMessage()));
-            return;
-        }
+        // ObjectDetector detector;
+        // try {
+        //     ObjectDetector.ObjectDetectorOptions objectDetectorOptions =
+        //             ObjectDetector.ObjectDetectorOptions.builder()
+        //                     .setMaxResults(maxDetections)
+        //                     .setScoreThreshold(minScore)
+        //                     .setNumThreads(threadNum)
+        //                     .setLabelAllowList(Collections.singletonList("person"))
+        //                     .build();
+        //
+        //     String defaultModel = context.getString(R.string.default_model_key);
+        //     SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        //     String modelFilename = pref.getString(context.getString(R.string.model_key), defaultModel);
+        //
+        //     detector = ObjectDetector.createFromFileAndOptions(context, modelFilename, objectDetectorOptions);
+        // } catch (IOException e) {
+        //     Log.w(TAG, String.format("Model failure:\n  %s", e.getMessage()));
+        //     return;
+        // }
 
         File videoFile = new File(inPath);
         MediaMetadataRetriever retriever = new MediaMetadataRetriever();
@@ -126,7 +126,7 @@ public class VideoAnalysis {
         Log.d(I_TAG, startString);
         Log.d(TAG, String.format("Total frames of %s: %d", videoName, totalFrames));
 
-        startFrameProcessing(detector, retriever, totalFrames);
+        startFrameProcessing(retriever, totalFrames);
         writeResultsToJson(outPath);
 
         long duration = Duration.between(start, Instant.now()).toMillis();
@@ -136,12 +136,14 @@ public class VideoAnalysis {
         Log.d(I_TAG, endString);
     }
 
-    private void startFrameProcessing(ObjectDetector detector, MediaMetadataRetriever retriever, int totalFrames) {
-        processFramesLoop(detector, retriever, totalFrames);
+    private void startFrameProcessing(MediaMetadataRetriever retriever, int totalFrames) {
+        processFramesLoop(retriever, totalFrames);
         // scaledFramesLoop(detector, retriever, totalFrames);
     }
 
-    private void processFramesLoop(ObjectDetector detector, MediaMetadataRetriever retriever, int totalFrames) {
+    private void processFramesLoop(MediaMetadataRetriever retriever, int totalFrames) {
+        TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+
         // getFramesAtIndex is inconsistent, seems to only reliably with x264, may fail with other codecs
         // Using getFramesAtIndex on a full video requires too much memory, while extracting each frame separately
         // through getFrameAtIndex is too slow. Instead use a buffer, extracting groups of frames
@@ -161,7 +163,7 @@ public class VideoAnalysis {
                     continue;
                 }
 
-                processFrame(detector, bitmap, curFrame);
+                processFrame(recognizer, bitmap, curFrame);
             }
         }
     }
@@ -200,78 +202,93 @@ public class VideoAnalysis {
                     continue;
                 }
 
-                processFrame(detector, bitmap, curFrame);
+                // processFrame(detector, bitmap, curFrame);
             }
         }
     }
 
 
-    private void processFrame(ObjectDetector detector, Bitmap bitmap, int frameIndex) {
+    private void processFrame(TextRecognizer recognizer, Bitmap bitmap, int frameIndex) {
         if (Thread.currentThread().isInterrupted()) {
             Log.e(TAG, String.format("Stopping at frame %d", frameIndex));
             return;
         }
-        TensorImage image = TensorImage.fromBitmap(bitmap);
-        List<Detection> detectionList = detector.detect(image);
-        List<Person> people = new ArrayList<>(detectionList.size());
+        InputImage image = InputImage.fromBitmap(bitmap, 0);
 
-        for (Detection detection : detectionList) {
-            List<Category> categoryList = detection.getCategories();
+        // https://developers.google.com/ml-kit/vision/text-recognition/android
+        recognizer.process(image).addOnSuccessListener(result -> {
+            List<Text.TextBlock> textBlocks = result.getTextBlocks();
+            List<Plate> plates = new ArrayList<>(textBlocks.size());
 
-            if (categoryList == null || categoryList.size() == 0) {
-                continue;
+            String resultText = result.getText();
+
+            // for (Text.TextBlock block : textBlocks) {
+            //     String blockText = block.getText();
+            //     Point[] blockCornerPoints = block.getCornerPoints();
+            //     Rect blockFrame = block.getBoundingBox();
+            //     for (Text.Line line : block.getLines()) {
+            //         String lineText = line.getText();
+            //         Point[] lineCornerPoints = line.getCornerPoints();
+            //         Rect lineFrame = line.getBoundingBox();
+            //         for (Text.Element element : line.getElements()) {
+            //             String elementText = element.getText();
+            //             Point[] elementCornerPoints = element.getCornerPoints();
+            //             Rect elementFrame = element.getBoundingBox();
+            //         }
+            //     }
+            // }
+
+            for (Text.TextBlock block : textBlocks) {
+                String blockText = block.getText();
+                Rect bb = block.getBoundingBox();
+
+                if (bb == null) {
+                    Log.w(TAG, String.format("No text detected in frame %d", frameIndex));
+                    return;
+                }
+
+                Rect boundingBox = new Rect(
+                        bb.left * scaleFactor,
+                        bb.top * scaleFactor,
+                        bb.right * scaleFactor,
+                        bb.bottom * scaleFactor
+                );
+
+                plates.add(new Plate(blockText, boundingBox));
             }
-            Category category = categoryList.get(0);
-            RectF bb = detection.getBoundingBox();
-            Rect boundingBox = new Rect(
-                    (int) bb.left * scaleFactor,
-                    (int) bb.top * scaleFactor,
-                    (int) bb.right * scaleFactor,
-                    (int) bb.bottom * scaleFactor
-            );
 
-            people.add(new Person(category.getScore(), isClose(detection, detectionList), boundingBox));
-        }
-        frames.add(new Frame(frameIndex, people));
+            frames.add(new Frame(frameIndex, plates));
 
-        if (verbose) {
-            String resultHead = String.format(Locale.ENGLISH,
-                    "Analysis completed for frame: %04d\nDetected objects: %02d\n",
-                    frameIndex, detectionList.size());
-            StringBuilder builder = new StringBuilder(resultHead);
+            if (verbose) {
+                String resultHead = String.format(Locale.ENGLISH,
+                        "Analysis completed for frame: %04d\nDetected objects: %02d\n",
+                        frameIndex, textBlocks.size());
+                StringBuilder builder = new StringBuilder(resultHead);
 
-            for (Detection detection : detectionList) {
-                String resultBody = getDetectionString(detection);
-                builder.append(resultBody);
+                for (Text.TextBlock block : textBlocks) {
+                    String resultBody = getDetectionString(block);
+                    builder.append(resultBody);
+                }
+                builder.append('\n');
 
-                // if (isClose(detection, detectionList)) {
-                //     System.out.println(frameIndex);
-                // }
+                String resultMessage = builder.toString();
+                Log.v(TAG, resultMessage);
             }
-            builder.append('\n');
-
-            String resultMessage = builder.toString();
-            Log.v(TAG, resultMessage);
-        }
+        }).addOnFailureListener(e -> Log.e(TAG, String.format("Detection error:\n%s", e.getMessage())));
     }
 
-    private String getDetectionString(Detection detection) {
-        List<Category> categoryList = detection.getCategories();
+    private String getDetectionString(Text.TextBlock block) {
+        String blockText = block.getText();
+        Rect boundingBox = block.getBoundingBox();
 
-        if (categoryList == null || categoryList.size() == 0) {
-            String noCategoriesString = "No categories found";
-            Log.e(TAG, noCategoriesString);
-            return noCategoriesString;
+        if (boundingBox == null) {
+            String noDetectionString = "No text detected";
+            Log.w(TAG, noDetectionString);
+            return noDetectionString;
         }
 
-        Category category = categoryList.get(0);
-        float score = category.getScore();
-        Rect boundingBox = new Rect();
-        detection.getBoundingBox().roundOut(boundingBox);
-
         StringJoiner result = new StringJoiner("\n  ");
-        result.add(String.format("Category: %s", category.getLabel()));
-        result.add(String.format(Locale.ENGLISH, "Confidence: %.2f", score));
+        result.add(String.format("Text: %s", blockText));
         result.add(String.format("BBox: %s", boundingBox));
 
         return String.format("%s\n", result.toString());
