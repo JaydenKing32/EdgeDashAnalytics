@@ -13,13 +13,13 @@ import androidx.preference.PreferenceManager;
 
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.util.hardware.HardwareInfo;
+import com.example.edgedashanalytics.util.video.ocr.ModelExecutionResult;
+import com.example.edgedashanalytics.util.video.ocr.OCRModelExecutor;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.Text;
-import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.tensorflow.lite.task.vision.detector.Detection;
@@ -80,6 +80,17 @@ public class VideoAnalysis {
     }
 
     public void analyse(String inPath, String outPath, Context context) {
+        // try {
+        //     InputStream inputStream = context.getAssets().open("tensorflow.jpg");
+        //     Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+        //     OCRModelExecutor ome = new OCRModelExecutor(context, false);
+        //     ModelExecutionResult mer = ome.execute(bitmap);
+        //     Bitmap test = mer.getBitmapResult();
+        //     Log.d(TAG, "test");
+        // } catch (IOException e) {
+        //     e.printStackTrace();
+        // }
+
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         if (pref.getBoolean(context.getString(R.string.verbose_output_key), verbose)) {
             verbose = true;
@@ -126,7 +137,7 @@ public class VideoAnalysis {
         Log.d(I_TAG, startString);
         Log.d(TAG, String.format("Total frames of %s: %d", videoName, totalFrames));
 
-        startFrameProcessing(retriever, totalFrames);
+        startFrameProcessing(retriever, totalFrames, context);
         writeResultsToJson(outPath);
 
         long duration = Duration.between(start, Instant.now()).toMillis();
@@ -136,13 +147,13 @@ public class VideoAnalysis {
         Log.d(I_TAG, endString);
     }
 
-    private void startFrameProcessing(MediaMetadataRetriever retriever, int totalFrames) {
-        processFramesLoop(retriever, totalFrames);
+    private void startFrameProcessing(MediaMetadataRetriever retriever, int totalFrames, Context context) {
+        processFramesLoop(retriever, totalFrames, context);
         // scaledFramesLoop(detector, retriever, totalFrames);
     }
 
-    private void processFramesLoop(MediaMetadataRetriever retriever, int totalFrames) {
-        TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+    private void processFramesLoop(MediaMetadataRetriever retriever, int totalFrames, Context context) {
+        // TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
 
         // getFramesAtIndex is inconsistent, seems to only reliably with x264, may fail with other codecs
         // Using getFramesAtIndex on a full video requires too much memory, while extracting each frame separately
@@ -155,6 +166,7 @@ public class VideoAnalysis {
             List<Bitmap> frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize);
 
             for (int k = 0; k < frameBuffSize; k++) {
+                Log.d(TAG, "test");
                 Bitmap bitmap = frameBuffer.get(k);
                 int curFrame = i + k;
 
@@ -163,7 +175,11 @@ public class VideoAnalysis {
                     continue;
                 }
 
-                processFrame(recognizer, bitmap, curFrame);
+                // processFrame(recognizer, bitmap, curFrame);
+                OCRModelExecutor ome = new OCRModelExecutor(context, false);
+                ModelExecutionResult mer = ome.execute(bitmap);
+                Bitmap test = mer.getBitmapResult();
+                Log.d(TAG, "test");
             }
         }
     }
