@@ -1,11 +1,13 @@
 package com.example.edgedashanalytics.util.nearby;
 
+import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.SharedPreferences;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -16,18 +18,26 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.collection.SimpleArrayMap;
 import androidx.fragment.app.Fragment;
+import androidx.preference.PreferenceManager;
 
+import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.event.result.AddResultEvent;
 import com.example.edgedashanalytics.event.video.AddEvent;
 import com.example.edgedashanalytics.event.video.RemoveByNameEvent;
 import com.example.edgedashanalytics.event.video.RemoveEvent;
 import com.example.edgedashanalytics.event.video.Type;
+import com.example.edgedashanalytics.model.Content;
 import com.example.edgedashanalytics.model.Result;
 import com.example.edgedashanalytics.model.Video;
+import com.example.edgedashanalytics.page.setting.SettingsActivity;
+import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.file.FileManager;
+import com.example.edgedashanalytics.util.hardware.HardwareInfo;
+import com.example.edgedashanalytics.util.nearby.Algorithm.AlgorithmKey;
 import com.example.edgedashanalytics.util.nearby.Message.Command;
+import com.example.edgedashanalytics.util.video.FfmpegTools;
 import com.example.edgedashanalytics.util.video.VideoManager;
-import com.example.edgedashanalytics.util.video.analysis.VideoAnalysisIntentService;
+import com.example.edgedashanalytics.util.video.analysis.VideoAnalysis;
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.AdvertisingOptions;
 import com.google.android.gms.nearby.connection.ConnectionInfo;
@@ -42,7 +52,9 @@ import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
+import com.google.gson.Gson;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.greenrobot.eventbus.EventBus;
@@ -53,10 +65,18 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public abstract class NearbyFragment extends Fragment {
     private static final String TAG = NearbyFragment.class.getSimpleName();
@@ -69,6 +89,10 @@ public abstract class NearbyFragment extends Fragment {
     private final PayloadCallback payloadCallback = new ReceiveFilePayloadCallback();
     private final Queue<Message> transferQueue = new LinkedList<>();
     private final LinkedHashMap<String, Endpoint> discoveredEndpoints = new LinkedHashMap<>();
+    private final ExecutorService analysisExecutor = Executors.newSingleThreadExecutor();
+    private final List<Future<?>> analysisFutures = new ArrayList<>();
+    private final ScheduledExecutorService downloadTaskExecutor = Executors.newSingleThreadScheduledExecutor();
+    private final Gson gson = new Gson();
 
     private ConnectionsClient connectionsClient;
     protected DeviceListAdapter deviceAdapter;
@@ -169,6 +193,7 @@ public abstract class NearbyFragment extends Fragment {
 
                             if (endpoint != null) {
                                 endpoint.connected = true;
+                                requestHardwareInfo(endpointId);
                                 deviceAdapter.notifyDataSetChanged();
                             }
                             break;
@@ -226,6 +251,48 @@ public abstract class NearbyFragment extends Fragment {
         connectionsClient.stopDiscovery();
     }
 
+    // https://stackoverflow.com/a/11944965/8031185
+    protected void startDashDownload() {
+        Context context = getContext();
+        if (context == null) {
+            Log.e(TAG, "No context");
+            return;
+        }
+        int defaultDelay = 1;
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        int delay = pref.getInt(getString(R.string.download_delay_key), defaultDelay);
+
+        SettingsActivity.printPreferences(true, context);
+        Log.i(I_TAG, String.format("Download delay: %ds", delay));
+        Log.w(I_TAG, "Started downloading from dashcam");
+
+        downloadTaskExecutor.scheduleWithFixedDelay(DashCam.downloadTestVideos(this::downloadCallback, context),
+                0, delay, TimeUnit.SECONDS);
+    }
+
+    protected void stopDashDownload() {
+        Log.w(I_TAG, "Stopped downloading from dashcam");
+        downloadTaskExecutor.shutdown();
+    }
+
+    private void downloadCallback(Video video) {
+        if (video == null) {
+            stopDashDownload();
+            return;
+        }
+        if (isConnected()) {
+            EventBus.getDefault().post(new AddEvent(video, Type.RAW));
+            addVideo(video);
+            nextTransfer();
+        } else {
+            analyse(video, true);
+        }
+    }
+
+    private List<Endpoint> getConnectedEndpoints() {
+        return discoveredEndpoints.values().stream().filter(e -> e.connected).collect(Collectors.toList());
+    }
+
     public boolean isConnected() {
         return discoveredEndpoints.values().stream().anyMatch(e -> e.connected);
     }
@@ -261,10 +328,32 @@ public abstract class NearbyFragment extends Fragment {
         deviceAdapter.notifyDataSetChanged();
     }
 
+    @SuppressWarnings("SameParameterValue")
     private void sendCommandMessage(Command command, String filename, String toEndpointId) {
         String commandMessage = String.join(MESSAGE_SEPARATOR, command.toString(), filename);
         Payload filenameBytesPayload = Payload.fromBytes(commandMessage.getBytes(UTF_8));
         connectionsClient.sendPayload(toEndpointId, filenameBytesPayload);
+    }
+
+    private void sendHardwareInfo(Context context) {
+        HardwareInfo hwi = new HardwareInfo(context);
+        String hwiMessage = String.join(MESSAGE_SEPARATOR, Command.HW_INFO.toString(), gson.toJson(hwi));
+        Payload messageBytesPayload = Payload.fromBytes(hwiMessage.getBytes(UTF_8));
+        Log.d(TAG, String.format("Sending hardware information: \n%s", hwi));
+
+        // Only sent from worker to master, might be better to make bidirectional
+        List<String> connectedEndpointIds = discoveredEndpoints.values().stream()
+                .filter(e -> e.connected)
+                .map(e -> e.id)
+                .collect(Collectors.toList());
+        connectionsClient.sendPayload(connectedEndpointIds, messageBytesPayload);
+    }
+
+    private void requestHardwareInfo(String toEndpoint) {
+        Log.d(TAG, String.format("Requesting hardware information from %s", toEndpoint));
+        String hwrMessage = String.format("%s%s", Command.HW_INFO_REQUEST, MESSAGE_SEPARATOR);
+        Payload messageBytesPayload = Payload.fromBytes(hwrMessage.getBytes(UTF_8));
+        connectionsClient.sendPayload(toEndpoint, messageBytesPayload);
     }
 
     private void queueVideo(Video video, Command command) {
@@ -272,7 +361,92 @@ public abstract class NearbyFragment extends Fragment {
     }
 
     public void addVideo(Video video) {
+        Context context = getContext();
+        if (context == null) {
+            Log.e(TAG, "No context");
+            return;
+        }
+
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        boolean segmentationEnabled = pref.getBoolean(getString(R.string.enable_segment_key), false);
+        int segNum = pref.getInt(getString(R.string.segment_number_key), -1);
+
+        if (segmentationEnabled) {
+            if (segNum > 1) {
+                splitAndQueue(video.getData(), segNum);
+                return;
+            } else {
+                Log.i(TAG, String.format("Segmentation count too low (%d), analysing whole video instead", segNum));
+            }
+        }
+
         queueVideo(video, Command.ANALYSE);
+    }
+
+    private void returnContent(Content content) {
+        List<Endpoint> endpoints = getConnectedEndpoints();
+        Message message = new Message(content, Command.RETURN);
+
+        // Workers should only have a single connection to the master endpoint
+        if (endpoints.size() == 1) {
+            sendFile(message, endpoints.get(0));
+        } else {
+            Log.e(TAG, "Non-worker attempting to return a video");
+        }
+    }
+
+    private void splitAndQueue(String videoPath, int segNum) {
+        Context context = getContext();
+        if (context == null) {
+            Log.e(TAG, "No context");
+            return;
+        }
+
+        String baseVideoName = FilenameUtils.getBaseName(videoPath);
+        List<Video> videos = FfmpegTools.splitAndReturn(context, videoPath, segNum);
+
+        if (videos == null || videos.size() == 0) {
+            Log.e(TAG, String.format("Could not split %s", baseVideoName));
+            return;
+        }
+
+        int vidNum = videos.size();
+        if (vidNum != segNum) {
+            Log.w(TAG, String.format("Number of segmented videos (%d) does not match intended value (%d)",
+                    vidNum, segNum));
+        }
+
+        if (vidNum == 1) {
+            queueVideo(videos.get(0), Command.ANALYSE);
+            return;
+        }
+
+        for (Video segment : videos) {
+            queueVideo(segment, Command.SEGMENT);
+        }
+    }
+
+    private void handleSegment(String resultName) {
+        String baseName = FfmpegTools.getBaseName(resultName);
+        List<Result> results = FileManager.getResultsFromDir(FileManager.getSegmentResSubDirPath(resultName));
+        int resultTotal = FfmpegTools.getSegmentCount(resultName);
+
+        if (results == null) {
+            Log.d(TAG, "Couldn't retrieve results");
+            return;
+        }
+
+        if (results.size() == resultTotal) {
+            Log.d(TAG, String.format("Received all result segments of %s", baseName));
+            String parentName = String.format("%s.%s", baseName, FilenameUtils.getExtension(resultName));
+            Result result = FileManager.mergeResults(parentName);
+
+            EventBus.getDefault().post(new AddResultEvent(result));
+            EventBus.getDefault().post(new RemoveByNameEvent(parentName, Type.RAW));
+            EventBus.getDefault().post(new RemoveByNameEvent(parentName, Type.PROCESSING));
+        } else {
+            Log.v(TAG, String.format("Received a segment of %s", baseName));
+        }
     }
 
     public void nextTransfer() {
@@ -287,10 +461,54 @@ public abstract class NearbyFragment extends Fragment {
             return;
         }
 
-        int nextIndex = transferCount % discoveredEndpoints.size();
-        Endpoint toEndpoint = (Endpoint) discoveredEndpoints.values().toArray()[nextIndex];
-        sendFile(transferQueue.remove(), toEndpoint);
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        String algorithmKey = getString(R.string.scheduling_algorithm_key);
+        String localProcessKey = getString(R.string.local_process_key);
 
+        AlgorithmKey algorithm = AlgorithmKey.valueOf(pref.getString(algorithmKey, Algorithm.DEFAULT_ALGORITHM.name()));
+        boolean localProcess = pref.getBoolean(localProcessKey, false);
+        Log.v(TAG, String.format("nextTransfer with selected algorithm: %s", algorithm.name()));
+
+        List<Endpoint> endpoints = getConnectedEndpoints();
+        boolean localFree = analysisFutures.stream().allMatch(Future::isDone);
+        boolean anyFreeEndpoint = endpoints.stream().anyMatch(Endpoint::isInactive);
+
+        if (localProcess && localFree && !anyFreeEndpoint) {
+            Video video = (Video) transferQueue.remove().content;
+            Log.d(I_TAG, String.format("Processing %s locally", video.getName()));
+            analyse(video, false);
+            return;
+        }
+
+        Endpoint selected = null;
+        switch (algorithm) {
+            case round_robin:
+                selected = Algorithm.getRoundRobinEndpoint(endpoints, transferCount);
+                break;
+            case fastest:
+                selected = Algorithm.getFastestEndpoint(endpoints);
+                break;
+            case least_busy:
+                selected = Algorithm.getLeastBusyEndpoint(endpoints);
+                break;
+            case fastest_cpu:
+                selected = Algorithm.getFastestCpuEndpoint(endpoints);
+                break;
+            case most_cpu_cores:
+                selected = Algorithm.getMaxCpuCoreEndpoint(endpoints);
+                break;
+            case most_ram:
+                selected = Algorithm.getMaxRamEndpoint(endpoints);
+                break;
+            case most_storage:
+                selected = Algorithm.getMaxStorageEndpoint(endpoints);
+                break;
+            case highest_battery:
+                selected = Algorithm.getMaxBatteryEndpoint(endpoints);
+                break;
+        }
+
+        sendFile(transferQueue.remove(), selected);
         transferCount++;
     }
 
@@ -300,7 +518,7 @@ public abstract class NearbyFragment extends Fragment {
             return;
         }
 
-        File fileToSend = new File(message.video.getData());
+        File fileToSend = new File(message.content.getData());
         Uri uri = Uri.fromFile(fileToSend);
         Payload filePayload = null;
         Context context = getContext();
@@ -320,10 +538,10 @@ public abstract class NearbyFragment extends Fragment {
         }
 
         if (filePayload == null) {
-            Log.e(TAG, String.format("Could not create file payload for %s", message.video));
+            Log.e(TAG, String.format("Could not create file payload for %s", message.content));
             return;
         }
-        Log.i(String.format("!%s", TAG), String.format("Sending %s to %s", message.video.getName(), toEndpoint.name));
+        Log.i(I_TAG, String.format("Sending %s to %s", message.content.getName(), toEndpoint.name));
 
         // Construct a message mapping the ID of the file payload to the desired filename and command.
         String bytesMessage = String.join(MESSAGE_SEPARATOR, message.command.toString(),
@@ -339,32 +557,52 @@ public abstract class NearbyFragment extends Fragment {
         toEndpoint.addJob(uri.getLastPathSegment());
     }
 
-    private void analyse(Message message) {
+    private void analyse(File videoFile) {
+        analyse(VideoManager.getVideoFromPath(getContext(), videoFile.getAbsolutePath()), true);
+    }
+
+    private void analyse(Video video, boolean returnResult) {
+        if (video == null) {
+            Log.e(TAG, "No video");
+            return;
+        }
+
         Context context = getContext();
         if (context == null) {
             Log.e(TAG, "No context");
             return;
         }
 
-        File videoFile = new File(message.video.getData());
-        String filename = videoFile.getName();
-        String outPath = String.format("%s/%s", FileManager.getResultDirPath(),
-                FileManager.getResultNameFromVideoName(filename));
+        Log.d(TAG, String.format("Analysing %s", video.getName()));
 
-        analyse(context, videoFile, outPath);
-    }
-
-    private void analyse(Context context, File videoFile, String outPath) {
-        Log.d(TAG, String.format("Analysing %s", videoFile.getName()));
-
-        Video video = VideoManager.getVideoFromPath(context, videoFile.getAbsolutePath());
         EventBus.getDefault().post(new AddEvent(video, Type.PROCESSING));
         EventBus.getDefault().post(new RemoveEvent(video, Type.RAW));
 
-        Intent analyseIntent = new Intent(context, VideoAnalysisIntentService.class);
-        analyseIntent.putExtra(VideoAnalysisIntentService.VIDEO_KEY, video);
-        analyseIntent.putExtra(VideoAnalysisIntentService.OUTPUT_KEY, outPath);
-        context.startService(analyseIntent);
+        String outPath = FileManager.getResultPathOrSegmentResPathFromVideoName(video.getName());
+        Future<?> future = analysisExecutor.submit(analysisRunnable(video, outPath, context, returnResult));
+        analysisFutures.add(future);
+    }
+
+    private Runnable analysisRunnable(Video video, String outPath, Context context, boolean returnResult) {
+        return () -> {
+            VideoAnalysis videoAnalysis = new VideoAnalysis(context);
+            videoAnalysis.analyse(video.getData(), outPath, context);
+
+            Result result = new Result(outPath);
+            EventBus.getDefault().post(new RemoveEvent(video, Type.PROCESSING));
+
+            if (!FfmpegTools.isSegment(result.getName())) {
+                EventBus.getDefault().post(new AddResultEvent(result));
+            }
+
+            if (returnResult) {
+                returnContent(result);
+            } else if (FfmpegTools.isSegment(result.getName())) {
+                // Master completed analysing a segment
+                handleSegment(result.getName());
+                nextTransfer();
+            }
+        };
     }
 
     @Override
@@ -434,6 +672,7 @@ public abstract class NearbyFragment extends Fragment {
                         //
                         break;
                     case ANALYSE:
+                    case SEGMENT:
                         Log.v(TAG, String.format("Started downloading %s from %s", message, fromEndpoint));
                         payloadId = addPayloadFilename(parts);
                         startTimes.put(payloadId, Instant.now());
@@ -445,20 +684,33 @@ public abstract class NearbyFragment extends Fragment {
                         Log.v(TAG, String.format("Started downloading %s from %s", videoName, fromEndpoint));
                         payloadId = addPayloadFilename(parts);
                         startTimes.put(payloadId, Instant.now());
-                        fromEndpoint.removeJob(videoName);
+                        fromEndpoint.removeJob(FileManager.getVideoNameFromResultName(videoName));
+                        fromEndpoint.completeCount++;
 
                         processFilePayload(payloadId, endpointId);
                         break;
                     case COMPLETE:
+                        requestHardwareInfo(endpointId);
                         videoName = parts[1];
                         Log.d(TAG, String.format("%s has finished downloading %s", fromEndpoint, videoName));
 
-                        videoPath = String.format("%s/%s", FileManager.getRawDirPath(), videoName);
-                        video = VideoManager.getVideoFromPath(context, videoPath);
+                        if (!FfmpegTools.isSegment(videoName)) {
+                            videoPath = String.format("%s/%s", FileManager.getRawDirPath(), videoName);
+                            video = VideoManager.getVideoFromPath(context, videoPath);
 
-                        EventBus.getDefault().post(new AddEvent(video, Type.PROCESSING));
-                        EventBus.getDefault().post(new RemoveEvent(video, Type.RAW));
+                            EventBus.getDefault().post(new AddEvent(video, Type.PROCESSING));
+                            EventBus.getDefault().post(new RemoveEvent(video, Type.RAW));
+                        }
+                        nextTransfer();
 
+                        break;
+                    case HW_INFO:
+                        HardwareInfo hwi = gson.fromJson(parts[1], HardwareInfo.class);
+                        Log.i(TAG, String.format("Received hardware information from %s: \n%s", fromEndpoint, hwi));
+                        fromEndpoint.hardwareInfo = hwi;
+                        break;
+                    case HW_INFO_REQUEST:
+                        sendHardwareInfo(context);
                         break;
                 }
             } else if (payload.getType() == Payload.Type.FILE) {
@@ -493,14 +745,14 @@ public abstract class NearbyFragment extends Fragment {
             if (filePayload != null && filename != null && command != null) {
                 long duration = Duration.between(startTimes.remove(payloadId), Instant.now()).toMillis();
                 String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
-                Log.i(String.format("!%s", TAG), String.format("Completed downloading %s from %s in %ss",
+                Log.i(I_TAG, String.format("Completed downloading %s from %s in %ss",
                         filename, discoveredEndpoints.get(fromEndpointId), time));
 
                 completedFilePayloads.remove(payloadId);
                 filePayloadFilenames.remove(payloadId);
                 filePayloadCommands.remove(payloadId);
 
-                if (command.equals(Command.ANALYSE)) {
+                if (Message.isAnalyse(command)) {
                     sendCommandMessage(Command.COMPLETE, filename, fromEndpointId);
                 }
 
@@ -518,37 +770,40 @@ public abstract class NearbyFragment extends Fragment {
                     return;
                 }
 
-                // Rename the file.
-                File receivedFile = new File(payloadFile.getParentFile(), filename);
-                if (!payloadFile.renameTo(receivedFile)) {
-                    Log.e(TAG, String.format("Could not rename received file as %s", filename));
+                // Move the file.
+                File receivedFile = new File(FileManager.getRawDirPath(), filename);
+                try {
+                    Files.move(payloadFile.toPath(), receivedFile.toPath(), REPLACE_EXISTING);
+                } catch (IOException e) {
+                    Log.e(TAG, String.format("Could not move %s:\n%s", filename, e.getMessage()));
                     return;
                 }
 
-                String resultsDestPath = String.format("%s/%s", FileManager.getResultDirPath(),
-                        FileManager.getResultNameFromVideoName(filename));
-
-                if (command.equals(Command.ANALYSE)) {
-                    analyse(getContext(), receivedFile, resultsDestPath);
+                if (Message.isAnalyse(command)) {
+                    MediaScannerConnection.scanFile(getContext(), new String[]{receivedFile.getAbsolutePath()}, null,
+                            (path, uri) -> analyse(receivedFile));
 
                 } else if (command.equals(Command.RETURN)) {
+                    String resultName = FileManager.getResultNameFromVideoName(filename);
+                    String resultsDestPath = FileManager.getResultPathOrSegmentResPathFromVideoName(resultName);
                     File resultsDest = new File(resultsDestPath);
 
                     try {
-                        Files.copy(receivedFile.toPath(), resultsDest.toPath());
+                        Files.copy(receivedFile.toPath(), resultsDest.toPath(), REPLACE_EXISTING);
                     } catch (IOException e) {
                         Log.e(TAG, String.format("processFilePayload copy error: \n%s", e.getMessage()));
-                    }
-
-                    Context context = getContext();
-                    if (context == null) {
-                        Log.e(TAG, "No context");
                         return;
                     }
 
-                    Result result = new Result(resultsDestPath, FileManager.getFilenameFromPath(resultsDestPath));
+                    if (FfmpegTools.isSegment(resultName)) {
+                        handleSegment(resultName);
+                        return;
+                    }
+
+                    Result result = new Result(resultsDestPath);
                     EventBus.getDefault().post(new AddResultEvent(result));
-                    EventBus.getDefault().post(new RemoveByNameEvent(filename, Type.PROCESSING));
+                    String videoName = FileManager.getVideoNameFromResultName(filename);
+                    EventBus.getDefault().post(new RemoveByNameEvent(videoName, Type.PROCESSING));
                 }
             }
         }

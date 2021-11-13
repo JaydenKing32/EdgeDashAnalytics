@@ -1,6 +1,8 @@
 package com.example.edgedashanalytics.page.main;
 
 import android.Manifest;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.MediaScannerConnection;
 import android.os.Bundle;
@@ -14,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
+import androidx.preference.PreferenceManager;
 
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.data.result.ResultRepository;
@@ -22,6 +25,9 @@ import com.example.edgedashanalytics.data.video.ProcessingVideosRepository;
 import com.example.edgedashanalytics.data.video.VideosRepository;
 import com.example.edgedashanalytics.model.Result;
 import com.example.edgedashanalytics.model.Video;
+import com.example.edgedashanalytics.page.adapter.ProcessingAdapter;
+import com.example.edgedashanalytics.page.adapter.RawAdapter;
+import com.example.edgedashanalytics.page.setting.SettingsActivity;
 import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.nearby.Endpoint;
@@ -34,6 +40,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 public class MainActivity extends AppCompatActivity implements
         VideoFragment.Listener, ResultsFragment.Listener, NearbyFragment.Listener {
     private static final String TAG = MainActivity.class.getSimpleName();
+    public static final String I_TAG = "Important";
 
     private VideoFragment rawFragment;
     private VideoFragment processingFragment;
@@ -68,10 +75,6 @@ public class MainActivity extends AppCompatActivity implements
 
     private void showNewFragmentAndHideOldFragment(Fragment newFragment) {
         supportFragmentManager.beginTransaction().hide(activeFragment).show(newFragment).commit();
-        setActiveFragment(newFragment);
-    }
-
-    private void setActiveFragment(Fragment newFragment) {
         activeFragment = newFragment;
     }
 
@@ -129,7 +132,7 @@ public class MainActivity extends AppCompatActivity implements
 
     private void setToolBarAsTheAppBar() {
         Toolbar toolbar = findViewById(R.id.toolbar);
-        toolbar.setTitle(R.string.app_name);
+        toolbar.setTitle("EDA");
         toolbar.setTitleTextColor(getColor(R.color.white));
         setSupportActionBar(toolbar);
     }
@@ -160,7 +163,7 @@ public class MainActivity extends AppCompatActivity implements
         processingFragment.setRepository(processingRepository);
         resultsFragment.setRepository(resultRepository);
 
-        setActiveFragment(rawFragment);
+        activeFragment = rawFragment;
     }
 
     @Override
@@ -184,20 +187,28 @@ public class MainActivity extends AppCompatActivity implements
             return true;
         } else if (itemId == R.id.action_clean) {
             Log.v(TAG, "Clean button clicked");
-            Toast.makeText(this, "Cleaning video directories", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Cleaning directories", Toast.LENGTH_SHORT).show();
             cleanDirectories();
+            return true;
+        } else if (itemId == R.id.action_settings) {
+            Log.v(TAG, "Setting button clicked");
+            Intent settingsIntent = new Intent(this, SettingsActivity.class);
+            startActivity(settingsIntent);
             return true;
         }
         return super.onOptionsItemSelected(item);
     }
 
     private void cleanDirectories() {
-        // TODO add preference to choose removing raw videos
-        // rawFragment.cleanRepository(this);
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
+
+        if (pref.getBoolean(getString(R.string.remove_raw_key), false)) {
+            rawFragment.cleanRepository(this);
+        }
 
         processingFragment.cleanRepository(this);
         resultsFragment.cleanRepository(this);
-        FileManager.cleanDirectories();
+        FileManager.cleanDirectories(this);
     }
 
     @Override

@@ -28,6 +28,7 @@ import com.example.edgedashanalytics.data.video.VideoViewModel;
 import com.example.edgedashanalytics.data.video.VideoViewModelFactory;
 import com.example.edgedashanalytics.data.video.VideosRepository;
 import com.example.edgedashanalytics.model.Video;
+import com.example.edgedashanalytics.page.adapter.VideoRecyclerViewAdapter;
 import com.example.edgedashanalytics.util.video.VideoDetailsLookup;
 import com.example.edgedashanalytics.util.video.eventhandler.VideoEventHandler;
 

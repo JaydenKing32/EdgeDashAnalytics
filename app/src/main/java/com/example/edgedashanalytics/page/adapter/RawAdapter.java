@@ -1,15 +1,17 @@
-package com.example.edgedashanalytics.page.main;
+package com.example.edgedashanalytics.page.adapter;
 
 import android.util.Log;
 import android.widget.Toast;
 
+import com.example.edgedashanalytics.page.main.ActionButton;
+import com.example.edgedashanalytics.page.main.VideoFragment;
 import com.example.edgedashanalytics.util.video.analysis.AnalysisTools;
 
 public class RawAdapter extends VideoRecyclerViewAdapter {
-    private static final String BUTTON_TEXT = ActionButton.ADD.toString();
     private static final String TAG = RawAdapter.class.getSimpleName();
+    private static final String BUTTON_TEXT = ActionButton.ADD.toString();
 
-    RawAdapter(VideoFragment.Listener listener) {
+    public RawAdapter(VideoFragment.Listener listener) {
         super(listener);
     }
 

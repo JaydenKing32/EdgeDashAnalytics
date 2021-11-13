@@ -43,6 +43,7 @@ public class ConnectionFragment extends NearbyFragment {
 
         SwitchCompat discoverSwitch = rootView.findViewById(R.id.discover_switch);
         SwitchCompat advertiseSwitch = rootView.findViewById(R.id.advertise_switch);
+        SwitchCompat autoDownloadSwitch = rootView.findViewById(R.id.auto_download_switch);
 
         discoverSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
@@ -61,6 +62,16 @@ public class ConnectionFragment extends NearbyFragment {
             } else {
                 Log.v(TAG, "Advertisement switch unchecked");
                 stopAdvertising();
+            }
+        });
+
+        autoDownloadSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                Log.v(TAG, "Auto-download switch checked");
+                startDashDownload();
+            } else {
+                Log.v(TAG, "Auto-download switch unchecked");
+                stopDashDownload();
             }
         });
 

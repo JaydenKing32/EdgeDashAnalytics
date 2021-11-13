@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 public class VideoManager {
     private final static String TAG = VideoManager.class.getSimpleName();
+    private final static String MIME_TYPE = "video/mp4";
 
     private VideoManager() {
     }
@@ -37,9 +38,9 @@ public class VideoManager {
         };
         if (DeviceExternalStorage.externalStorageIsReadable()) {
             String selection = Media.DATA + " LIKE ? ";
-            String[] selectionArgs = new String[]{"%" + file.getAbsolutePath() + "%"};
+            String[] selectArgs = new String[]{"%" + file.getAbsolutePath() + "%"};
             Log.d("VideoManager", file.getAbsolutePath());
-            return getVideosFromExternalStorage(context, projection, selection, selectionArgs, null);
+            return getVideosFromExternalStorage(context, projection, selection, selectArgs, Media.DEFAULT_SORT_ORDER);
         }
         return new ArrayList<>();
     }
@@ -86,7 +87,7 @@ public class VideoManager {
         String selection = Media.DATA + "=?";
         String[] selectionArgs = new String[]{file.getAbsolutePath()};
         Cursor videoCursor = context.getContentResolver().query(Media.EXTERNAL_CONTENT_URI,
-                projection, selection, selectionArgs, null);
+                projection, selection, selectionArgs, Media.DEFAULT_SORT_ORDER);
 
         if (videoCursor == null || !videoCursor.moveToFirst()) {
             Log.d(TAG, "videoCursor is null");
@@ -111,7 +112,7 @@ public class VideoManager {
         } else {
             ContentValues values = new ContentValues();
             values.put(Media.TITLE, FilenameUtils.getBaseName(path));
-            values.put(Media.MIME_TYPE, String.format("video/%s", FilenameUtils.getExtension(path).toLowerCase()));
+            values.put(Media.MIME_TYPE, MIME_TYPE);
             values.put(Media.DISPLAY_NAME, "player");
             values.put(Media.DESCRIPTION, "");
             values.put(Media.DATE_ADDED, System.currentTimeMillis());
@@ -172,10 +173,9 @@ public class VideoManager {
             String name = cursor.getString(cursor.getColumnIndex(Media.DISPLAY_NAME));
             String data = cursor.getString(cursor.getColumnIndex(Media.DATA));
             BigInteger size = new BigInteger(cursor.getString(cursor.getColumnIndex(Media.SIZE)));
-            String mimeType = cursor.getString(cursor.getColumnIndex(Media.MIME_TYPE));
-            video = new Video(id, name, data, mimeType, size);
+            video = new Video(id, name, data, MIME_TYPE, size);
         } catch (Exception e) {
-            Log.e(TAG, "videoFromCursor error: \n%s");
+            Log.e(TAG, String.format("videoFromCursor error: \n%s", e.getMessage()));
         }
         return video;
     }

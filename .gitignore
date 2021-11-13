@@ -227,3 +227,6 @@ fabric.properties
 ### Personal
 .idea/misc.xml
 /.idea/deploymentTargetDropDown.xml
+/.idea/codeStyles/
+/app/src/main/assets/*.tflite
+*.mp4

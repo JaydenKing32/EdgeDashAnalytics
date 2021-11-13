@@ -2,6 +2,8 @@ package com.example.edgedashanalytics.util.nearby;
 
 import androidx.annotation.NonNull;
 
+import com.example.edgedashanalytics.util.hardware.HardwareInfo;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,6 +12,8 @@ public class Endpoint {
     final String name;
     boolean connected;
     private final List<String> jobList = new ArrayList<>();
+    int completeCount = 0;
+    HardwareInfo hardwareInfo;
 
     Endpoint(String id, String name) {
         this.id = id;
@@ -17,8 +21,8 @@ public class Endpoint {
         this.connected = false;
     }
 
-    public boolean isActive() {
-        return !jobList.isEmpty();
+    boolean isInactive() {
+        return jobList.isEmpty();
     }
 
     void addJob(String videoName) {

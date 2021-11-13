@@ -1,24 +1,91 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">EdgeDashAnalytics</string>
 
-    <string name="title_raw">Raw Videos</string>
-    <string name="title_processing">Processing</string>
-    <string name="title_completed">Completed</string>
-
+    <!-- ConnectionFragment -->
     <string name="discover_switch_label">Discover nearby devices</string>
     <string name="advertise_switch_label">Share device information</string>
+    <string name="auto_download_switch_label">Auto-download videos</string>
     <string name="local_name_label">Local Name:</string>
     <string name="connection_status_content_description">connection status</string>
     <string name="disconnect_button_content_description">disconnect button</string>
     <string name="remove_device_button_content_description">remove device button</string>
 
-    <string name="video_thumbnail_content_description">video thumbnail</string>
-    <string name="select_all">select_all</string>
+    <!-- Fragment titles -->
+    <string name="title_raw">Raw Videos</string>
+    <string name="title_processing">Processing</string>
+    <string name="title_completed">Completed</string>
+
+    <!-- Menu items -->
+    <string name="select_all">Select All</string>
     <string name="send">Send</string>
     <string name="connect">Connect</string>
     <string name="download">Download</string>
     <string name="clean_directories">Clean Directories</string>
+    <string name="settings">Settings</string>
+
+    <!-- Content descriptions -->
+    <string name="video_thumbnail_content_description">video thumbnail</string>
     <string name="video_name_content_description">video name</string>
     <string name="action_button_content_description">action</string>
     <string name="result_name_content_description">result name</string>
+
+    <!-- Preferences -->
+    <string name="remove_raw_title">Remove raw</string>
+    <string name="remove_raw_summary">Remove raw videos during clean</string>
+    <string name="remove_raw_key">remove_raw</string>
+    <string name="local_process_title">Process locally</string>
+    <string name="local_process_summary">If all workers are busy, process the next video on the master device if it is not already processing a video</string>
+    <string name="local_process_key">local_process</string>
+    <string name="scheduling_algorithm_title">Scheduling algorithm</string>
+    <string name="scheduling_algorithm_key">scheduling_algorithm</string>
+    <string name="model_title">Model</string>
+    <string name="model_key">model</string>
+    <string name="enable_segment_title">Enable segmentation</string>
+    <string name="enable_segment_summary_off">Send whole video files to worker phones</string>
+    <string name="enable_segment_summary_on">Send video segments to worker phones</string>
+    <string name="enable_segment_key">enable_segment</string>
+    <string name="segment_number_title">Segment number</string>
+    <string name="segment_number_key">segment_number</string>
+    <string name="enable_download_simulation_title">Simulate downloading</string>
+    <string name="enable_download_simulation_summary">When multiple videos are selected, add a delay between processing them to simulate downloading</string>
+    <string name="enable_download_simulation_key">simulate_download</string>
+    <string name="download_simulation_delay_title">Simulated download delay</string>
+    <string name="download_simulation_delay_key">download_simulation_delay</string>
+    <string name="download_delay_title">Download delay</string>
+    <string name="download_delay_key">download_delay</string>
+    <string name="verbose_output_title">Verbose output</string>
+    <string name="verbose_output_key">verbose_output</string>
+
+    <!-- Models -->
+    <string name="default_model_key" tools:ignore="Typos">@string/mobilenet_v1_key</string>
+    <string name="mobilenet_v1_title" tools:ignore="Typos">MobileNetV1</string>
+    <string name="mobilenet_v1_key" tools:ignore="Typos">lite-model_ssd_mobilenet_v1_1_metadata_2.tflite</string>
+    <string name="efficientdet_lite0_title">EfficientDet-Lite0</string>
+    <string name="efficientdet_lite0_key">lite-model_efficientdet_lite0_detection_metadata_1.tflite</string>
+    <string name="efficientdet_lite1_title" tools:ignore="Typos">EfficientDet-Lite1</string>
+    <string name="efficientdet_lite1_key" tools:ignore="Typos">lite-model_efficientdet_lite1_detection_metadata_2.tflite</string>
+    <string name="efficientdet_lite2_title">EfficientDet-Lite2</string>
+    <string name="efficientdet_lite2_key">lite-model_efficientdet_lite2_detection_metadata_2.tflite</string>
+    <string name="efficientdet_lite3_title">EfficientDet-Lite3</string>
+    <string name="efficientdet_lite3_key">lite-model_efficientdet_lite3_detection_metadata_2.tflite</string>
+    <string name="efficientdet_lite4_title">EfficientDet-Lite4</string>
+    <string name="efficientdet_lite4_key">lite-model_efficientdet_lite4_detection_metadata_2.tflite</string>
+
+    <!-- Scheduling algorithms -->
+    <string name="round_robin_algorithm_title">Round-robin</string>
+    <string name="round_robin_algorithm_key">round_robin</string>
+    <string name="fastest_algorithm_title">Fastest</string>
+    <string name="fastest_algorithm_key">fastest</string>
+    <string name="least_busy_algorithm_title">Least busy</string>
+    <string name="least_busy_algorithm_key">least_busy</string>
+    <string name="fastest_cpu_algorithm_title">Fastest CPU</string>
+    <string name="fastest_cpu_algorithm_key">fastest_cpu</string>
+    <string name="most_cpu_cores_algorithm_title">Most CPU cores</string>
+    <string name="most_cpu_cores_algorithm_key">most_cpu_cores</string>
+    <string name="most_ram_algorithm_title">Most available RAM</string>
+    <string name="most_ram_algorithm_key">most_ram</string>
+    <string name="most_storage_algorithm_title">Most available storage</string>
+    <string name="most_storage_algorithm_key">most_storage</string>
+    <string name="highest_battery_algorithm_title">Highest battery</string>
+    <string name="highest_battery_algorithm_key">highest_battery</string>
 </resources>

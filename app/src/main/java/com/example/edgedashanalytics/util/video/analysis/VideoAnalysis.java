@@ -1,11 +1,21 @@
 package com.example.edgedashanalytics.util.video.analysis;
 
+import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
+
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.media.MediaMetadataRetriever;
-import android.util.JsonWriter;
 import android.util.Log;
+
+import androidx.preference.PreferenceManager;
+
+import com.example.edgedashanalytics.R;
+import com.example.edgedashanalytics.util.hardware.HardwareInfo;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.tensorflow.lite.support.image.TensorImage;
@@ -14,61 +24,70 @@ import org.tensorflow.lite.task.vision.detector.Detection;
 import org.tensorflow.lite.task.vision.detector.ObjectDetector;
 
 import java.io.File;
-import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
+import java.io.Writer;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map.Entry;
 import java.util.StringJoiner;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 // https://www.tensorflow.org/lite/models/object_detection/overview
-// https://tfhub.dev/tensorflow/lite-model/ssd_mobilenet_v1/1/metadata/2
+// https://tfhub.dev/tensorflow/collections/lite/task-library/object-detector/1
 // https://www.tensorflow.org/lite/performance/best_practices
 // https://www.tensorflow.org/lite/guide/android
 // https://www.tensorflow.org/lite/inference_with_metadata/task_library/object_detector
 // https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/running_on_mobile_tf2.md
-class VideoAnalysis {
+public class VideoAnalysis {
     private static final String TAG = VideoAnalysis.class.getSimpleName();
-
-    private final String inPath;
-    private final String outPath;
 
     private final int maxDetections;
     private final float minScore;
     private final int threadNum;
     private final int bufferSize;
+    private final List<Frame> frames = new ArrayList<>();
 
-    private CountDownLatch completionLatch;
-    private HashMap<Integer, List<Detection>> frameDetections;
-    private long scaleFactor = 1;
+    private int scaleFactor = 1;
+    private boolean verbose = false;
 
-    VideoAnalysis(String inPath, String outPath) {
-        this.inPath = inPath;
-        this.outPath = outPath;
-
-        this.maxDetections = 10;
-        this.minScore = 0.5f;
+    public VideoAnalysis(Context context) {
+        this.maxDetections = -1;
+        this.minScore = 0.2f;
         this.threadNum = 4;
-        this.bufferSize = 50;
+
+        // Check if phone has at least (roughly) 2GB of RAM
+        HardwareInfo hwi = new HardwareInfo(context);
+        if (hwi.totalRam < 2000000000L) {
+            this.bufferSize = 5;
+        } else {
+            this.bufferSize = 50;
+        }
     }
 
-    // https://developer.android.com/guide/background/threading
-    // https://developer.android.com/guide/components/processes-and-threads#WorkerThreads
-    void analyse(Context context) {
-        processVideo(context);
+    public void printParameters() {
+        StringJoiner paramMessage = new StringJoiner("\n  ");
+        paramMessage.add("Video analysis parameters:");
+        paramMessage.add(String.format("bufferSize: %s", bufferSize));
+        paramMessage.add(String.format("maxDetections: %s", maxDetections));
+        paramMessage.add(String.format("minScore: %s", minScore));
+        paramMessage.add(String.format("threadNum: %s", threadNum));
+
+        Log.i(I_TAG, paramMessage.toString());
     }
 
-    private void processVideo(Context context) {
+    public void analyse(String inPath, String outPath, Context context) {
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        if (pref.getBoolean(context.getString(R.string.verbose_output_key), verbose)) {
+            verbose = true;
+        }
+        processVideo(inPath, outPath, context);
+    }
+
+    private void processVideo(String inPath, String outPath, Context context) {
         ObjectDetector detector;
         try {
             ObjectDetector.ObjectDetectorOptions objectDetectorOptions =
@@ -79,10 +98,11 @@ class VideoAnalysis {
                             .setLabelAllowList(Collections.singletonList("person"))
                             .build();
 
-            // TODO: add preference to select model
-            String modelFile = "lite-model_ssd_mobilenet_v1_1_metadata_2.tflite";
-            // String modelFile = "lite-model_efficientdet_lite4_detection_metadata_2.tflite";
-            detector = ObjectDetector.createFromFileAndOptions(context, modelFile, objectDetectorOptions);
+            String defaultModel = context.getString(R.string.default_model_key);
+            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+            String modelFilename = pref.getString(context.getString(R.string.model_key), defaultModel);
+
+            detector = ObjectDetector.createFromFileAndOptions(context, modelFilename, objectDetectorOptions);
         } catch (IOException e) {
             Log.w(TAG, String.format("Model failure:\n  %s", e.getMessage()));
             return;
@@ -103,38 +123,25 @@ class VideoAnalysis {
 
         Instant start = Instant.now();
         String startString = String.format("Starting analysis of %s", videoName);
-        Log.d(String.format("!%s", TAG), startString);
+        Log.d(I_TAG, startString);
         Log.d(TAG, String.format("Total frames of %s: %d", videoName, totalFrames));
+
         startFrameProcessing(detector, retriever, totalFrames);
+        writeResultsToJson(outPath);
 
-        try {
-            completionLatch.await();
-            writeResultsToJson(outPath);
+        long duration = Duration.between(start, Instant.now()).toMillis();
+        String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
 
-            long duration = Duration.between(start, Instant.now()).toMillis();
-            String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
-
-            String endString = String.format(Locale.ENGLISH, "Completed analysis of %s in %ss with %d threads",
-                    videoName, time, threadNum);
-            Log.d(String.format("!%s", TAG), endString);
-        } catch (InterruptedException e) {
-            Log.w(TAG, String.format("Interrupted task:\n  %s", e.getMessage()));
-        }
+        String endString = String.format(Locale.ENGLISH, "Completed analysis of %s in %ss", videoName, time);
+        Log.d(I_TAG, endString);
     }
 
-    private void startFrameProcessing(ObjectDetector detector, MediaMetadataRetriever retriever,
-                                      int totalFrames) {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        completionLatch = new CountDownLatch(totalFrames);
-        frameDetections = new HashMap<>(totalFrames);
-
-        simpleFramesLoop(detector, retriever, totalFrames, executor);
-//        delayedFramesLoop(detector, retriever, totalFrames, executor);
-//        scaledFramesLoop(detector, retriever, totalFrames, executor);
+    private void startFrameProcessing(ObjectDetector detector, MediaMetadataRetriever retriever, int totalFrames) {
+        processFramesLoop(detector, retriever, totalFrames);
+        // scaledFramesLoop(detector, retriever, totalFrames);
     }
 
-    private void simpleFramesLoop(ObjectDetector detector, MediaMetadataRetriever retriever,
-                                  int totalFrames, ExecutorService executor) {
+    private void processFramesLoop(ObjectDetector detector, MediaMetadataRetriever retriever, int totalFrames) {
         // getFramesAtIndex is inconsistent, seems to only reliably with x264, may fail with other codecs
         // Using getFramesAtIndex on a full video requires too much memory, while extracting each frame separately
         // through getFrameAtIndex is too slow. Instead use a buffer, extracting groups of frames
@@ -154,46 +161,12 @@ class VideoAnalysis {
                     continue;
                 }
 
-                Runnable imageRunnable = processFrame(detector, bitmap, curFrame);
-                executor.submit(imageRunnable);
-//                Runnable testRunnable = () -> Log.v(TAG, Integer.toString(curFrame));
-//                executor.submit(testRunnable);
+                processFrame(detector, bitmap, curFrame);
             }
         }
     }
 
-    private void delayedFramesLoop(ObjectDetector detector, MediaMetadataRetriever retriever,
-                                   int totalFrames, ExecutorService executor) {
-        for (int i = 0; i < totalFrames; i += bufferSize) {
-            if (Thread.currentThread().isInterrupted()) {
-                return;
-            }
-            int frameBuffSize = Integer.min(bufferSize, totalFrames - i);
-            List<Bitmap> frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize);
-            completionLatch = new CountDownLatch(frameBuffSize);
-
-            for (int k = 0; k < frameBuffSize; k++) {
-                Bitmap bitmap = frameBuffer.get(k);
-                int curFrame = i + k;
-
-                if (bitmap == null) {
-                    Log.w(TAG, String.format("Could not extract frame at index %d", curFrame));
-                    continue;
-                }
-
-                Runnable imageRunnable = processFrame(detector, bitmap, curFrame);
-                executor.submit(imageRunnable);
-            }
-            try {
-                completionLatch.await();
-            } catch (InterruptedException e) {
-                Log.w(TAG, String.format("Interrupted task:\n  %s", e.getMessage()));
-            }
-        }
-    }
-
-    private void scaledFramesLoop(ObjectDetector detector, MediaMetadataRetriever retriever,
-                                  int totalFrames, ExecutorService executor) {
+    private void scaledFramesLoop(ObjectDetector detector, MediaMetadataRetriever retriever, int totalFrames) {
         String videoWidthString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH);
         String videoHeightString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT);
 
@@ -205,8 +178,8 @@ class VideoAnalysis {
 
         int videoWidth = Integer.parseInt(videoWidthString);
         int videoHeight = Integer.parseInt(videoHeightString);
-        int scaledWidth = (int) (videoWidth / scaleFactor);
-        int scaledHeight = (int) (videoHeight / scaleFactor);
+        int scaledWidth = videoWidth / scaleFactor;
+        int scaledHeight = videoHeight / scaleFactor;
 
         for (int i = 0; i < totalFrames; i += bufferSize) {
             if (Thread.currentThread().isInterrupted()) {
@@ -227,23 +200,41 @@ class VideoAnalysis {
                     continue;
                 }
 
-                Runnable imageRunnable = processFrame(detector, bitmap, curFrame);
-                executor.submit(imageRunnable);
+                processFrame(detector, bitmap, curFrame);
             }
         }
     }
 
 
-    private Runnable processFrame(ObjectDetector detector, Bitmap bitmap, int frameIndex) {
-        return () -> {
-            if (Thread.currentThread().isInterrupted()) {
-                Log.e(TAG, String.format("Stopping at frame %d", frameIndex));
-                return;
-            }
-            TensorImage image = TensorImage.fromBitmap(bitmap);
-            List<Detection> detectionList = detector.detect(image);
-            frameDetections.put(frameIndex, detectionList);
+    private void processFrame(ObjectDetector detector, Bitmap bitmap, int frameIndex) {
+        if (Thread.currentThread().isInterrupted()) {
+            Log.e(TAG, String.format("Stopping at frame %d", frameIndex));
+            return;
+        }
+        TensorImage image = TensorImage.fromBitmap(bitmap);
+        List<Detection> detectionList = detector.detect(image);
+        List<Person> people = new ArrayList<>(detectionList.size());
 
+        for (Detection detection : detectionList) {
+            List<Category> categoryList = detection.getCategories();
+
+            if (categoryList == null || categoryList.size() == 0) {
+                continue;
+            }
+            Category category = categoryList.get(0);
+            RectF bb = detection.getBoundingBox();
+            Rect boundingBox = new Rect(
+                    (int) bb.left * scaleFactor,
+                    (int) bb.top * scaleFactor,
+                    (int) bb.right * scaleFactor,
+                    (int) bb.bottom * scaleFactor
+            );
+
+            people.add(new Person(category.getScore(), isClose(detection, detectionList), boundingBox));
+        }
+        frames.add(new Frame(frameIndex, people));
+
+        if (verbose) {
             String resultHead = String.format(Locale.ENGLISH,
                     "Analysis completed for frame: %04d\nDetected objects: %02d\n",
                     frameIndex, detectionList.size());
@@ -253,18 +244,15 @@ class VideoAnalysis {
                 String resultBody = getDetectionString(detection);
                 builder.append(resultBody);
 
-                if (isClose(detection, detectionList)) {
-                    System.out.println(frameIndex);
-                }
+                // if (isClose(detection, detectionList)) {
+                //     System.out.println(frameIndex);
+                // }
             }
             builder.append('\n');
 
             String resultMessage = builder.toString();
             Log.v(TAG, resultMessage);
-
-//            Log.v(TAG, String.format("Latch count: %d", frameLatch.getCount()));
-            completionLatch.countDown();
-        };
+        }
     }
 
     private String getDetectionString(Detection detection) {
@@ -290,70 +278,16 @@ class VideoAnalysis {
     }
 
     private void writeResultsToJson(String jsonFilePath) {
-        File jsonFile = new File(jsonFilePath);
-        JsonWriter writer;
         try {
-            FileOutputStream out = new FileOutputStream(jsonFile);
-            writer = new JsonWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8));
-            writer.setIndent(" ");
-            writer.beginArray();
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            Writer writer = new FileWriter(jsonFilePath);
+            gson.toJson(frames, writer);
 
-            for (Entry<Integer, List<Detection>> frameDetection : frameDetections.entrySet()) {
-                writeFrame(writer, frameDetection);
-            }
-
-            writer.endArray();
+            writer.flush();
             writer.close();
         } catch (Exception e) {
-            Log.w(TAG, String.format("Interrupted task:\n  %s", e.getMessage()));
+            Log.w(TAG, String.format("Failed to write results file:\n  %s", e.getMessage()));
         }
-    }
-
-    private void writeFrame(JsonWriter writer, Entry<Integer, List<Detection>> frameDetection) throws IOException {
-        int frameIndex = frameDetection.getKey();
-        List<Detection> detectionList = frameDetection.getValue();
-
-        writer.beginObject();
-        writer.name("frame").value(frameIndex);
-        writer.name("detections");
-
-        writer.beginArray();
-        for (Detection detection : detectionList) {
-            boolean close = isClose(detection, detectionList);
-
-            writeDetection(writer, detection, close);
-        }
-        writer.endArray();
-
-        writer.endObject();
-    }
-
-    private void writeDetection(JsonWriter writer, Detection detection, boolean close) throws IOException {
-        List<Category> categoryList = detection.getCategories();
-
-        if (categoryList == null || categoryList.size() == 0) {
-            Log.e(TAG, "No categories found");
-            return;
-        }
-        Category category = categoryList.get(0);
-
-        writer.beginObject();
-
-        writer.name("category").value(category.getLabel());
-        writer.name("confidence").value(category.getScore());
-        writer.name("close").value(close);
-
-        Rect boundingBox = new Rect();
-        detection.getBoundingBox().roundOut(boundingBox);
-        writer.name("BBox");
-        writer.beginArray();
-        writer.value(boundingBox.left * scaleFactor);
-        writer.value(boundingBox.top * scaleFactor);
-        writer.value(boundingBox.right * scaleFactor);
-        writer.value(boundingBox.bottom * scaleFactor);
-        writer.endArray();
-
-        writer.endObject();
     }
 
     private boolean isClose(Detection object, List<Detection> others) {

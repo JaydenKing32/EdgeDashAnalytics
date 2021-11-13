@@ -1,4 +1,4 @@
-package com.example.edgedashanalytics.page.main;
+package com.example.edgedashanalytics.page.adapter;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -15,10 +15,12 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.model.Result;
+import com.example.edgedashanalytics.page.main.ResultsFragment;
 
 import java.io.File;
 import java.util.List;
 
+@SuppressWarnings("FieldCanBeLocal")
 public class ResultRecyclerViewAdapter extends RecyclerView.Adapter<ResultRecyclerViewAdapter.ResultViewHolder> {
     private static final String TAG = ResultRecyclerViewAdapter.class.getSimpleName();
     private final ResultsFragment.Listener listener;
@@ -26,7 +28,7 @@ public class ResultRecyclerViewAdapter extends RecyclerView.Adapter<ResultRecycl
 
     private List<Result> results;
 
-    ResultRecyclerViewAdapter(ResultsFragment.Listener listener, String buttonText) {
+    public ResultRecyclerViewAdapter(ResultsFragment.Listener listener, String buttonText) {
         this.listener = listener;
         this.BUTTON_ACTION_TEXT = buttonText;
         setHasStableIds(true);
@@ -70,7 +72,7 @@ public class ResultRecyclerViewAdapter extends RecyclerView.Adapter<ResultRecycl
         return position;
     }
 
-    void setResults(List<Result> results) {
+    public void setResults(List<Result> results) {
         this.results = results;
         notifyDataSetChanged();
     }
@@ -79,8 +81,8 @@ public class ResultRecyclerViewAdapter extends RecyclerView.Adapter<ResultRecycl
         private final View view;
         private final TextView resultFileNameView;
         private final Button actionButton;
-        public Result result;
         private final LinearLayout layout;
+        private Result result;
 
         private ResultViewHolder(@NonNull View itemView) {
             super(itemView);
