@@ -30,12 +30,15 @@ import com.example.edgedashanalytics.page.adapter.RawAdapter;
 import com.example.edgedashanalytics.page.setting.SettingsActivity;
 import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.file.FileManager;
+import com.example.edgedashanalytics.util.hardware.PowerMonitor;
 import com.example.edgedashanalytics.util.nearby.Endpoint;
 import com.example.edgedashanalytics.util.nearby.NearbyFragment;
 import com.example.edgedashanalytics.util.video.eventhandler.ProcessingVideosEventHandler;
 import com.example.edgedashanalytics.util.video.eventhandler.RawVideosEventHandler;
 import com.example.edgedashanalytics.util.video.eventhandler.ResultEventHandler;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements
         VideoFragment.Listener, ResultsFragment.Listener, NearbyFragment.Listener {
@@ -189,6 +192,13 @@ public class MainActivity extends AppCompatActivity implements
             Log.v(TAG, "Clean button clicked");
             Toast.makeText(this, "Cleaning directories", Toast.LENGTH_SHORT).show();
             cleanDirectories();
+            return true;
+        } else if (itemId == R.id.action_power) {
+            Log.v(TAG, "Power button clicked");
+            Toast.makeText(this,
+                    String.format(Locale.ENGLISH, "Average power: %dmW", PowerMonitor.getAveragePowerMilliWatts()),
+                    Toast.LENGTH_SHORT).show();
+            PowerMonitor.printSummary();
             return true;
         } else if (itemId == R.id.action_settings) {
             Log.v(TAG, "Setting button clicked");

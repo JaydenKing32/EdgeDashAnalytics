@@ -21,6 +21,7 @@
     <string name="connect">Connect</string>
     <string name="download">Download</string>
     <string name="clean_directories">Clean Directories</string>
+    <string name="power">Power</string>
     <string name="settings">Settings</string>
 
     <!-- Content descriptions -->

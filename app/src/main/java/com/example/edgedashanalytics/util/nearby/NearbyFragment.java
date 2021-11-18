@@ -33,6 +33,7 @@ import com.example.edgedashanalytics.page.setting.SettingsActivity;
 import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.hardware.HardwareInfo;
+import com.example.edgedashanalytics.util.hardware.PowerMonitor;
 import com.example.edgedashanalytics.util.nearby.Algorithm.AlgorithmKey;
 import com.example.edgedashanalytics.util.nearby.Message.Command;
 import com.example.edgedashanalytics.util.video.FfmpegTools;
@@ -102,8 +103,6 @@ public abstract class NearbyFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        discoveredEndpoints.put("testing1", new Endpoint("testing1", "testing1"));
-//        discoveredEndpoints.put("testing2", new Endpoint("testing2", "testing2"));
         deviceAdapter = new DeviceListAdapter(listener, getContext(), discoveredEndpoints);
 
         Context context = getContext();
@@ -265,6 +264,7 @@ public abstract class NearbyFragment extends Fragment {
         SettingsActivity.printPreferences(true, context);
         Log.i(I_TAG, String.format("Download delay: %ds", delay));
         Log.w(I_TAG, "Started downloading from dashcam");
+        PowerMonitor.startPowerMonitor(context);
 
         downloadTaskExecutor.scheduleWithFixedDelay(DashCam.downloadTestVideos(this::downloadCallback, context),
                 0, delay, TimeUnit.SECONDS);

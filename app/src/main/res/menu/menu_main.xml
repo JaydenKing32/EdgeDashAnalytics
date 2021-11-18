@@ -23,9 +23,15 @@
         android:title="@string/clean_directories"
         app:showAsAction="always" />
     <item
+        android:id="@+id/action_power"
+        android:icon="@drawable/ic_power"
+        android:orderInCategory="400"
+        android:title="@string/settings"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/action_settings"
         android:icon="@drawable/ic_settings"
-        android:orderInCategory="400"
+        android:orderInCategory="500"
         android:title="@string/settings"
         app:showAsAction="always" />
 </menu>
