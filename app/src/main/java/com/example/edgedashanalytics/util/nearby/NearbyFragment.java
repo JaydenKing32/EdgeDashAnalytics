@@ -285,7 +285,7 @@ public abstract class NearbyFragment extends Fragment {
             addVideo(video);
             nextTransfer();
         } else {
-            analyse(video, true);
+            analyse(video, false);
         }
     }
 
@@ -444,6 +444,8 @@ public abstract class NearbyFragment extends Fragment {
             EventBus.getDefault().post(new AddResultEvent(result));
             EventBus.getDefault().post(new RemoveByNameEvent(parentName, Type.RAW));
             EventBus.getDefault().post(new RemoveByNameEvent(parentName, Type.PROCESSING));
+
+            PowerMonitor.printSummary();
         } else {
             Log.v(TAG, String.format("Received a segment of %s", baseName));
         }

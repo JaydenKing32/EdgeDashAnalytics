@@ -14,6 +14,7 @@ import androidx.preference.PreferenceManager;
 
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.util.hardware.HardwareInfo;
+import com.example.edgedashanalytics.util.hardware.PowerMonitor;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -134,6 +135,7 @@ public class VideoAnalysis {
 
         String endString = String.format(Locale.ENGLISH, "Completed analysis of %s in %ss", videoName, time);
         Log.d(I_TAG, endString);
+        PowerMonitor.printSummary();
     }
 
     private void startFrameProcessing(ObjectDetector detector, MediaMetadataRetriever retriever, int totalFrames) {

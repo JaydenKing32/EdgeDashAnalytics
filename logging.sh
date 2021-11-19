@@ -68,7 +68,7 @@ serial_string=$(join ", " "${serials[@]}")
 printf "Collecting logs from %s\n" "${serial_string}"
 
 # Wait until all phones complete processing to continue
-read -rsp $'Press any key to continue...\n'
+read -rsp $'Press ENTER to continue...\n'
 
 out_dir="./out/${timestamp}"
 verbose_dir="${out_dir}/verbose/"
@@ -82,5 +82,7 @@ for serial in "${serials[@]}"; do
     # Copy verbose log from devices to computer
     adb.exe -s "${serial}" pull "${phone_dir}/${serial}.log" "${verbose_dir}"
     # Filter out important messages from verbose logs
-    grep -P '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w Important' "${verbose_dir}/${serial}.log" >"$out_dir/${serial}.log"
+    pcre2grep '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w Important' "${verbose_dir}/${serial}.log" >"$out_dir/${serial}.log"
+    # Append the last PowerMonitor message from verbose logs
+    pcre2grep -M '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w PowerMonitor: Power usage:\n.*\n.*\n.*' "${verbose_dir}/${serial}.log" | tail -4 >>"$out_dir/${serial}.log"
 done

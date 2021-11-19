@@ -1,7 +1,6 @@
 package com.example.edgedashanalytics.util.hardware;
 
 import static android.content.Context.BATTERY_SERVICE;
-import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -71,6 +70,6 @@ public class PowerMonitor {
         message.add(String.format(Locale.ENGLISH, "Total: %dnW", total));
         message.add(String.format(Locale.ENGLISH, "Average: %.4fnW", getAveragePower()));
 
-        Log.i(I_TAG, message.toString());
+        Log.d(TAG, message.toString());
     }
 }
