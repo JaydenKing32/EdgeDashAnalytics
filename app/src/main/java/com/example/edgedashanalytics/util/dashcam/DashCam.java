@@ -37,8 +37,13 @@ import java.util.regex.Pattern;
 
 public class DashCam {
     private static final String TAG = DashCam.class.getSimpleName();
-    private static final String baseUrl = "http://10.99.77.1/";
-    private static final String videoDirUrl = baseUrl + "Record/";
+    // BlackVue
+    // private static final String baseUrl = "http://10.99.77.1/";
+    // private static final String videoDirUrl = baseUrl + "Record/";
+    // VIOFO
+    private static final String baseUrl = "http://192.168.1.254/DCIM/MOVIE/";
+    private static final String videoDirUrl = baseUrl;
+    // Video stream: rtsp://192.168.1.254
     private static final Set<String> downloads = new HashSet<>();
 
     public static void startDownloadAll(Context context) {
@@ -49,7 +54,7 @@ public class DashCam {
 
     private static Runnable downloadAll(Consumer<Video> downloadCallback, Context context) {
         return () -> {
-            List<String> allFiles = getFilenames();
+            List<String> allFiles = getViofoFilenames();
             int last_n = 2;
 
             if (allFiles == null) {
@@ -69,7 +74,7 @@ public class DashCam {
         };
     }
 
-    private static List<String> getFilenames() {
+    private static List<String> getBlackvueFilenames() {
         Document doc;
 
         try {
@@ -82,6 +87,29 @@ public class DashCam {
 
         String raw = doc.select("body").text();
         Pattern pat = Pattern.compile(Pattern.quote("Record/") + "(.*?)" + Pattern.quote(",s:"));
+        Matcher match = pat.matcher(raw);
+
+        while (match.find()) {
+            allFiles.add(match.group(1));
+        }
+
+        allFiles.sort(Comparator.comparing(String::toString));
+        return allFiles;
+    }
+
+    private static List<String> getViofoFilenames() {
+        Document doc;
+
+        try {
+            doc = Jsoup.connect(baseUrl).get();
+        } catch (IOException e) {
+            Log.e(TAG, "Could not connect to dashcam");
+            return null;
+        }
+        List<String> allFiles = new ArrayList<>();
+
+        String raw = doc.select("body").text();
+        Pattern pat = Pattern.compile("(\\S+\\.MP4)");
         Matcher match = pat.matcher(raw);
 
         while (match.find()) {
@@ -115,7 +143,7 @@ public class DashCam {
     public static Runnable downloadLatestVideos(Consumer<Video> downloadCallback, Context context) {
         return () -> {
             Log.v(TAG, "Starting downloadLatestVideos");
-            List<String> allVideos = getFilenames();
+            List<String> allVideos = getBlackvueFilenames();
 
             if (allVideos == null || allVideos.size() == 0) {
                 Log.e(TAG, "Couldn't download videos");
