@@ -14,34 +14,47 @@ import java.util.StringJoiner;
 
 public class PowerMonitor {
     private static final String TAG = PowerMonitor.class.getSimpleName();
-    private static BroadcastReceiver batteryReceiver;
+    private static BroadcastReceiver batteryReceiver = null;
     private static long total = 0;
     private static int count = 0;
+    private static boolean running = false;
 
-    public static void startPowerMonitor(Context context) {
-        Log.v(TAG, "Starting Power Monitor");
+    public static void startPowerMonitor(Context con) {
+        if (batteryReceiver == null) {
+            batteryReceiver = new BroadcastReceiver() {
+                private final BatteryManager batteryManager = (BatteryManager) con.getSystemService(BATTERY_SERVICE);
 
-        batteryReceiver = new BroadcastReceiver() {
-            private final BatteryManager batteryManager = (BatteryManager) context.getSystemService(BATTERY_SERVICE);
+                public void onReceive(Context context, Intent intent) {
+                    // Assumed to be millivolts
+                    int voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
+                    // microamperes
+                    int current = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
+                    // Log.v(TAG, String.format("%d", Math.abs(voltage * current)));
+                    count++;
+                    // millivolts * microamperes = nanowatts
+                    total += Math.abs(voltage * current);
+                }
+            };
+        }
 
-            public void onReceive(Context context, Intent intent) {
-                // Assumed to be millivolts
-                int voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
-                // microamperes
-                int current = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
-                // Log.v(TAG, String.format("%d", Math.abs(voltage * current)));
-                count++;
-                // millivolts * microamperes = nanowatts
-                total += Math.abs(voltage * current);
-            }
-        };
-        IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        context.registerReceiver(batteryReceiver, filter);
+        if (running) {
+            Log.v(TAG, "Power Monitor is already running");
+        } else {
+            Log.v(TAG, "Starting Power Monitor");
+            IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+            con.registerReceiver(batteryReceiver, filter);
+            running = true;
+        }
     }
 
     public static void stopPowerMonitor(Context context) {
-        Log.v(TAG, "Stopping Power Monitor");
-        context.unregisterReceiver(batteryReceiver);
+        if (running) {
+            Log.v(TAG, "Stopping Power Monitor");
+            context.unregisterReceiver(batteryReceiver);
+            running = false;
+        } else {
+            Log.v(TAG, "Power Monitor is not running");
+        }
     }
 
     private static double getAveragePower() {

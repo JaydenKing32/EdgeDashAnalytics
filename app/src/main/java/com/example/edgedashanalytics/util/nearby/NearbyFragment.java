@@ -676,6 +676,7 @@ public abstract class NearbyFragment extends Fragment {
                     case ANALYSE:
                     case SEGMENT:
                         Log.v(TAG, String.format("Started downloading %s from %s", message, fromEndpoint));
+                        PowerMonitor.startPowerMonitor(context);
                         payloadId = addPayloadFilename(parts);
                         startTimes.put(payloadId, Instant.now());
 
