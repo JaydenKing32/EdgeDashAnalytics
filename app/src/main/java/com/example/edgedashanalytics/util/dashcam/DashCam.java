@@ -4,6 +4,7 @@ import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 
 import android.content.Context;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.example.edgedashanalytics.event.video.AddEvent;
 import com.example.edgedashanalytics.event.video.Type;
@@ -55,19 +56,13 @@ public class DashCam {
     private static Runnable downloadAll(Consumer<Video> downloadCallback, Context context) {
         return () -> {
             List<String> allFiles = getViofoFilenames();
-            int last_n = 2;
 
             if (allFiles == null) {
                 Log.e(TAG, "Dashcam file list is null");
                 return;
             }
-            if (allFiles.size() < last_n) {
-                Log.e(TAG, "Dashcam file list is smaller than expected");
-                return;
-            }
-            List<String> lastFiles = allFiles.subList(Math.max(allFiles.size() - last_n, 0), allFiles.size());
 
-            for (String filename : lastFiles) {
+            for (String filename : allFiles) {
                 String videoUrl = String.format("%s%s", videoDirUrl, filename);
                 downloadVideo(videoUrl, downloadCallback, context);
             }
@@ -129,13 +124,27 @@ public class DashCam {
         try {
             FileUtils.copyURLToFile(new URL(url), new File(filePath));
         } catch (IOException e) {
-            Log.e(TAG, String.format("Download error: \n%s", e.getMessage()));
+            Log.e(TAG, String.format("Video download error, retrying: \n%s", e.getMessage()));
             return;
         }
-        long duration = Duration.between(start, Instant.now()).toMillis();
-        String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
 
         Video video = VideoManager.getVideoFromPath(context, filePath);
+        if (video == null) {
+            try {
+                String errorMessage = String.format("Failed to download %s, retrying in 5s", filename);
+                Log.e(TAG, errorMessage);
+                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show();
+
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                Log.e(TAG, String.format("Thread interrupted: \n%s", e.getMessage()));
+            }
+            return;
+        }
+        downloads.add(filename);
+
+        long duration = Duration.between(start, Instant.now()).toMillis();
+        String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
         Log.i(I_TAG, String.format("Successfully downloaded %s in %ss", filename, time));
         downloadCallback.accept(video);
     }
@@ -166,13 +175,12 @@ public class DashCam {
 
     public static Runnable downloadTestVideos(Consumer<Video> downloadCallback, Context context) {
         return () -> {
-            List<String> newVideos = new ArrayList<>(CollectionUtils.disjunction(testVideos, downloads));
+            List<String> newVideos = new ArrayList<>(CollectionUtils.disjunction(testVideosBdd, downloads));
             newVideos.sort(Comparator.comparing(String::toString));
 
             if (newVideos.size() != 0) {
                 // Get oldest new video, testVideos should already be sorted
                 String toDownload = newVideos.get(0);
-                downloads.add(toDownload);
                 downloadVideo(videoDirUrl + toDownload, downloadCallback, context);
             } else {
                 downloadCallback.accept(null);
@@ -180,7 +188,7 @@ public class DashCam {
         };
     }
 
-    private static final ArrayList<String> testVideos = new ArrayList<>(Arrays.asList(
+    private static final ArrayList<String> testVideosBdd = new ArrayList<>(Arrays.asList(
             "b1c66a42-6f7d68ca.mp4",
             "b1c9c847-3bda4659.mp4",
             "b1ca2e5d-84cf9134.mp4",
@@ -213,8 +221,8 @@ public class DashCam {
             "b2ae4fc5-d1082ddf.mp4"
     ));
 
-    /*
-    private static final ArrayList<String> testVideos = new ArrayList<>(Arrays.asList(
+
+    private static final ArrayList<String> testVideosPets = new ArrayList<>(Arrays.asList(
             "S0=City_Center=Time_12-34=View_001.mp4",
             "S0=City_Center=Time_12-34=View_002.mp4",
             "S0=City_Center=Time_12-34=View_003.mp4",
@@ -248,6 +256,5 @@ public class DashCam {
             "S0=Regular_Flow=Time_14-29=View_003.mp4",
             "S0=Regular_Flow=Time_14-29=View_004.mp4"
     ));
-     */
 }
 
