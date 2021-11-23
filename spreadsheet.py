@@ -38,8 +38,15 @@ class Video:
         ]
 
 
+class Device:
+    def __init__(self, name: str):
+        self.name = name
+        self.videos = {}  # type: Dict[str, Video]
+        self.power = 0
+
+
 class Analysis:
-    def __init__(self, log_dir: str, master: str, devices: Dict[str, Dict[str, Video]], videos: Dict[str, Video]):
+    def __init__(self, log_dir: str, master: str, devices: Dict[str, Device], videos: Dict[str, Video]):
         self.log_dir = log_dir
         self.master = master
         self.master_path = "{}.log".format(os.path.join(self.log_dir, self.master))
@@ -60,6 +67,7 @@ class Analysis:
         self.avg_down_time = 0
         self.avg_return_time = 0
         self.avg_analysis_time = 0
+        self.parse_preferences()
 
     def get_master_short_name(self) -> str:
         return self.master[-4:]
@@ -77,7 +85,8 @@ class Analysis:
             "{:.3f}".format(self.dash_down_time),
             "{:.3f}".format(self.down_time) if self.down_time != 0 else "n/a",
             "{:.3f}".format(self.return_time) if self.down_time != 0 else "n/a",
-            "{:.3f}".format(self.analysis_time)
+            "{:.3f}".format(self.analysis_time),
+            "{}".format(self.get_total_power())
         ]
 
     def set_average_stats(self):
@@ -93,11 +102,43 @@ class Analysis:
             "{:.3f}".format(self.avg_dash_down_time),
             "{:.3f}".format(self.avg_down_time) if self.avg_down_time != 0 else "n/a",
             "{:.3f}".format(self.avg_return_time) if self.avg_return_time != 0 else "n/a",
-            "{:.3f}".format(self.avg_analysis_time)
+            "{:.3f}".format(self.avg_analysis_time),
+            "{:.3f}".format(self.get_total_power() / len(self.devices))
         ]
 
+    def get_total_power(self) -> int:
+        return sum(d.power for d in self.devices.values())
+
+    def parse_preferences(self):
+        with open(self.master_path, 'r') as master_log:
+            for line in master_log:
+                pref = re_pref.match(line)
+                delay = re_down_delay.match(line)
+
+                if pref is not None:
+                    model = master_log.readline().split()[-1]
+                    algo = master_log.readline().split()[-1]
+                    local = master_log.readline().split()[-1] == "true"
+                    master_log.readline()  # skip auto-download line
+                    seg = master_log.readline().split()[-1] == "true"
+                    seg_num = int(master_log.readline().split()[-1]) if seg else 1
+
+                    self.algorithm = algo
+                    self.seg_num = seg_num
+                    self.model = model
+                    self.local = local
+
+                if delay is not None:
+                    self.delay = int(delay.group(2))
+                    break
+
+        self.dash_down_time = sum(v.dash_down_time for v in self.videos.values())
+        self.down_time = sum(v.down_time for v in self.videos.values())
+        self.return_time = sum(v.return_time for v in self.videos.values())
+        self.analysis_time = sum(v.analysis_time for v in self.videos.values())
+
     def __str__(self) -> str:
-        # master-seg_num-delay-node_num-algo
+        # master-local-seg_num-delay-node_num-algo
         return "{}-{}-{}-{}-{}-{}".format(
             self.get_master_short_name(),
             self.local,
@@ -114,6 +155,8 @@ parser.add_argument("-o", "--output", default="results.csv", help="name of outpu
 args = parser.parse_args()
 
 serial_numbers = {
+    "01BK": "18121FDF6001BK",  # Pixel 6
+    "JRQY": "8A1X0JRQY",  # Pixel 3
     "43e2": "105a43e2",  # OPPO Find X2 Pro/CPH2025
     "dd83": "4885dd83",  # OnePlus 8/IN2013
     "2802": "ce12171c8a14c72802",  # Samsung Galaxy S8/SM-G950F
@@ -131,10 +174,11 @@ re_dash_down = re.compile(
 re_down = re.compile(
     timestamp +
     r"I Important: Completed downloading "
-    r"(.*)\.\w+ from Endpoint{id=\S{4}, name=(.*) \[(\w+)\]} in (\d*\.?\d*)s(?:\s+)?$")
+    r"(.*)\.\w+ from Endpoint{id=\S{4}, name=(.*) \[(\w+)]} in (\d*\.?\d*)s(?:\s+)?$")
 re_comp = re.compile(timestamp + r"D Important: Completed analysis of (.*)\.mp4 in (\d*\.?\d*)s(?:.*)?$")
 re_pref = re.compile(timestamp + r"I Important: Preferences:(?:\s+)?$")
 re_down_delay = re.compile(timestamp + r"I Important: Download delay: (\d*\.?\d*)s(?:\s+)?$")
+re_power = re.compile(timestamp + r"D PowerMonitor:\s+Average: (\d+)\.(\d+)nW(?:\s+)?$")
 
 
 def is_master(log_path: str) -> bool:
@@ -197,14 +241,17 @@ def get_total_time(master_log_file: str) -> timedelta:
     return timestamp_to_datetime(end) - timestamp_to_datetime(start)
 
 
-def parse_master_log(devices: Dict[str, Dict[str, Video]], master_filename: str, log_dir: str) -> Dict[str, Video]:
+def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: str) -> Dict[str, Video]:
     videos = {}  # type: Dict[str, Video]
 
     with open(os.path.join(log_dir, master_filename), 'r') as master_log:
+        master_name = master_filename[-8:-4]
+
         for line in master_log:
             dash_down = re_dash_down.match(line)
             down = re_down.match(line)
             comp = re_comp.match(line)
+            power = re_power.match(line)
 
             if dash_down is not None:
                 video_name = get_video_name(dash_down.group(2))
@@ -212,7 +259,7 @@ def parse_master_log(devices: Dict[str, Dict[str, Video]], master_filename: str,
 
                 video = Video(name=video_name, dash_down_time=dash_down_time)
                 videos[video_name] = video
-                devices[master_filename[-8:-4]][video_name] = video
+                devices[master_name].videos[video_name] = video
             elif down is not None:
                 video_name = get_video_name(down.group(2))
                 return_time = float(down.group(5))
@@ -223,10 +270,12 @@ def parse_master_log(devices: Dict[str, Dict[str, Video]], master_filename: str,
                 analysis_time = float(comp.group(3))
 
                 videos[video_name].analysis_time += analysis_time
+            elif power is not None:
+                devices[master_name].power = int(power.group(2))
     return videos
 
 
-def parse_worker_logs(devices: Dict[str, Dict[str, Video]], videos: Dict[str, Video], log_dir: str, master_sn: str):
+def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_dir: str, master_sn: str):
     worker_logs = [log for log in os.listdir(log_dir) if log.endswith(".log") and master_sn not in log]
 
     for log in worker_logs:
@@ -236,6 +285,7 @@ def parse_worker_logs(devices: Dict[str, Dict[str, Video]], videos: Dict[str, Vi
             for line in work_log:
                 down = re_down.match(line)
                 comp = re_comp.match(line)
+                power = re_power.match(line)
 
                 if down is not None:
                     video_name = get_video_name(down.group(2))
@@ -243,12 +293,14 @@ def parse_worker_logs(devices: Dict[str, Dict[str, Video]], videos: Dict[str, Vi
 
                     video = videos[video_name]
                     video.down_time += down_time
-                    devices[device_name][video_name] = video
+                    devices[device_name].videos[video_name] = video
                 elif comp is not None:
                     video_name = get_video_name(comp.group(2))
                     analysis_time = float(comp.group(3))
 
                     videos[video_name].analysis_time += analysis_time
+                elif power is not None:
+                    devices[device_name].power = int(power.group(2))
 
 
 def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], out_name: str):
@@ -257,39 +309,48 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], out_name: str):
         writer.writerow(["Offline"])
 
         for (path, dirs, files) in sorted([(path, dirs, files) for (path, dirs, files) in os.walk(log_dir)
-                                           if "offline" in path and "verbose" in dirs]):
+                                           if len(files) == 1 and "verbose" in dirs]):
             for log in files:
                 log_path = os.path.join(path, log)
 
                 with open(log_path, 'r') as offline_log:
                     device_sn = log[:-4]
                     videos = {}  # type: Dict[str, Video]
-                    device = {device_sn[-4:]: videos}
+                    device = Device(device_sn[-4:])
 
-                    run = Analysis(path, device_sn, device, videos)
+                    run = Analysis(path, device_sn, {device_sn[-4:]: device}, videos)
+                    run.local = False
+                    run.algorithm = "offline"
                     runs.append(run)
-
-                    writer.writerow(["Device: {}".format(run.get_master_short_name())])
-                    writer.writerow(["Filename", "Download time (s)", "Analysis time (s)"])
 
                     for line in offline_log:
                         dash_down = re_dash_down.match(line)
                         comp = re_comp.match(line)
+                        power = re_power.match(line)
 
                         if dash_down is not None:
                             video_name = get_video_name(dash_down.group(2))
                             dash_down_time = float(dash_down.group(3))
 
                             videos[video_name] = Video(name=video_name, dash_down_time=dash_down_time)
-
-                        if comp is not None:
+                        elif comp is not None:
                             video_name = get_video_name(comp.group(2))
                             analysis_time = float(comp.group(3))
 
                             videos[video_name].analysis_time = analysis_time
+                        elif power is not None:
+                            device.power = int(power.group(2))
 
-                    for video in videos.values():
-                        writer.writerow([video.name, video.dash_down_time, video.analysis_time])
+                writer.writerow(["Device: {}".format(run.get_master_short_name())])
+                writer.writerow([
+                    "Download Delay: {}".format(run.delay),
+                    "Model: {}".format(run.model),
+                    "Power: {}".format(device.power)
+                ])
+                writer.writerow(["Filename", "Download time (s)", "Analysis time (s)"])
+
+                for video in videos.values():
+                    writer.writerow([video.name, video.dash_down_time, video.analysis_time])
 
                 total_dash_down_time = sum(v.dash_down_time for v in videos.values())
                 total_analysis_time = sum(v.analysis_time for v in videos.values())
@@ -308,44 +369,19 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], out_name: str):
 
 
 def make_spreadsheet(run: Analysis, out: str):
-    with open(run.master_path, 'r') as master_log:
-        for line in master_log:
-            pref = re_pref.match(line)
-            delay = re_down_delay.match(line)
-
-            if pref is not None:
-                model = master_log.readline().split()[-1]
-                algo = master_log.readline().split()[-1]
-                local = master_log.readline().split()[-1] == "true"
-                master_log.readline()  # skip auto-download line
-                seg = master_log.readline().split()[-1] == "true"
-                seg_num = int(master_log.readline().split()[-1]) if seg else 1
-
-                run.algorithm = algo
-                run.seg_num = seg_num
-                run.model = model
-                run.local = local
-
-            if delay is not None:
-                run.delay = int(delay.group(2))
-                break
-
-    run.dash_down_time = sum(v.dash_down_time for v in run.videos.values())
-    run.down_time = sum(v.down_time for v in run.videos.values())
-    run.return_time = sum(v.return_time for v in run.videos.values())
-    run.analysis_time = sum(v.analysis_time for v in run.videos.values())
-
     with open(out, 'a', newline='') as csv_f:
         writer = csv.writer(csv_f)
 
         writer.writerow([
             "Master: {}".format(run.get_master_short_name()),
-            "Segments: {}".format(seg_num),
+            "Segments: {}".format(run.seg_num),
             "Nodes: {}".format(run.nodes),
-            "Algorithm: {}".format(algo),
-            "Local Processing: {}".format(local),
+            "Algorithm: {}".format(run.algorithm)
+        ])
+        writer.writerow([
+            "Local Processing: {}".format(run.local),
             "Download Delay: {}".format(run.delay),
-            "Model: {}".format(model),
+            "Model: {}".format(run.model),
             "Dir: {}".format(run.get_sub_log_dir())
         ])
 
@@ -356,7 +392,8 @@ def make_spreadsheet(run: Analysis, out: str):
                 "Download time (s)",
                 "Transfer time (s)",
                 "Return time (s)",
-                "Analysis time (s)"
+                "Analysis time (s)",
+                "Power consumption (nW)"
             ])
 
             for video in run.videos.values():
@@ -367,13 +404,16 @@ def make_spreadsheet(run: Analysis, out: str):
             writer.writerow(["Average"] + run.get_average_stats())
 
         else:
-            for device_name, video_dict in run.devices.items():
-                writer.writerow(["Device: {}".format(device_name)])
+            for device_name, device in run.devices.items():
+                writer.writerow([
+                    "Device: {}".format(device_name),
+                    "Power: {}".format(device.power)
+                ])
 
                 # Master videos list should only contain videos that haven't been transferred
-                videos = [v for v in video_dict.values() if v.down_time == 0] \
+                videos = [v for v in device.videos.values() if v.down_time == 0] \
                     if device_name == run.get_master_short_name() \
-                    else list(video_dict.values())
+                    else list(device.videos.values())
 
                 if not videos:
                     writer.writerow(["Did not analyse any videos"])
@@ -384,7 +424,8 @@ def make_spreadsheet(run: Analysis, out: str):
                     "Download time (s)",
                     "Transfer time (s)",
                     "Return time (s)",
-                    "Analysis time (s)"
+                    "Analysis time (s)",
+                    "Power consumption (nW)"
                 ])
 
                 for video in videos:
@@ -429,10 +470,10 @@ def spread(root: str, out: str):
     make_offline_spreadsheet(root, runs, out)
 
     for (path, dirs, files) in sorted([(path, dirs, files) for (path, dirs, files) in os.walk(root)
-                                       if "offline" not in path and "verbose" in dirs]):
+                                       if len(files) != 1 and "verbose" in dirs]):
         master_sn = os.path.splitext(os.path.basename(get_master(path)))[0]
         logs = [log for log in os.listdir(path) if log.endswith(".log")]
-        devices = {device[-8:-4]: {} for device in logs}  # Initialise device dictionary with empty dictionaries
+        devices = {device[-8:-4]: Device(device[-8:-4]) for device in logs}  # Initialise device dictionary
 
         videos = parse_master_log(devices, "{}.log".format(master_sn), path)
         parse_worker_logs(devices, videos, path, master_sn)
@@ -461,38 +502,53 @@ def spread(root: str, out: str):
             "Transfer time (s)",
             "Return time (s)",
             "Analysis time (s)",
+            "Power consumption (nW)",
             "Actual time (s)",
-            "Human-readable time"
+            "Human-readable time",
         ])
+
+        # "{:.3f}".format(self.avg_dash_down_time),
+        # "{:.3f}".format(self.avg_down_time) if self.avg_down_time != 0 else "n/a",
+        # "{:.3f}".format(self.avg_return_time) if self.avg_return_time != 0 else "n/a",
+        # "{:.3f}".format(self.avg_analysis_time),
+        # "{:.3f}".format(self.get_total_power() / len(self.devices))
 
         for run in runs:
             writer.writerow([
                 str(run),
-                run.dash_down_time,
-                run.down_time if run.down_time > 0 else "n/a",
-                run.return_time if run.down_time > 0 else "n/a",
-                run.analysis_time,
+                "{:.3f}".format(run.dash_down_time),
+                "{:.3f}".format(run.down_time) if run.down_time > 0 else "n/a",
+                "{:.3f}".format(run.return_time) if run.down_time > 0 else "n/a",
+                "{:.3f}".format(run.analysis_time),
+                run.get_total_power(),
                 run.total_time.total_seconds(),
-                "{:.11}\t".format(str(run.total_time))
+                "{:.11}\t".format(str(run.total_time)),
             ])
 
         writer.writerow(["Total"] + [
-            str(sum(run.dash_down_time for run in runs)),
-            str(sum(run.down_time for run in runs)),
-            str(sum(run.return_time for run in runs)),
-            str(sum(run.analysis_time for run in runs))
+            "{:.3f}".format(sum(run.dash_down_time for run in runs)),
+            "{:.3f}".format(sum(run.down_time for run in runs)),
+            "{:.3f}".format(sum(run.return_time for run in runs)),
+            "{:.3f}".format(sum(run.analysis_time for run in runs)),
+            "{:.3f}".format(sum(run.get_total_power() for run in runs)),
+            "{:.3f}".format(sum(run.total_time.total_seconds() for run in runs))
         ])
+        # FIXME: shouldn't exclude offline values (currently only includes offline power and time)
         writer.writerow(["Total Average"] + [
-            str(sum(run.avg_dash_down_time for run in runs)),
-            str(sum(run.avg_down_time for run in runs)),
-            str(sum(run.avg_return_time for run in runs)),
-            str(sum(run.avg_analysis_time for run in runs))
+            "{:.3f}".format(sum(run.avg_dash_down_time for run in runs)),
+            "{:.3f}".format(sum(run.avg_down_time for run in runs)),
+            "{:.3f}".format(sum(run.avg_return_time for run in runs)),
+            "{:.3f}".format(sum(run.avg_analysis_time for run in runs)),
+            "{:.3f}".format(sum(run.get_total_power() for run in runs) / len(runs)),
+            "{:.3f}".format(sum(run.total_time.total_seconds() for run in runs) / len(runs))
         ])
         writer.writerow(["True Average"] + [
-            str(sum(run.avg_dash_down_time for run in runs) / len(runs)),
-            str(sum(run.avg_down_time for run in runs) / len(runs)),
-            str(sum(run.avg_return_time for run in runs) / len(runs)),
-            str(sum(run.avg_analysis_time for run in runs) / len(runs))
+            "{:.3f}".format(sum(run.avg_dash_down_time for run in runs) / len(runs)),
+            "{:.3f}".format(sum(run.avg_down_time for run in runs) / len(runs)),
+            "{:.3f}".format(sum(run.avg_return_time for run in runs) / len(runs)),
+            "{:.3f}".format(sum(run.avg_analysis_time for run in runs) / len(runs)),
+            "{:.3f}".format(sum(run.get_total_power() for run in runs) / len(runs)),
+            "{:.3f}".format(sum(run.total_time.total_seconds() for run in runs) / len(runs))
         ])
 
 
