@@ -155,6 +155,7 @@ parser.add_argument("-o", "--output", default="results.csv", help="name of outpu
 args = parser.parse_args()
 
 serial_numbers = {
+    "X9BT": "R52R901X9BT",  # Samsung Galaxy Tab S7 FE/SM-T733
     "01BK": "18121FDF6001BK",  # Pixel 6
     "JRQY": "8A1X0JRQY",  # Pixel 3
     "43e2": "105a43e2",  # OPPO Find X2 Pro/CPH2025
@@ -178,7 +179,7 @@ re_down = re.compile(
 re_comp = re.compile(timestamp + r"D Important: Completed analysis of (.*)\.mp4 in (\d*\.?\d*)s(?:.*)?$")
 re_pref = re.compile(timestamp + r"I Important: Preferences:(?:\s+)?$")
 re_down_delay = re.compile(timestamp + r"I Important: Download delay: (\d*\.?\d*)s(?:\s+)?$")
-re_power = re.compile(timestamp + r"D PowerMonitor:\s+Average: (\d+)\.(\d+)nW(?:\s+)?$")
+re_power = re.compile(timestamp + r"D PowerMonitor:\s+Average: (-?\d+)\.(\d+)nW(?:\s+)?$")
 
 
 def is_master(log_path: str) -> bool:
@@ -357,6 +358,7 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], out_name: str):
 
                 run.dash_down_time = total_dash_down_time
                 run.analysis_time = total_analysis_time
+                run.set_average_stats()
 
                 writer.writerow([
                     "Total",
@@ -507,12 +509,6 @@ def spread(root: str, out: str):
             "Human-readable time",
         ])
 
-        # "{:.3f}".format(self.avg_dash_down_time),
-        # "{:.3f}".format(self.avg_down_time) if self.avg_down_time != 0 else "n/a",
-        # "{:.3f}".format(self.avg_return_time) if self.avg_return_time != 0 else "n/a",
-        # "{:.3f}".format(self.avg_analysis_time),
-        # "{:.3f}".format(self.get_total_power() / len(self.devices))
-
         for run in runs:
             writer.writerow([
                 str(run),
@@ -533,14 +529,13 @@ def spread(root: str, out: str):
             "{:.3f}".format(sum(run.get_total_power() for run in runs)),
             "{:.3f}".format(sum(run.total_time.total_seconds() for run in runs))
         ])
-        # FIXME: shouldn't exclude offline values (currently only includes offline power and time)
         writer.writerow(["Total Average"] + [
             "{:.3f}".format(sum(run.avg_dash_down_time for run in runs)),
             "{:.3f}".format(sum(run.avg_down_time for run in runs)),
             "{:.3f}".format(sum(run.avg_return_time for run in runs)),
             "{:.3f}".format(sum(run.avg_analysis_time for run in runs)),
-            "{:.3f}".format(sum(run.get_total_power() for run in runs) / len(runs)),
-            "{:.3f}".format(sum(run.total_time.total_seconds() for run in runs) / len(runs))
+            "{:.3f}".format(sum(run.get_total_power() / len(runs) for run in runs)),
+            "{:.3f}".format(sum(run.total_time.total_seconds() / len(runs) for run in runs))
         ])
         writer.writerow(["True Average"] + [
             "{:.3f}".format(sum(run.avg_dash_down_time for run in runs) / len(runs)),
