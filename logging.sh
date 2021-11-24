@@ -45,7 +45,7 @@ while :; do
 done
 
 timestamp="$(date +%Y%m%d_%H%M%S)"
-phone_dir="/storage/emulated/0/Movies/out/${timestamp}"
+phone_dir="/storage/emulated/0/Movies/out"
 
 # https://stackoverflow.com/a/30212526
 if [[ -z "${serials[*]}" ]]; then
@@ -53,25 +53,11 @@ if [[ -z "${serials[*]}" ]]; then
     read -ra serials -d '' <<<"$(tail -n +2 <<<"$(adb.exe devices | sed -r 's/(emulator.*)?(device)?\r$//')")"
 fi
 
-for serial in "${serials[@]}"; do
-    # Create necessary directories on device
-    adb.exe -s "${serial}" shell mkdir -p "${phone_dir}"
-    # Get PID of app in order to filter out logs from other processes
-    pid="$(adb.exe -s "${serial}" shell ps | awk '/com\.example\.edgedashanalytics/ {print $2}')"
-    # Clear logcat buffer, should also manually increase buffer size with `adb logcat -G`
-    adb.exe -s "${serial}" logcat -c
-    # Write log messages to file on device
-    adb.exe -s "${serial}" logcat --pid "${pid}" -f "${phone_dir}/${serial}.log" &
-done
-
 serial_string=$(join ", " "${serials[@]}")
 printf "Collecting logs from %s\n" "${serial_string}"
 
-# Wait until all phones complete processing to continue
-read -rsp $'Press ENTER to continue...\n'
-
 out_dir="./out/${timestamp}"
-verbose_dir="${out_dir}/verbose/"
+verbose_dir="${out_dir}/verbose"
 
 if [[ ! -d "${verbose_dir}" ]]; then
     # Create necessary directories on computer
@@ -79,10 +65,18 @@ if [[ ! -d "${verbose_dir}" ]]; then
 fi
 
 for serial in "${serials[@]}"; do
+    # Get filename of latest log
+    filename="$(adb.exe -s "${serial}" shell ls "${phone_dir}" | tail -n 1)"
+    # Sanitise filename
+    filename="${filename//[^a-zA-Z0-9_.]/}"
+
+    verbose_log="${verbose_dir}/${serial}.log"
+    short_log="$out_dir/${serial}.log"
+
     # Copy verbose log from devices to computer
-    adb.exe -s "${serial}" pull "${phone_dir}/${serial}.log" "${verbose_dir}"
+    adb.exe -s "${serial}" pull "${phone_dir}/${filename}" "${verbose_log}"
     # Filter out important messages from verbose logs
-    pcre2grep '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w Important' "${verbose_dir}/${serial}.log" >"$out_dir/${serial}.log"
+    pcre2grep '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w Important' "${verbose_log}" >"${short_log}"
     # Append the last PowerMonitor message from verbose logs
-    pcre2grep -M '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w PowerMonitor: Power usage:\n.*\n.*\n.*' "${verbose_dir}/${serial}.log" | tail -4 >>"$out_dir/${serial}.log"
+    pcre2grep -M '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w PowerMonitor: Power usage:\n.*\n.*\n.*' "${verbose_log}" | tail -4 >>"${short_log}"
 done

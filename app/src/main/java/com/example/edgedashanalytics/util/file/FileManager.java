@@ -46,6 +46,7 @@ public class FileManager {
     private static final String NEARBY_DIR_NAME = ".nearby";
     private static final String SEGMENT_DIR_NAME = "segment";
     private static final String SEGMENT_RES_DIR_NAME = String.format("%s-res", SEGMENT_DIR_NAME);
+    private static final String LOG_DIR_NAME = "out";
 
     private static final File MOVIE_DIR = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES);
     private static final File DOWN_DIR = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
@@ -54,6 +55,7 @@ public class FileManager {
     private static final File NEARBY_DIR = new File(DOWN_DIR, NEARBY_DIR_NAME);
     private static final File SEGMENT_DIR = new File(MOVIE_DIR, SEGMENT_DIR_NAME);
     private static final File SEGMENT_RES_DIR = new File(MOVIE_DIR, SEGMENT_RES_DIR_NAME);
+    private static final File LOG_DIR = new File(MOVIE_DIR, LOG_DIR_NAME);
 
     private static final List<File> DIRS = Arrays.asList(
             RAW_DIR, RESULTS_DIR, NEARBY_DIR, SEGMENT_DIR, SEGMENT_RES_DIR);
@@ -89,6 +91,10 @@ public class FileManager {
     public static String getSegmentResSubDirPath(String videoName) {
         String baseVideoName = FfmpegTools.getBaseName(videoName);
         return makeDirectory(SEGMENT_RES_DIR, baseVideoName).getAbsolutePath();
+    }
+
+    public static String getLogDirPath() {
+        return LOG_DIR.getAbsolutePath();
     }
 
     public static void initialiseDirectories() {

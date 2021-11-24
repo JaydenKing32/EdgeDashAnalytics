@@ -38,6 +38,9 @@ import com.example.edgedashanalytics.util.video.eventhandler.RawVideosEventHandl
 import com.example.edgedashanalytics.util.video.eventhandler.ResultEventHandler;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements
@@ -92,6 +95,22 @@ public class MainActivity extends AppCompatActivity implements
         setUpBottomNavigation();
         setUpFragments();
         FileManager.initialiseDirectories();
+        storeLogsInFile();
+    }
+
+    private void storeLogsInFile() {
+        int id = android.os.Process.myPid();
+        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.ENGLISH).format(new Date());
+        String logPath = String.format("%s/%s.log", FileManager.getLogDirPath(), timestamp);
+
+        try {
+            // Clear logcat buffer
+            Runtime.getRuntime().exec("logcat -c");
+            // Write logcat messages to logPath
+            Runtime.getRuntime().exec(String.format("logcat --pid %s -f %s", id, logPath));
+        } catch (IOException e) {
+            Log.e(TAG, String.format("Unable to store log in file:\n%s", e.getMessage()));
+        }
     }
 
     private void checkPermissions() {
