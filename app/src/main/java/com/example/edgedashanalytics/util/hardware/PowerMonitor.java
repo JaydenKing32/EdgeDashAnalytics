@@ -26,13 +26,14 @@ public class PowerMonitor {
 
                 public void onReceive(Context context, Intent intent) {
                     // Assumed to be millivolts
-                    int voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
-                    // microamperes
-                    int current = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
+                    long voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
+                    // Net charge in microamperes,
+                    //  positive is net value entering battery, negative is net discharge from battery
+                    long current = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
                     // Log.v(TAG, String.format("%d", Math.abs(voltage * current)));
                     count++;
                     // millivolts * microamperes = nanowatts
-                    total += Math.abs(voltage * current);
+                    total += voltage * current;
                 }
             };
         }
