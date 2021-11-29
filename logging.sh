@@ -53,6 +53,11 @@ if [[ -z "${serials[*]}" ]]; then
     read -ra serials -d '' <<<"$(tail -n +2 <<<"$(adb.exe devices | sed -r 's/(emulator.*)?(device)?\r$//')")"
 fi
 
+if [[ -z "${serials[*]}" ]]; then
+    printf "No devices are connected, exiting\n"
+    exit 1
+fi
+
 serial_string=$(join ", " "${serials[@]}")
 printf "Collecting logs from %s\n" "${serial_string}"
 
