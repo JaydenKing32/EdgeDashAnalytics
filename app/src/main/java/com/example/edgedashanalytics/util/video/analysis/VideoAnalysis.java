@@ -51,6 +51,7 @@ public class VideoAnalysis {
     private final int threadNum;
     private final int bufferSize;
     private final List<Frame> frames = new ArrayList<>();
+    private final int capacity = 5;
 
     private int scaleFactor = 1;
     private boolean verbose = false;
@@ -216,6 +217,7 @@ public class VideoAnalysis {
         TensorImage image = TensorImage.fromBitmap(bitmap);
         List<Detection> detectionList = detector.detect(image);
         List<Person> people = new ArrayList<>(detectionList.size());
+        boolean overCapacity = detectionList.size() > capacity;
 
         for (Detection detection : detectionList) {
             List<Category> categoryList = detection.getCategories();
@@ -234,7 +236,7 @@ public class VideoAnalysis {
 
             people.add(new Person(category.getScore(), isClose(detection, detectionList), boundingBox));
         }
-        frames.add(new Frame(frameIndex, people));
+        frames.add(new Frame(frameIndex, people, overCapacity));
 
         if (verbose) {
             String resultHead = String.format(Locale.ENGLISH,
