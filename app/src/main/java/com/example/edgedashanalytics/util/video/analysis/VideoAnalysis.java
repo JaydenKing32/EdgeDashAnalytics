@@ -21,6 +21,7 @@ import com.google.gson.GsonBuilder;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.tensorflow.lite.support.image.TensorImage;
 import org.tensorflow.lite.support.label.Category;
+import org.tensorflow.lite.task.core.BaseOptions;
 import org.tensorflow.lite.task.vision.detector.Detection;
 import org.tensorflow.lite.task.vision.detector.ObjectDetector;
 
@@ -92,11 +93,13 @@ public class VideoAnalysis {
     private void processVideo(String inPath, String outPath, Context context) {
         ObjectDetector detector;
         try {
+            BaseOptions baseOptions = BaseOptions.builder().setNumThreads(threadNum).build();
+
             ObjectDetector.ObjectDetectorOptions objectDetectorOptions =
                     ObjectDetector.ObjectDetectorOptions.builder()
+                            .setBaseOptions(baseOptions)
                             .setMaxResults(maxDetections)
                             .setScoreThreshold(minScore)
-                            .setNumThreads(threadNum)
                             .setLabelAllowList(Collections.singletonList("person"))
                             .build();
 
