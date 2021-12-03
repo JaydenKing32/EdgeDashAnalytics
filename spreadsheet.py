@@ -181,8 +181,8 @@ re_down = re.compile(
 re_comp = re.compile(timestamp + r"D Important: Completed analysis of (.*)\.mp4 in (\d*\.?\d*)s(?:.*)?$")
 re_pref = re.compile(timestamp + r"I Important: Preferences:(?:\s+)?$")
 re_down_delay = re.compile(timestamp + r"I Important: Download delay: (\d*\.?\d*)s(?:\s+)?$")
-re_total_power = re.compile(timestamp + r"D PowerMonitor:\s+Total: (-?\d+)nW(?:\s+)?$")
-re_average_power = re.compile(timestamp + r"D PowerMonitor:\s+Average: (-?\d+)\.(\d+)nW(?:\s+)?$")
+re_total_power = re.compile(timestamp + r"D PowerMonitor:\s+Total: -?(\d+)nW(?:\s+)?$")
+re_average_power = re.compile(timestamp + r"D PowerMonitor:\s+Average: -?(\d+)\.(\d+)nW(?:\s+)?$")
 
 
 def is_master(log_path: str) -> bool:
