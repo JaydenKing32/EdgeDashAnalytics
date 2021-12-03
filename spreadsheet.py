@@ -54,7 +54,7 @@ class Analysis:
         self.devices = devices
         self.videos = videos
         self.seg_num = -1
-        self.nodes = len([log for log in os.listdir(self.log_dir) if log.endswith(".log")])
+        self.nodes = len([log for log in os.listdir(self.log_dir) if is_log(log)])
         self.algorithm = "offline"
         self.model = ""
         self.local = False
@@ -196,6 +196,11 @@ def is_master(log_path: str) -> bool:
     return False
 
 
+def is_log(filename: str) -> bool:
+    # Exclude verbose logs
+    return filename.endswith(".log") and "verbose" not in filename
+
+
 def get_master(log_dir: str) -> str:
     for file in [os.path.join(log_dir, filename) for filename in os.listdir(log_dir)]:
         if os.path.isfile(file) and is_master(file):
@@ -283,7 +288,7 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
 
 
 def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_dir: str, master_sn: str):
-    worker_logs = [log for log in os.listdir(log_dir) if log.endswith(".log") and master_sn not in log]
+    worker_logs = [log for log in os.listdir(log_dir) if is_log(log) and master_sn not in log]
 
     for log in worker_logs:
         with open(os.path.join(log_dir, log), 'r') as work_log:
@@ -318,9 +323,14 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], out_name: str):
         writer = csv.writer(csv_f)
         writer.writerow(["Offline"])
 
-        for (path, dirs, files) in sorted([(path, dirs, files) for (path, dirs, files) in os.walk(log_dir)
-                                           if len(files) == 1 and "verbose" in dirs]):
+        # Offline directories should only contain two files, normal log and verbose log
+        for (path, dirs, files) in sorted(
+                [(path, dirs, files) for (path, dirs, files) in os.walk(log_dir) if len(files) == 2]):
             for log in files:
+                # Skip verbose logs
+                if "verbose" in log:
+                    continue
+
                 log_path = os.path.join(path, log)
 
                 with open(log_path, 'r') as offline_log:
@@ -485,10 +495,9 @@ def spread(root: str, out: str):
 
     make_offline_spreadsheet(root, runs, out)
 
-    for (path, dirs, files) in sorted([(path, dirs, files) for (path, dirs, files) in os.walk(root)
-                                       if len(files) != 1 and "verbose" in dirs]):
+    for (path, dirs, files) in sorted([(path, dirs, files) for (path, dirs, files) in os.walk(root) if len(files) > 2]):
         master_sn = os.path.splitext(os.path.basename(get_master(path)))[0]
-        logs = [log for log in os.listdir(path) if log.endswith(".log")]
+        logs = [log for log in os.listdir(path) if is_log(log)]
         devices = {device[-8:-4]: Device(device[-8:-4]) for device in logs}  # Initialise device dictionary
 
         videos = parse_master_log(devices, "{}.log".format(master_sn), path)

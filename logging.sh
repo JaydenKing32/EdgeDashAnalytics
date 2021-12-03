@@ -62,11 +62,10 @@ serial_string=$(join ", " "${serials[@]}")
 printf "Collecting logs from %s\n" "${serial_string}"
 
 out_dir="./out/${timestamp}"
-verbose_dir="${out_dir}/verbose"
 
-if [[ ! -d "${verbose_dir}" ]]; then
+if [[ ! -d "${out_dir}" ]]; then
     # Create necessary directories on computer
-    mkdir -p "${verbose_dir}"
+    mkdir -p "${out_dir}"
 fi
 
 for serial in "${serials[@]}"; do
@@ -75,7 +74,7 @@ for serial in "${serials[@]}"; do
     # Sanitise filename
     filename="${filename//[^a-zA-Z0-9_.]/}"
 
-    verbose_log="${verbose_dir}/${serial}.log"
+    verbose_log="${out_dir}/verbose-${serial}.log"
     short_log="$out_dir/${serial}.log"
 
     # Copy verbose log from devices to computer
