@@ -44,9 +44,6 @@ while :; do
     esac
 done
 
-timestamp="$(date +%Y%m%d_%H%M%S)"
-phone_dir="/storage/emulated/0/Movies/out"
-
 # https://stackoverflow.com/a/30212526
 if [[ -z "${serials[*]}" ]]; then
     # Get `adb.exe devices` output, remove \r and "device", skip first line
@@ -61,26 +58,29 @@ fi
 serial_string=$(join ", " "${serials[@]}")
 printf "Collecting logs from %s\n" "${serial_string}"
 
-out_dir="./out/${timestamp}"
+phone_dir="/storage/emulated/0/Movies/out"
+read -ra log_times -d '' <<<"$(adb.exe -s "${serials[0]}" shell ls "${phone_dir}" | sed 's/\.log\r$//')"
 
-if [[ ! -d "${out_dir}" ]]; then
-    # Create necessary directories on computer
-    mkdir -p "${out_dir}"
-fi
+# Assumes that all connected devices have the same number of log files
+for ((i = 0; i < ${#log_times[@]}; i++)); do
+    log_time=${log_times[i]}
+    out_dir="./out/${log_time}"
 
-for serial in "${serials[@]}"; do
-    # Get filename of latest log
-    filename="$(adb.exe -s "${serial}" shell ls "${phone_dir}" | tail -n 1)"
-    # Sanitise filename
-    filename="${filename//[^a-zA-Z0-9_.]/}"
+    if [[ ! -d "${out_dir}" ]]; then
+        # Create necessary directories on computer
+        mkdir -p "${out_dir}"
+    fi
 
-    verbose_log="${out_dir}/verbose-${serial}.log"
-    short_log="$out_dir/${serial}.log"
+    for serial in "${serials[@]}"; do
+        filename="$(adb.exe -s "${serial}" shell ls "${phone_dir}" | sed 's/\r$//' | sed "$((i + 1))q;d")"
+        verbose_log="${out_dir}/verbose-${serial}.log"
+        short_log="$out_dir/${serial}.log"
 
-    # Copy verbose log from devices to computer
-    adb.exe -s "${serial}" pull "${phone_dir}/${filename}" "${verbose_log}"
-    # Filter out important messages from verbose logs
-    pcre2grep '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w Important' "${verbose_log}" >"${short_log}"
-    # Append the last PowerMonitor message from verbose logs
-    pcre2grep -M '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w PowerMonitor: Power usage:\n.*\n.*\n.*' "${verbose_log}" | tail -4 >>"${short_log}"
+        # Copy verbose log from devices to computer
+        adb.exe -s "${serial}" pull "${phone_dir}/${filename}" "${verbose_log}"
+        # Filter out important messages from verbose logs
+        pcre2grep '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w Important' "${verbose_log}" >"${short_log}"
+        # Append the last PowerMonitor message from verbose logs
+        pcre2grep -M '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w PowerMonitor: Power usage:\n.*\n.*\n.*' "${verbose_log}" | tail -4 >>"${short_log}"
+    done
 done
