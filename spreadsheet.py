@@ -541,7 +541,7 @@ def spread(root: str, out: str):
                 "{:.3f}".format(run.return_time) if run.down_time > 0 else "n/a",
                 "{:.3f}".format(run.analysis_time),
                 run.get_total_power(),
-                "{:.3f}".format(run.get_total_average_power()),
+                run.get_total_average_power(),
                 run.total_time.total_seconds(),
                 "{:.11}".format(str(run.total_time))
             ])
@@ -551,8 +551,8 @@ def spread(root: str, out: str):
             "{:.3f}".format(sum(run.down_time for run in runs)),
             "{:.3f}".format(sum(run.return_time for run in runs)),
             "{:.3f}".format(sum(run.analysis_time for run in runs)),
-            "{:.3f}".format(sum(run.get_total_power() for run in runs)),
-            "{:.3f}".format(sum(run.get_total_average_power() for run in runs)),
+            sum(run.get_total_power() for run in runs),
+            sum(run.get_total_average_power() for run in runs),
             "{:.3f}".format(sum(run.total_time.total_seconds() for run in runs)),
             "{:.11}".format(str(timedelta(seconds=sum(run.total_time.total_seconds() for run in runs))))
         ])
