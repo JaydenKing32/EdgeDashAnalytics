@@ -543,7 +543,7 @@ def spread(root: str, out: str):
                 run.get_total_power(),
                 run.get_total_average_power(),
                 run.total_time.total_seconds(),
-                "{:.11}".format(str(run.total_time))
+                "{:.11}\t".format(str(run.total_time))
             ])
 
         writer.writerow(["Total"] + [
@@ -554,7 +554,7 @@ def spread(root: str, out: str):
             sum(run.get_total_power() for run in runs),
             sum(run.get_total_average_power() for run in runs),
             "{:.3f}".format(sum(run.total_time.total_seconds() for run in runs)),
-            "{:.11}".format(str(timedelta(seconds=sum(run.total_time.total_seconds() for run in runs))))
+            "{:.11}\t".format(str(timedelta(seconds=sum(run.total_time.total_seconds() for run in runs))))
         ])
         writer.writerow(["Total Average"] + [
             "{:.3f}".format(sum(run.avg_dash_down_time for run in runs)),
@@ -564,7 +564,7 @@ def spread(root: str, out: str):
             "{:.3f}".format(sum(run.get_total_power() / len(runs) for run in runs)),
             "{:.3f}".format(sum(run.get_total_average_power() / len(runs) for run in runs)),
             "{:.3f}".format(sum(run.total_time.total_seconds() / len(runs) for run in runs)),
-            "{:.11}".format(str(timedelta(seconds=sum(run.total_time.total_seconds() / len(runs) for run in runs))))
+            "{:.11}\t".format(str(timedelta(seconds=sum(run.total_time.total_seconds() / len(runs) for run in runs))))
         ])
         writer.writerow(["True Average"] + [
             "{:.3f}".format(sum(run.avg_dash_down_time for run in runs) / len(runs)),
@@ -574,7 +574,7 @@ def spread(root: str, out: str):
             "{:.3f}".format(sum(run.get_total_power() for run in runs) / len(runs)),
             "{:.3f}".format(sum(run.get_total_average_power() for run in runs) / len(runs)),
             "{:.3f}".format(sum(run.total_time.total_seconds() for run in runs) / len(runs)),
-            "{:.11}".format(str(timedelta(seconds=sum(run.total_time.total_seconds() for run in runs) / len(runs))))
+            "{:.11}\t".format(str(timedelta(seconds=sum(run.total_time.total_seconds() for run in runs) / len(runs))))
         ])
 
 
