@@ -691,6 +691,7 @@ public abstract class NearbyFragment extends Fragment {
                         fromEndpoint.completeCount++;
 
                         processFilePayload(payloadId, endpointId);
+                        PowerMonitor.printSummary();
                         break;
                     case COMPLETE:
                         requestHardwareInfo(endpointId);
