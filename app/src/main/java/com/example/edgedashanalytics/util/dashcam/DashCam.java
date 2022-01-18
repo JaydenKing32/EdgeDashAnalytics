@@ -188,6 +188,13 @@ public class DashCam {
         };
     }
 
+    // public static Bitmap getLiveBitmap() {
+    //     FFmpegMediaMetadataRetriever retriever = new FFmpegMediaMetadataRetriever();
+    //     retriever.setDataSource("rtsp://192.168.1.254");
+    //
+    //     return retriever.getFrameAtTime();
+    // }
+
     private static final ArrayList<String> testVideosBdd = new ArrayList<>(Arrays.asList(
             "b1c66a42-6f7d68ca.mp4",
             "b1c9c847-3bda4659.mp4",
