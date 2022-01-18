@@ -167,6 +167,7 @@ serial_numbers = {
     "9c8f": "00b7a59265959c8f",  # Nexus 5X
     "1825": "0b3b6fd50c371825"  # Nexus 5
 }
+milliamp_devices = ["2802", "X9BT", "43e2"]
 
 timestamp = r"^(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s+\d+\s+\d+ "
 re_timestamp = re.compile(r"^(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{3})(?=\s+\d+\s+\d+).*(?:\s+)?$")
@@ -284,6 +285,11 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
                 devices[master_name].total_power = int(total_power.group(2))
             elif average_power is not None:
                 devices[master_name].average_power = int(average_power.group(2))
+
+        if master_name in milliamp_devices:
+            devices[master_name].total_power *= 1000
+            devices[master_name].average_power *= 1000
+
     return videos
 
 
@@ -317,6 +323,10 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
                 elif average_power is not None:
                     devices[device_name].average_power = int(average_power.group(2))
 
+            if device_name in milliamp_devices:
+                devices[device_name].total_power *= 1000
+                devices[device_name].average_power *= 1000
+
 
 def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], out_name: str):
     with open(out_name, 'a', newline='') as csv_f:
@@ -335,10 +345,11 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], out_name: str):
 
                 with open(log_path, 'r') as offline_log:
                     device_sn = log[:-4]
+                    device_name = device_sn[-4:]
                     videos = {}  # type: Dict[str, Video]
-                    device = Device(device_sn[-4:])
+                    device = Device(device_name)
 
-                    run = Analysis(path, device_sn, {device_sn[-4:]: device}, videos)
+                    run = Analysis(path, device_sn, {device_name: device}, videos)
                     run.local = False
                     run.algorithm = "offline"
                     runs.append(run)
@@ -363,6 +374,10 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], out_name: str):
                             device.total_power = int(total_power.group(2))
                         elif average_power is not None:
                             device.average_power = int(average_power.group(2))
+
+                    if device_name in milliamp_devices:
+                        device.total_power *= 1000
+                        device.average_power *= 1000
 
                 writer.writerow(["Device: {}".format(run.get_master_short_name())])
                 writer.writerow([
@@ -412,6 +427,18 @@ def make_spreadsheet(run: Analysis, out: str):
 
         # Cannot cleanly separate videos between devices when segmentation is used
         if run.seg_num > 1:
+            writer.writerow([
+                "Device",
+                "Total Power",
+                "Average Power"
+            ])
+            for device_name, device in run.devices.items():
+                writer.writerow([
+                    device_name,
+                    device.total_power,
+                    device.average_power
+                ])
+
             writer.writerow([
                 "Filename",
                 "Download time (s)",

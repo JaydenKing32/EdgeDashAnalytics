@@ -29,6 +29,7 @@ public class PowerMonitor {
                     long voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
                     // Net charge in microamperes,
                     //  positive is net value entering battery, negative is net discharge from battery
+                    // Samsung phones seem to provide milliamperes instead: https://stackoverflow.com/a/66933765
                     long current = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
                     // Log.v(TAG, String.format("%d", Math.abs(voltage * current)));
                     count++;
