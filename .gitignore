@@ -231,3 +231,4 @@ fabric.properties
 /app/src/main/assets/*.tflite
 *.mp4
 *.csv
+*.xlsx
