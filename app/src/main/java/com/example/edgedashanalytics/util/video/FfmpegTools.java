@@ -25,7 +25,7 @@ public class FfmpegTools {
 
     private static void executeFfmpeg(ArrayList<String> ffmpegArgs) {
         Log.i(TAG, String.format("Running ffmpeg with:\n  %s", TextUtils.join(" ", ffmpegArgs)));
-        FFmpegKit.execute(ffmpegArgs.toArray(new String[0]));
+        FFmpegKit.executeWithArguments(ffmpegArgs.toArray(new String[0]));
     }
 
     private static double getDuration(String filePath) {
