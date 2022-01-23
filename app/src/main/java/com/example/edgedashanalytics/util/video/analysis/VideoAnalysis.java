@@ -5,6 +5,8 @@ import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.media.MediaMetadataRetriever;
@@ -19,8 +21,15 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import org.apache.commons.lang3.time.DurationFormatUtils;
+import org.tensorflow.lite.DataType;
+import org.tensorflow.lite.Interpreter;
+import org.tensorflow.lite.support.common.FileUtil;
+import org.tensorflow.lite.support.image.ImageProcessor;
 import org.tensorflow.lite.support.image.TensorImage;
+import org.tensorflow.lite.support.image.ops.ResizeOp;
+import org.tensorflow.lite.support.image.ops.ResizeWithCropOrPadOp;
 import org.tensorflow.lite.support.label.Category;
+import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
 import org.tensorflow.lite.task.core.BaseOptions;
 import org.tensorflow.lite.task.vision.detector.Detection;
 import org.tensorflow.lite.task.vision.detector.ObjectDetector;
@@ -88,6 +97,171 @@ public class VideoAnalysis {
             verbose = true;
         }
         processVideo(inPath, outPath, context);
+        // poseAnalysis(context);
+    }
+
+    // @formatter:off
+    // https://github.com/tensorflow/examples/blob/master/lite/examples/pose_estimation/android/app/src/main/java/org/tensorflow/lite/examples/poseestimation/ml/MoveNet.kt
+    // @formatter:on
+
+    // https://www.tensorflow.org/lite/examples/pose_estimation/overview
+    // https://www.tensorflow.org/lite/tutorials/pose_classification
+    // https://github.com/tensorflow/examples/tree/master/lite/examples/pose_estimation/android
+    private void poseAnalysis(Context context) {
+        // TODO: should create separate class for inner analysis
+
+        // Class variables
+        Interpreter.Options options = new Interpreter.Options();
+        options.setNumThreads(threadNum);
+        String modelFilename = "lite-model_movenet_singlepose_lightning_tflite_float16_4.tflite";
+        Interpreter interpreter;
+        try {
+            interpreter = new Interpreter(FileUtil.loadMappedFile(context, modelFilename), options);
+        } catch (IOException e) {
+            Log.w(TAG, String.format("Model failure:\n  %s", e.getMessage()));
+            return;
+        }
+        RectF cropRegion = null;
+        int inputWidth = interpreter.getInputTensor(0).shape()[1];
+        int inputHeight = interpreter.getInputTensor(0).shape()[2];
+        int[] outputShape = interpreter.getOutputTensor(0).shape();
+
+        String videoPath = "/storage/emulated/0/Movies/in_01_body.mp4";
+        File videoFile = new File(videoPath);
+        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+        retriever.setDataSource(videoFile.getAbsolutePath());
+
+        String totalFramesString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_FRAME_COUNT);
+
+        if (totalFramesString == null) {
+            Log.e(TAG, String.format("Could not retrieve metadata from %s", videoPath));
+            return;
+        }
+        int totalFrames = Integer.parseInt(totalFramesString);
+
+        for (int i = 0; i < totalFrames; i += bufferSize) {
+            if (Thread.currentThread().isInterrupted()) {
+                return;
+            }
+            int frameBuffSize = Integer.min(bufferSize, totalFrames - i);
+            List<Bitmap> frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize);
+
+            for (int k = 0; k < frameBuffSize; k++) {
+                Bitmap bitmap = frameBuffer.get(k);
+                int curFrame = i + k;
+
+                if (bitmap == null) {
+                    Log.w(TAG, String.format("Could not extract frame at index %d", curFrame));
+                    continue;
+                }
+
+                // estimatePoses
+                if (cropRegion == null) {
+                    cropRegion = initRectF(bitmap.getWidth(), bitmap.getHeight());
+                }
+
+                float totalScore = 0;
+                int numKeyPoints = outputShape[2];
+
+                RectF rect = new RectF(
+                        cropRegion.left * bitmap.getWidth(),
+                        cropRegion.top * bitmap.getHeight(),
+                        cropRegion.right * bitmap.getWidth(),
+                        cropRegion.bottom * bitmap.getHeight()
+                );
+                Bitmap detectBitmap = Bitmap.createBitmap((int) rect.width(), (int) rect.height(),
+                        Bitmap.Config.ARGB_8888);
+                // Might just be for visualisation, may be unnecessary
+                Canvas canvas = new Canvas(detectBitmap);
+                canvas.drawBitmap(bitmap, -rect.left, -rect.top, null);
+
+                TensorImage inputTensor = processInputImage(detectBitmap, inputWidth, inputHeight);
+                TensorBuffer outputTensor = TensorBuffer.createFixedSize(outputShape, DataType.FLOAT32);
+                float widthRatio = detectBitmap.getWidth() / (float) inputWidth;
+                float heightRatio = detectBitmap.getHeight() / (float) inputHeight;
+
+                interpreter.run(inputTensor.getBuffer(), outputTensor.getBuffer().rewind());
+                float[] output = outputTensor.getFloatArray();
+                List<Float> positions = new ArrayList<>();
+                List<KeyPoint> keyPoints = new ArrayList<>();
+
+                for (int a = 0; a < numKeyPoints; a++) {
+                    float x = output[a * 3 + 1] * inputWidth * widthRatio;
+                    float y = output[a * 3] * inputHeight * heightRatio;
+
+                    positions.add(x);
+                    positions.add(y);
+
+                    float score = output[a * 3 + 2];
+                    keyPoints.add(new KeyPoint(BodyPart.asArray[a], new PointF(x, y), score));
+                    totalScore += score;
+                }
+
+                Log.v(TAG, String.format("Frame: %d\nkeyPoints: %s", curFrame, keyPoints));
+            }
+        }
+
+        // May improve performance, investigate later
+        // Matrix matrix = new Matrix();
+        // float[] points = ArrayUtils.toPrimitive(positions.toArray(new Float[0]), 0f);
+        //
+        // matrix.postTranslate(rect.left, rect.top);
+        // matrix.mapPoints(points);
+        //
+        // for (int i = 0; i < keyPoints.size(); i++) {
+        //     keyPoints.get(i).coordinate = new PointF(points[i * 2], points[i * 2 + 1]);
+        // }
+        // cropRegion = determineRectF(keyPoints, bitmap.getWidth(), bitmap.getHeight());
+    }
+
+    // @formatter:off
+    // https://github.com/tensorflow/examples/blob/master/lite/examples/pose_estimation/android/app/src/main/java/org/tensorflow/lite/examples/poseestimation/ml/MoveNet.kt
+    // @formatter:on
+
+    /**
+     * Prepare input image for detection
+     */
+    private TensorImage processInputImage(Bitmap bitmap, int inputWidth, int inputHeight) {
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+
+        int size = Math.min(height, width);
+
+        ImageProcessor imageProcessor = new ImageProcessor.Builder()
+                .add(new ResizeWithCropOrPadOp(size, size))
+                // Example code is backwards? TODO: check both ways
+                // .add(new ResizeOp(inputWidth, inputHeight, ResizeOp.ResizeMethod.BILINEAR))
+                .add(new ResizeOp(inputHeight, inputWidth, ResizeOp.ResizeMethod.BILINEAR))
+                .build();
+        TensorImage tensorImage = new TensorImage(DataType.UINT8);
+        tensorImage.load(bitmap);
+        return imageProcessor.process(tensorImage);
+    }
+
+    /**
+     * Defines the default crop region.
+     * The function provides the initial crop region (pads the full image from both
+     * sides to make it a square image) when the algorithm cannot reliably determine
+     * the crop region from the previous frame.
+     */
+    private RectF initRectF(int imageWidth, int imageHeight) {
+        float xMin;
+        float yMin;
+        float width;
+        float height;
+
+        if (imageWidth > imageHeight) {
+            width = 1f;
+            height = imageWidth / (float) imageHeight;
+            xMin = 0f;
+            yMin = (imageHeight / 2f - imageWidth / 2f) / imageHeight;
+        } else {
+            height = 1f;
+            width = imageHeight / (float) imageWidth;
+            yMin = 0f;
+            xMin = (imageWidth / 2f - imageHeight / 2f) / imageWidth;
+        }
+        return new RectF(xMin, yMin, xMin + width, yMin + height);
     }
 
     private void processVideo(String inPath, String outPath, Context context) {
