@@ -30,12 +30,18 @@ import com.example.edgedashanalytics.page.adapter.RawAdapter;
 import com.example.edgedashanalytics.page.setting.SettingsActivity;
 import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.file.FileManager;
+import com.example.edgedashanalytics.util.hardware.PowerMonitor;
 import com.example.edgedashanalytics.util.nearby.Endpoint;
 import com.example.edgedashanalytics.util.nearby.NearbyFragment;
 import com.example.edgedashanalytics.util.video.eventhandler.ProcessingVideosEventHandler;
 import com.example.edgedashanalytics.util.video.eventhandler.RawVideosEventHandler;
 import com.example.edgedashanalytics.util.video.eventhandler.ResultEventHandler;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements
         VideoFragment.Listener, ResultsFragment.Listener, NearbyFragment.Listener {
@@ -89,6 +95,22 @@ public class MainActivity extends AppCompatActivity implements
         setUpBottomNavigation();
         setUpFragments();
         FileManager.initialiseDirectories();
+        storeLogsInFile();
+    }
+
+    private void storeLogsInFile() {
+        int id = android.os.Process.myPid();
+        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.ENGLISH).format(new Date());
+        String logPath = String.format("%s/%s.log", FileManager.getLogDirPath(), timestamp);
+
+        try {
+            // Clear logcat buffer
+            Runtime.getRuntime().exec("logcat -c");
+            // Write logcat messages to logPath
+            Runtime.getRuntime().exec(String.format("logcat --pid %s -f %s", id, logPath));
+        } catch (IOException e) {
+            Log.e(TAG, String.format("Unable to store log in file:\n%s", e.getMessage()));
+        }
     }
 
     private void checkPermissions() {
@@ -189,6 +211,13 @@ public class MainActivity extends AppCompatActivity implements
             Log.v(TAG, "Clean button clicked");
             Toast.makeText(this, "Cleaning directories", Toast.LENGTH_SHORT).show();
             cleanDirectories();
+            return true;
+        } else if (itemId == R.id.action_power) {
+            Log.v(TAG, "Power button clicked");
+            Toast.makeText(this,
+                    String.format(Locale.ENGLISH, "Average power: %dmW", PowerMonitor.getAveragePowerMilliWatts()),
+                    Toast.LENGTH_SHORT).show();
+            PowerMonitor.printSummary();
             return true;
         } else if (itemId == R.id.action_settings) {
             Log.v(TAG, "Setting button clicked");

@@ -230,3 +230,5 @@ fabric.properties
 /.idea/codeStyles/
 /app/src/main/assets/*.tflite
 *.mp4
+*.csv
+*.xlsx

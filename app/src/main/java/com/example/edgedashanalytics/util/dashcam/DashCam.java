@@ -4,6 +4,7 @@ import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 
 import android.content.Context;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.example.edgedashanalytics.event.video.AddEvent;
 import com.example.edgedashanalytics.event.video.Type;
@@ -37,8 +38,13 @@ import java.util.regex.Pattern;
 
 public class DashCam {
     private static final String TAG = DashCam.class.getSimpleName();
-    private static final String baseUrl = "http://10.99.77.1/";
-    private static final String videoDirUrl = baseUrl + "Record/";
+    // BlackVue
+    // private static final String baseUrl = "http://10.99.77.1/";
+    // private static final String videoDirUrl = baseUrl + "Record/";
+    // VIOFO
+    private static final String baseUrl = "http://192.168.1.254/DCIM/MOVIE/";
+    private static final String videoDirUrl = baseUrl;
+    // Video stream: rtsp://192.168.1.254
     private static final Set<String> downloads = new HashSet<>();
 
     public static void startDownloadAll(Context context) {
@@ -49,27 +55,21 @@ public class DashCam {
 
     private static Runnable downloadAll(Consumer<Video> downloadCallback, Context context) {
         return () -> {
-            List<String> allFiles = getFilenames();
-            int last_n = 2;
+            List<String> allFiles = getViofoFilenames();
 
             if (allFiles == null) {
                 Log.e(TAG, "Dashcam file list is null");
                 return;
             }
-            if (allFiles.size() < last_n) {
-                Log.e(TAG, "Dashcam file list is smaller than expected");
-                return;
-            }
-            List<String> lastFiles = allFiles.subList(Math.max(allFiles.size() - last_n, 0), allFiles.size());
 
-            for (String filename : lastFiles) {
+            for (String filename : allFiles) {
                 String videoUrl = String.format("%s%s", videoDirUrl, filename);
                 downloadVideo(videoUrl, downloadCallback, context);
             }
         };
     }
 
-    private static List<String> getFilenames() {
+    private static List<String> getBlackvueFilenames() {
         Document doc;
 
         try {
@@ -92,6 +92,29 @@ public class DashCam {
         return allFiles;
     }
 
+    private static List<String> getViofoFilenames() {
+        Document doc;
+
+        try {
+            doc = Jsoup.connect(baseUrl).get();
+        } catch (IOException e) {
+            Log.e(TAG, "Could not connect to dashcam");
+            return null;
+        }
+        List<String> allFiles = new ArrayList<>();
+
+        String raw = doc.select("body").text();
+        Pattern pat = Pattern.compile("(\\S+\\.MP4)");
+        Matcher match = pat.matcher(raw);
+
+        while (match.find()) {
+            allFiles.add(match.group(1));
+        }
+
+        allFiles.sort(Comparator.comparing(String::toString));
+        return allFiles;
+    }
+
     private static void downloadVideo(String url, Consumer<Video> downloadCallback, Context context) {
         String filename = FileManager.getFilenameFromPath(url);
         String filePath = String.format("%s/%s", FileManager.getRawDirPath(), filename);
@@ -101,13 +124,27 @@ public class DashCam {
         try {
             FileUtils.copyURLToFile(new URL(url), new File(filePath));
         } catch (IOException e) {
-            Log.e(TAG, String.format("Download error: \n%s", e.getMessage()));
+            Log.e(TAG, String.format("Video download error, retrying: \n%s", e.getMessage()));
             return;
         }
-        long duration = Duration.between(start, Instant.now()).toMillis();
-        String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
 
         Video video = VideoManager.getVideoFromPath(context, filePath);
+        if (video == null) {
+            try {
+                String errorMessage = String.format("Failed to download %s, retrying in 5s", filename);
+                Log.e(TAG, errorMessage);
+                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show();
+
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                Log.e(TAG, String.format("Thread interrupted: \n%s", e.getMessage()));
+            }
+            return;
+        }
+        downloads.add(filename);
+
+        long duration = Duration.between(start, Instant.now()).toMillis();
+        String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
         Log.i(I_TAG, String.format("Successfully downloaded %s in %ss", filename, time));
         downloadCallback.accept(video);
     }
@@ -115,7 +152,7 @@ public class DashCam {
     public static Runnable downloadLatestVideos(Consumer<Video> downloadCallback, Context context) {
         return () -> {
             Log.v(TAG, "Starting downloadLatestVideos");
-            List<String> allVideos = getFilenames();
+            List<String> allVideos = getBlackvueFilenames();
 
             if (allVideos == null || allVideos.size() == 0) {
                 Log.e(TAG, "Couldn't download videos");
@@ -138,13 +175,12 @@ public class DashCam {
 
     public static Runnable downloadTestVideos(Consumer<Video> downloadCallback, Context context) {
         return () -> {
-            List<String> newVideos = new ArrayList<>(CollectionUtils.disjunction(testVideos, downloads));
+            List<String> newVideos = new ArrayList<>(CollectionUtils.disjunction(testVideosBdd, downloads));
             newVideos.sort(Comparator.comparing(String::toString));
 
             if (newVideos.size() != 0) {
                 // Get oldest new video, testVideos should already be sorted
                 String toDownload = newVideos.get(0);
-                downloads.add(toDownload);
                 downloadVideo(videoDirUrl + toDownload, downloadCallback, context);
             } else {
                 downloadCallback.accept(null);
@@ -152,7 +188,14 @@ public class DashCam {
         };
     }
 
-    private static final ArrayList<String> testVideos = new ArrayList<>(Arrays.asList(
+    // public static Bitmap getLiveBitmap() {
+    //     FFmpegMediaMetadataRetriever retriever = new FFmpegMediaMetadataRetriever();
+    //     retriever.setDataSource("rtsp://192.168.1.254");
+    //
+    //     return retriever.getFrameAtTime();
+    // }
+
+    private static final ArrayList<String> testVideosBdd = new ArrayList<>(Arrays.asList(
             "b1c66a42-6f7d68ca.mp4",
             "b1c9c847-3bda4659.mp4",
             "b1ca2e5d-84cf9134.mp4",
@@ -185,8 +228,8 @@ public class DashCam {
             "b2ae4fc5-d1082ddf.mp4"
     ));
 
-    /*
-    private static final ArrayList<String> testVideos = new ArrayList<>(Arrays.asList(
+
+    private static final ArrayList<String> testVideosPets = new ArrayList<>(Arrays.asList(
             "S0=City_Center=Time_12-34=View_001.mp4",
             "S0=City_Center=Time_12-34=View_002.mp4",
             "S0=City_Center=Time_12-34=View_003.mp4",
@@ -220,6 +263,5 @@ public class DashCam {
             "S0=Regular_Flow=Time_14-29=View_003.mp4",
             "S0=Regular_Flow=Time_14-29=View_004.mp4"
     ));
-     */
 }
 

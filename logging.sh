@@ -44,43 +44,43 @@ while :; do
     esac
 done
 
-timestamp="$(date +%Y%m%d_%H%M%S)"
-phone_dir="/storage/emulated/0/Movies/out/${timestamp}"
-
 # https://stackoverflow.com/a/30212526
 if [[ -z "${serials[*]}" ]]; then
     # Get `adb.exe devices` output, remove \r and "device", skip first line
     read -ra serials -d '' <<<"$(tail -n +2 <<<"$(adb.exe devices | sed -r 's/(emulator.*)?(device)?\r$//')")"
 fi
 
-for serial in "${serials[@]}"; do
-    # Create necessary directories on device
-    adb.exe -s "${serial}" shell mkdir -p "${phone_dir}"
-    # Get PID of app in order to filter out logs from other processes
-    pid="$(adb.exe -s "${serial}" shell ps | awk '/com\.example\.edgedashanalytics/ {print $2}')"
-    # Clear logcat buffer, should also manually increase buffer size with `adb logcat -G`
-    adb.exe -s "${serial}" logcat -c
-    # Write log messages to file on device
-    adb.exe -s "${serial}" logcat --pid "${pid}" -f "${phone_dir}/${serial}.log" &
-done
+if [[ -z "${serials[*]}" ]]; then
+    printf "No devices are connected, exiting\n"
+    exit 1
+fi
 
 serial_string=$(join ", " "${serials[@]}")
 printf "Collecting logs from %s\n" "${serial_string}"
 
-# Wait until all phones complete processing to continue
-read -rsp $'Press any key to continue...\n'
+phone_dir="/storage/emulated/0/Movies/out"
+read -ra log_times -d '' <<<"$(adb.exe -s "${serials[0]}" shell ls "${phone_dir}" | sed 's/\.log\r$//')"
 
-out_dir="./out/${timestamp}"
-verbose_dir="${out_dir}/verbose/"
+# Assumes that all connected devices have the same number of log files
+for ((i = 0; i < ${#log_times[@]}; i++)); do
+    log_time=${log_times[i]}
+    out_dir="./out/${log_time}"
 
-if [[ ! -d "${verbose_dir}" ]]; then
-    # Create necessary directories on computer
-    mkdir -p "${verbose_dir}"
-fi
+    if [[ ! -d "${out_dir}" ]]; then
+        # Create necessary directories on computer
+        mkdir -p "${out_dir}"
+    fi
 
-for serial in "${serials[@]}"; do
-    # Copy verbose log from devices to computer
-    adb.exe -s "${serial}" pull "${phone_dir}/${serial}.log" "${verbose_dir}"
-    # Filter out important messages from verbose logs
-    grep -P '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w Important' "${verbose_dir}/${serial}.log" >"$out_dir/${serial}.log"
+    for serial in "${serials[@]}"; do
+        filename="$(adb.exe -s "${serial}" shell ls "${phone_dir}" | sed 's/\r$//' | sed "$((i + 1))q;d")"
+        verbose_log="${out_dir}/verbose-${serial}.log"
+        short_log="$out_dir/${serial}.log"
+
+        # Copy verbose log from devices to computer
+        adb.exe -s "${serial}" pull "${phone_dir}/${filename}" "${verbose_log}"
+        # Filter out important messages from verbose logs
+        pcre2grep '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w Important' "${verbose_log}" >"${short_log}"
+        # Append the last PowerMonitor message from verbose logs
+        pcre2grep -M '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w PowerMonitor: Power usage:\n.*\n.*\n.*' "${verbose_log}" | tail -4 >>"${short_log}"
+    done
 done
