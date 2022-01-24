@@ -38,7 +38,7 @@ import com.example.edgedashanalytics.util.nearby.Algorithm.AlgorithmKey;
 import com.example.edgedashanalytics.util.nearby.Message.Command;
 import com.example.edgedashanalytics.util.video.FfmpegTools;
 import com.example.edgedashanalytics.util.video.VideoManager;
-import com.example.edgedashanalytics.util.video.analysis.VideoAnalysis;
+import com.example.edgedashanalytics.util.video.analysis.OuterAnalysis;
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.AdvertisingOptions;
 import com.google.android.gms.nearby.connection.ConnectionInfo;
@@ -587,7 +587,7 @@ public abstract class NearbyFragment extends Fragment {
 
     private Runnable analysisRunnable(Video video, String outPath, Context context, boolean returnResult) {
         return () -> {
-            VideoAnalysis videoAnalysis = new VideoAnalysis(context);
+            OuterAnalysis videoAnalysis = new OuterAnalysis(context);
             videoAnalysis.analyse(video.getData(), outPath, context);
 
             Result result = new Result(outPath);

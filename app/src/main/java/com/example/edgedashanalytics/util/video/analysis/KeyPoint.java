@@ -6,12 +6,12 @@ import android.graphics.PointF;
 // https://github.com/tensorflow/examples/blob/master/lite/examples/pose_estimation/android/app/src/main/java/org/tensorflow/lite/examples/poseestimation/data/KeyPoint.kt
 // @formatter:on
 
-public class KeyPoint {
-    public final BodyPart bodyPart;
-    public final float score;
-    public PointF coordinate;
+class KeyPoint {
+    final BodyPart bodyPart;
+    final float score;
+    PointF coordinate;
 
-    public KeyPoint(BodyPart bodyPart, PointF coordinate, float score) {
+    KeyPoint(BodyPart bodyPart, PointF coordinate, float score) {
         this.bodyPart = bodyPart;
         this.score = score;
         this.coordinate = coordinate;

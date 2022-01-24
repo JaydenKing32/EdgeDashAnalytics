@@ -15,7 +15,8 @@ import androidx.preference.PreferenceManager;
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.util.nearby.Algorithm;
 import com.example.edgedashanalytics.util.nearby.Algorithm.AlgorithmKey;
-import com.example.edgedashanalytics.util.video.analysis.VideoAnalysis;
+import com.example.edgedashanalytics.util.video.analysis.InnerAnalysis;
+import com.example.edgedashanalytics.util.video.analysis.OuterAnalysis;
 
 import java.util.StringJoiner;
 
@@ -57,8 +58,10 @@ public class SettingsActivity extends AppCompatActivity {
 
         Log.i(I_TAG, prefMessage.toString());
 
-        VideoAnalysis videoAnalysis = new VideoAnalysis(c);
-        videoAnalysis.printParameters();
+        OuterAnalysis outerAnalysis = new OuterAnalysis(c);
+        InnerAnalysis innerAnalysis = new InnerAnalysis(c);
+        outerAnalysis.printParameters();
+        innerAnalysis.printParameters();
     }
 
     public static class SettingsFragment extends PreferenceFragmentCompat {
