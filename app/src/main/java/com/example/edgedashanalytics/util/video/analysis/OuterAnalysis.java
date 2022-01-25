@@ -13,7 +13,6 @@ import android.util.Log;
 import androidx.preference.PreferenceManager;
 
 import com.example.edgedashanalytics.R;
-import com.example.edgedashanalytics.util.hardware.HardwareInfo;
 
 import org.tensorflow.lite.support.image.TensorImage;
 import org.tensorflow.lite.support.label.Category;
@@ -44,17 +43,9 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
     private ObjectDetector detector;
 
     public OuterAnalysis(Context context) {
+        super(context);
         this.maxDetections = -1;
         this.minScore = 0.2f;
-        this.threadNum = 4;
-
-        // Check if phone has at least (roughly) 2GB of RAM
-        HardwareInfo hwi = new HardwareInfo(context);
-        if (hwi.totalRam < 2000000000L) {
-            this.bufferSize = 5;
-        } else {
-            this.bufferSize = 50;
-        }
 
         try {
             BaseOptions baseOptions = BaseOptions.builder().setNumThreads(threadNum).build();

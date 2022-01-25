@@ -11,6 +11,7 @@ import android.util.Log;
 import androidx.preference.PreferenceManager;
 
 import com.example.edgedashanalytics.R;
+import com.example.edgedashanalytics.util.hardware.HardwareInfo;
 import com.example.edgedashanalytics.util.hardware.PowerMonitor;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -22,30 +23,45 @@ import java.io.FileWriter;
 import java.io.Writer;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 public abstract class VideoAnalysis<T extends Frame> {
     private static final String TAG = VideoAnalysis.class.getSimpleName();
+    private static final boolean DEFAULT_VERBOSE = false;
 
-    int threadNum;
-    int bufferSize;
-    List<T> frames;
-    boolean verbose = false;
+    final int threadNum;
+    final int bufferSize;
+    final boolean verbose;
+    final List<T> frames;
 
-    VideoAnalysis() {
+    /**
+     * Set up default parameters
+     */
+    VideoAnalysis(Context context) {
+        this.threadNum = 4;
+
+        // Check if phone has at least (roughly) 2GB of RAM
+        HardwareInfo hwi = new HardwareInfo(context);
+        this.bufferSize = hwi.totalRam < 2000000000L ? 5 : 50;
+
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        this.verbose = pref.getBoolean(context.getString(R.string.verbose_output_key), DEFAULT_VERBOSE);
+
+        this.frames = new ArrayList<>();
     }
 
     abstract void processFrame(Bitmap bitmap, int frameIndex);
 
     public abstract void printParameters();
 
-    public void analyse(String inPath, String outPath, Context context) {
-        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-        if (pref.getBoolean(context.getString(R.string.verbose_output_key), verbose)) {
-            verbose = true;
-        }
+    public void analyse(String inPath, String outPath) {
         processVideo(inPath, outPath);
+        // processVideo(
+        //         "/storage/emulated/0/Movies/dmd/inn_07_body.mp4",
+        //         "/storage/emulated/0/Movies/results/inn_07_body.json"
+        // );
     }
 
     private void processVideo(String inPath, String outPath) {

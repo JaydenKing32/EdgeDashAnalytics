@@ -40,6 +40,8 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
     private int[] outputShape;
 
     public InnerAnalysis(Context context) {
+        super(context);
+
         Interpreter.Options options = new Interpreter.Options();
         options.setNumThreads(threadNum);
         String modelFilename = "lite-model_movenet_singlepose_lightning_tflite_float16_4.tflite";
