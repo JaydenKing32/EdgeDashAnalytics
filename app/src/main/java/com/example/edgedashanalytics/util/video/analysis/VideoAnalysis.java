@@ -58,10 +58,6 @@ public abstract class VideoAnalysis<T extends Frame> {
 
     public void analyse(String inPath, String outPath) {
         processVideo(inPath, outPath);
-        // processVideo(
-        //         "/storage/emulated/0/Movies/dmd/inn_07_body.mp4",
-        //         "/storage/emulated/0/Movies/results/inn_07_body.json"
-        // );
     }
 
     private void processVideo(String inPath, String outPath) {

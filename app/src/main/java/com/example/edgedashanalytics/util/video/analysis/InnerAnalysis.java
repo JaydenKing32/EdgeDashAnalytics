@@ -21,6 +21,7 @@ import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.StringJoiner;
 
 
@@ -101,8 +102,23 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
             keyPoints.add(new KeyPoint(BodyPart.asArray[a], new PointF(x, y), score));
             totalScore += score;
         }
+        frames.add(new InnerFrame(frameIndex, totalScore, keyPoints));
 
-        Log.v(TAG, String.format("Frame: %d\nkeyPoints: %s", frameIndex, keyPoints));
+        if (verbose) {
+            String resultHead = String.format(Locale.ENGLISH,
+                    "Analysis completed for frame: %04d\nKeyPoints:\n", frameIndex);
+            StringBuilder builder = new StringBuilder(resultHead);
+
+            for (KeyPoint keyPoint : keyPoints) {
+                builder.append("  ");
+                builder.append(keyPoint.toString());
+                builder.append('\n');
+            }
+            builder.append('\n');
+
+            String resultMessage = builder.toString();
+            Log.v(TAG, resultMessage);
+        }
 
         // // May improve performance, investigate later
         // Matrix matrix = new Matrix();
