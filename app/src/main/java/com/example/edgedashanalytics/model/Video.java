@@ -8,6 +8,8 @@ import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
 
+import org.apache.commons.io.FilenameUtils;
+
 import java.math.BigInteger;
 
 public class Video extends Content {
@@ -88,6 +90,14 @@ public class Video extends Content {
 
     public String getMimeType() {
         return mimeType;
+    }
+
+    public boolean isInner() {
+        return FilenameUtils.getBaseName(getData()).startsWith("inn");
+    }
+
+    public boolean isOuter() {
+        return FilenameUtils.getBaseName(getData()).startsWith("out");
     }
 
     @NonNull
