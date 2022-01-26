@@ -25,12 +25,10 @@ import java.util.Locale;
 import java.util.StringJoiner;
 
 
-// @formatter:off
 // https://www.tensorflow.org/lite/examples/pose_estimation/overview
 // https://www.tensorflow.org/lite/tutorials/pose_classification
 // https://github.com/tensorflow/examples/tree/master/lite/examples/pose_estimation/android
 // https://github.com/tensorflow/examples/blob/master/lite/examples/pose_estimation/android/app/src/main/java/org/tensorflow/lite/examples/poseestimation/ml/MoveNet.kt
-// @formatter:on
 public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
     private static final String TAG = InnerAnalysis.class.getSimpleName();
 

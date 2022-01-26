@@ -2,10 +2,7 @@ package com.example.edgedashanalytics.util.video.analysis;
 
 import android.graphics.PointF;
 
-// @formatter:off
 // https://github.com/tensorflow/examples/blob/master/lite/examples/pose_estimation/android/app/src/main/java/org/tensorflow/lite/examples/poseestimation/data/KeyPoint.kt
-// @formatter:on
-
 class KeyPoint {
     final BodyPart bodyPart;
     final float score;

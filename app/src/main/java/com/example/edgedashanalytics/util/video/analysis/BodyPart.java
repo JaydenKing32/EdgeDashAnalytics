@@ -1,9 +1,6 @@
 package com.example.edgedashanalytics.util.video.analysis;
 
-// @formatter:off
 // https://github.com/tensorflow/examples/blob/master/lite/examples/pose_estimation/android/app/src/main/java/org/tensorflow/lite/examples/poseestimation/data/BodyPart.kt
-// @formatter:on
-
 public enum BodyPart {
     NOSE,
     LEFT_EYE,
