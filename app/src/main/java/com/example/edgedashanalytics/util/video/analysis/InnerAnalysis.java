@@ -5,10 +5,12 @@ import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.graphics.PointF;
 import android.graphics.RectF;
 import android.util.Log;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.support.common.FileUtil;
@@ -100,7 +102,22 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
             keyPoints.add(new KeyPoint(BodyPart.asArray[a], new PointF(x, y), score));
             totalScore += score;
         }
+
+        // Adjust keypoint coordinates to align with original bitmap dimensions
+        Matrix matrix = new Matrix();
+        float[] points = ArrayUtils.toPrimitive(positions.toArray(new Float[0]), 0f);
+
+        matrix.postTranslate(rect.left, rect.top);
+        matrix.mapPoints(points);
+
+        for (int i = 0; i < keyPoints.size(); i++) {
+            keyPoints.get(i).coordinate = new PointF(points[i * 2], points[i * 2 + 1]);
+        }
+
         frames.add(new InnerFrame(frameIndex, totalScore, keyPoints));
+
+        // May improve performance, investigate later
+        // cropRegion = determineRectF(keyPoints, bitmap.getWidth(), bitmap.getHeight());
 
         if (verbose) {
             String resultHead = String.format(Locale.ENGLISH,
@@ -117,18 +134,6 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
             String resultMessage = builder.toString();
             Log.v(TAG, resultMessage);
         }
-
-        // // May improve performance, investigate later
-        // Matrix matrix = new Matrix();
-        // float[] points = ArrayUtils.toPrimitive(positions.toArray(new Float[0]), 0f);
-        //
-        // matrix.postTranslate(rect.left, rect.top);
-        // matrix.mapPoints(points);
-        //
-        // for (int i = 0; i < keyPoints.size(); i++) {
-        //     keyPoints.get(i).coordinate = new PointF(points[i * 2], points[i * 2 + 1]);
-        // }
-        // cropRegion = determineRectF(keyPoints, bitmap.getWidth(), bitmap.getHeight());
     }
 
     /**
