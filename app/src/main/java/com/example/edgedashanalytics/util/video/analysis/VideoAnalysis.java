@@ -14,7 +14,6 @@ import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.util.hardware.HardwareInfo;
 import com.example.edgedashanalytics.util.hardware.PowerMonitor;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import org.apache.commons.lang3.time.DurationFormatUtils;
 
@@ -117,7 +116,7 @@ public abstract class VideoAnalysis<T extends Frame> {
 
     private void writeResultsToJson(String jsonFilePath) {
         try {
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            Gson gson = new Gson();
             Writer writer = new FileWriter(jsonFilePath);
             gson.toJson(frames, writer);
 

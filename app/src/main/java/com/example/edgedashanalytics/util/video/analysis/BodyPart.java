@@ -20,5 +20,6 @@ public enum BodyPart {
     LEFT_ANKLE,
     RIGHT_ANKLE;
 
-    public static final BodyPart[] asArray = BodyPart.values();
+    public static final BodyPart[] AS_ARRAY = BodyPart.values();
+    public static final int LOWER_INDEX = LEFT_HIP.ordinal();
 }

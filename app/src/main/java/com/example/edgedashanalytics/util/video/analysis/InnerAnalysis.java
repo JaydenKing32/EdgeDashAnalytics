@@ -91,7 +91,9 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         List<Float> positions = new ArrayList<>();
         List<KeyPoint> keyPoints = new ArrayList<>();
 
-        for (int a = 0; a < numKeyPoints; a++) {
+        // Don't bother keeping results for keyPoints of lower body parts,
+        //  lower body part indexes start at BodyPart.LOWER_INDEX
+        for (int a = 0; a < numKeyPoints && a < BodyPart.LOWER_INDEX; a++) {
             float x = output[a * 3 + 1] * inputWidth * widthRatio;
             float y = output[a * 3] * inputHeight * heightRatio;
 
@@ -99,7 +101,7 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
             positions.add(y);
 
             float score = output[a * 3 + 2];
-            keyPoints.add(new KeyPoint(BodyPart.asArray[a], new PointF(x, y), score));
+            keyPoints.add(new KeyPoint(BodyPart.AS_ARRAY[a], new PointF(x, y), score));
             totalScore += score;
         }
 
