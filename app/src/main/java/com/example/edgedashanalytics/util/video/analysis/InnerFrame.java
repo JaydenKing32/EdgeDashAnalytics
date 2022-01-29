@@ -4,11 +4,13 @@ import java.util.List;
 
 @SuppressWarnings({"FieldCanBeLocal", "unused"})
 class InnerFrame extends Frame {
+    private final boolean distracted;
     private final float fullScore;
     private final List<KeyPoint> keyPoints;
 
-    InnerFrame(int frame, float fullScore, List<KeyPoint> keyPoints) {
+    InnerFrame(int frame, boolean distracted, float fullScore, List<KeyPoint> keyPoints) {
         this.frame = frame;
+        this.distracted = distracted;
         this.fullScore = fullScore;
         this.keyPoints = keyPoints;
     }

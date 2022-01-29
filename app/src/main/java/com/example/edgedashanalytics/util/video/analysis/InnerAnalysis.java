@@ -10,6 +10,8 @@ import android.graphics.PointF;
 import android.graphics.RectF;
 import android.util.Log;
 
+import androidx.collection.SimpleArrayMap;
+
 import org.apache.commons.lang3.ArrayUtils;
 import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.Interpreter;
@@ -34,6 +36,8 @@ import java.util.StringJoiner;
 public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
     private static final String TAG = InnerAnalysis.class.getSimpleName();
 
+    private static final float MIN_SCORE = 0.2f;
+
     private Interpreter interpreter;
     private RectF cropRegion = null;
     private int inputWidth;
@@ -45,7 +49,8 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
 
         Interpreter.Options options = new Interpreter.Options();
         options.setNumThreads(threadNum);
-        String modelFilename = "lite-model_movenet_singlepose_lightning_tflite_float16_4.tflite";
+        // String modelFilename = "lite-model_movenet_singlepose_lightning_tflite_float16_4.tflite";
+        String modelFilename = "lite-model_movenet_singlepose_thunder_tflite_float16_4.tflite";
 
         try {
             interpreter = new Interpreter(FileUtil.loadMappedFile(context, modelFilename), options);
@@ -116,7 +121,8 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
             keyPoints.get(i).coordinate = new PointF(points[i * 2], points[i * 2 + 1]);
         }
 
-        frames.add(new InnerFrame(frameIndex, totalScore, keyPoints));
+        boolean distracted = isDistracted(keyPoints, bitmap.getWidth(), bitmap.getHeight());
+        frames.add(new InnerFrame(frameIndex, distracted, totalScore, keyPoints));
 
         // May improve performance, investigate later
         // cropRegion = determineRectF(keyPoints, bitmap.getWidth(), bitmap.getHeight());
@@ -182,6 +188,43 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
             xMin = (imageWidth / 2f - imageHeight / 2f) / imageWidth;
         }
         return new RectF(xMin, yMin, xMin + width, yMin + height);
+    }
+
+    /**
+     * Looking down, looking back (not reversing), drinking or eating
+     * Fairly basic, not very sophisticated
+     */
+    private boolean isDistracted(List<KeyPoint> keyPoints, int imageWidth, int imageHeight) {
+        SimpleArrayMap<BodyPart, KeyPoint> keyDict = new SimpleArrayMap<>(keyPoints.size());
+
+        for (KeyPoint keyPoint : keyPoints) {
+            // May return keyPoint results for body parts that are not actually visible (e.g. arms in face view),
+            //  to address this, drop keyPoints with a very low confidence score
+            if (keyPoint.score >= MIN_SCORE) {
+                keyDict.put(keyPoint.bodyPart, keyPoint);
+            }
+        }
+
+        KeyPoint wristR = keyDict.get(BodyPart.RIGHT_WRIST);
+        KeyPoint wristL = keyDict.get(BodyPart.LEFT_WRIST);
+
+        if (wristR == null || wristL == null) {
+            if (verbose) {
+                Log.v(TAG, "Could not identify wrist key points");
+            }
+            return false;
+        }
+        // Try getting average eye height position, flag if exceeds bounds
+        return areHandsOccupied(wristR, imageHeight) || areHandsOccupied(wristL, imageHeight);
+    }
+
+    private boolean areHandsOccupied(KeyPoint keyPoint, int imageHeight) {
+        if (!keyPoint.bodyPart.equals(BodyPart.LEFT_WRIST) && !keyPoint.bodyPart.equals(BodyPart.RIGHT_WRIST)) {
+            Log.w(TAG, "Passed incorrect body part to areHandsOccupied");
+            return false;
+        }
+        // Y coordinates are top-down, not bottom-up
+        return keyPoint.coordinate.y < (imageHeight * 0.75);
     }
 
     public void printParameters() {
