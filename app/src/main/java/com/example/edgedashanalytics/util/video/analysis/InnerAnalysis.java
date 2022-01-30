@@ -208,17 +208,21 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         KeyPoint wristR = keyDict.get(BodyPart.RIGHT_WRIST);
         KeyPoint wristL = keyDict.get(BodyPart.LEFT_WRIST);
 
-        if (wristR == null || wristL == null) {
+        if (wristR == null && wristL == null) {
             if (verbose) {
                 Log.v(TAG, "Could not identify wrist key points");
             }
             return false;
         }
-        // Try getting average eye height position, flag if exceeds bounds
         return areHandsOccupied(wristR, imageHeight) || areHandsOccupied(wristL, imageHeight);
+
+        // TODO: Try getting average eye height position, flag if exceeds bounds
     }
 
     private boolean areHandsOccupied(KeyPoint keyPoint, int imageHeight) {
+        if (keyPoint == null) {
+            return false;
+        }
         if (!keyPoint.bodyPart.equals(BodyPart.LEFT_WRIST) && !keyPoint.bodyPart.equals(BodyPart.RIGHT_WRIST)) {
             Log.w(TAG, "Passed incorrect body part to areHandsOccupied");
             return false;
