@@ -7,7 +7,6 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import android.media.MediaMetadataRetriever;
 import android.util.Log;
 
 import androidx.preference.PreferenceManager;
@@ -26,7 +25,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.StringJoiner;
-import java.util.stream.Collectors;
 
 // https://www.tensorflow.org/lite/models/object_detection/overview
 // https://tfhub.dev/tensorflow/collections/lite/task-library/object-detector/1
@@ -39,7 +37,6 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
 
     private final int maxDetections;
     private final float minScore;
-    private int scaleFactor = 1;
     private ObjectDetector detector;
 
     public OuterAnalysis(Context context) {
@@ -68,45 +65,6 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         }
     }
 
-    private void scaledFramesLoop(MediaMetadataRetriever retriever, int totalFrames) {
-        String videoWidthString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH);
-        String videoHeightString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT);
-
-        if (videoWidthString == null || videoHeightString == null) {
-            Log.e(TAG, "Could not retrieve metadata");
-            return;
-        }
-        scaleFactor = 3;
-
-        int videoWidth = Integer.parseInt(videoWidthString);
-        int videoHeight = Integer.parseInt(videoHeightString);
-        int scaledWidth = videoWidth / scaleFactor;
-        int scaledHeight = videoHeight / scaleFactor;
-
-        for (int i = 0; i < totalFrames; i += bufferSize) {
-            if (Thread.currentThread().isInterrupted()) {
-                return;
-            }
-            int frameBuffSize = Integer.min(bufferSize, totalFrames - i);
-            // 1080p bitmaps too memory intensive, need to scale down
-            List<Bitmap> frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize).stream()
-                    .map(b -> Bitmap.createScaledBitmap(b, scaledWidth, scaledHeight, false))
-                    .collect(Collectors.toList());
-
-            for (int k = 0; k < frameBuffSize; k++) {
-                Bitmap bitmap = frameBuffer.get(k);
-                int curFrame = i + k;
-
-                if (bitmap == null) {
-                    Log.w(TAG, String.format("Could not extract frame at index %d", curFrame));
-                    continue;
-                }
-
-                processFrame(bitmap, curFrame);
-            }
-        }
-    }
-
     void processFrame(Bitmap bitmap, int frameIndex) {
         if (Thread.currentThread().isInterrupted()) {
             Log.e(TAG, String.format("Stopping at frame %d", frameIndex));
@@ -125,10 +83,10 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
             Category category = categoryList.get(0);
             RectF bb = detection.getBoundingBox();
             Rect boundingBox = new Rect(
-                    (int) bb.left * scaleFactor,
-                    (int) bb.top * scaleFactor,
-                    (int) bb.right * scaleFactor,
-                    (int) bb.bottom * scaleFactor
+                    (int) bb.left,
+                    (int) bb.top,
+                    (int) bb.right,
+                    (int) bb.bottom
             );
 
             people.add(new Person(category.getScore(), isClose(detection, detectionList), boundingBox));
