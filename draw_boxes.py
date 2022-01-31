@@ -3,8 +3,7 @@ import os
 from argparse import ArgumentParser
 from datetime import datetime
 
-import cv2
-
+import cv2.cv2 as cv2
 
 parser = ArgumentParser(description="Draw boundary boxes of detected objects in a video file")
 parser.add_argument("video", help="Filepath of video file")
@@ -36,11 +35,16 @@ while cap.isOpened():
         print(f"{datetime.now()}: Completed video analysis")
         break
 
-    for det in detections[frame]["people"]:
+    for det in detections[frame]["hazards"]:
         bbox = det["bBox"]
-        colour = (0, 0, 255) if det["close"] else (0, 255, 0)
+        colour = (0, 0, 255) if det["danger"] else (0, 255, 0)
+
         image_np = cv2.rectangle(image_np, (bbox["left"], bbox["top"]), (bbox["right"], bbox["bottom"]), colour, 1)
 
+        f_face = cv2.FONT_HERSHEY_SIMPLEX
+        f_colour = (255, 255, 255)
+        image_np = cv2.putText(image_np, det["category"], (bbox["left"], bbox["bottom"] + 10), f_face, 0.5, f_colour, 1)
+    # cv2.imwrite(f"./out/{frame:04d}.png", image_np)
     out.write(image_np)
 
     frame += 1
