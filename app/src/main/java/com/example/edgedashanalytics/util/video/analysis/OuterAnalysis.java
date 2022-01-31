@@ -35,14 +35,13 @@ import java.util.StringJoiner;
 public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
     private static final String TAG = OuterAnalysis.class.getSimpleName();
 
-    private final int maxDetections;
-    private final float minScore;
+    private static final int MAX_DETECTIONS = -1;
+    private static final float MIN_SCORE = 0.2f;
+
     private ObjectDetector detector;
 
     public OuterAnalysis(Context context) {
         super(context);
-        this.maxDetections = -1;
-        this.minScore = 0.2f;
 
         try {
             BaseOptions baseOptions = BaseOptions.builder().setNumThreads(threadNum).build();
@@ -50,8 +49,8 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
             ObjectDetector.ObjectDetectorOptions objectDetectorOptions =
                     ObjectDetector.ObjectDetectorOptions.builder()
                             .setBaseOptions(baseOptions)
-                            .setMaxResults(maxDetections)
-                            .setScoreThreshold(minScore)
+                            .setMaxResults(MAX_DETECTIONS)
+                            .setScoreThreshold(MIN_SCORE)
                             .setLabelAllowList(Collections.singletonList("person"))
                             .build();
 
@@ -162,8 +161,8 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         StringJoiner paramMessage = new StringJoiner("\n  ");
         paramMessage.add("Video analysis parameters:");
         paramMessage.add(String.format("bufferSize: %s", bufferSize));
-        paramMessage.add(String.format("maxDetections: %s", maxDetections));
-        paramMessage.add(String.format("minScore: %s", minScore));
+        paramMessage.add(String.format("maxDetections: %s", MAX_DETECTIONS));
+        paramMessage.add(String.format("minScore: %s", MIN_SCORE));
         paramMessage.add(String.format("threadNum: %s", threadNum));
 
         Log.i(I_TAG, paramMessage.toString());
