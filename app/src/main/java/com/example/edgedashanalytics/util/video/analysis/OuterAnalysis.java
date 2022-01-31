@@ -66,10 +66,6 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
     }
 
     void processFrame(Bitmap bitmap, int frameIndex) {
-        if (Thread.currentThread().isInterrupted()) {
-            Log.e(TAG, String.format("Stopping at frame %d", frameIndex));
-            return;
-        }
         TensorImage image = TensorImage.fromBitmap(bitmap);
         List<Detection> detectionList = detector.detect(image);
         List<Person> people = new ArrayList<>(detectionList.size());
