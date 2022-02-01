@@ -59,9 +59,9 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
                             .setScoreThreshold(MIN_SCORE)
                             .build();
 
-            String defaultModel = context.getString(R.string.default_model_key);
+            String defaultModel = context.getString(R.string.default_object_model_key);
             SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-            String modelFilename = pref.getString(context.getString(R.string.model_key), defaultModel);
+            String modelFilename = pref.getString(context.getString(R.string.object_model_key), defaultModel);
 
             detector = ObjectDetector.createFromFileAndOptions(context, modelFilename, objectDetectorOptions);
         } catch (IOException e) {

@@ -39,8 +39,10 @@
     <string name="local_process_key">local_process</string>
     <string name="scheduling_algorithm_title">Scheduling algorithm</string>
     <string name="scheduling_algorithm_key">scheduling_algorithm</string>
-    <string name="model_title">Model</string>
-    <string name="model_key">model</string>
+    <string name="object_model_title">Object detection model</string>
+    <string name="object_model_key">object_model</string>
+    <string name="pose_model_title">Pose estimation model</string>
+    <string name="pose_model_key">pose_model</string>
     <string name="enable_segment_title">Enable segmentation</string>
     <string name="enable_segment_summary_off">Send whole video files to worker phones</string>
     <string name="enable_segment_summary_on">Send video segments to worker phones</string>
@@ -58,7 +60,7 @@
     <string name="verbose_output_key">verbose_output</string>
 
     <!-- Models -->
-    <string name="default_model_key" tools:ignore="Typos">@string/mobilenet_v1_key</string>
+    <string name="default_object_model_key" tools:ignore="Typos">@string/mobilenet_v1_key</string>
     <string name="mobilenet_v1_title" tools:ignore="Typos">MobileNetV1</string>
     <string name="mobilenet_v1_key" tools:ignore="Typos">lite-model_ssd_mobilenet_v1_1_metadata_2.tflite</string>
     <string name="efficientdet_lite0_title">EfficientDet-Lite0</string>
@@ -71,6 +73,11 @@
     <string name="efficientdet_lite3_key">lite-model_efficientdet_lite3_detection_metadata_2.tflite</string>
     <string name="efficientdet_lite4_title">EfficientDet-Lite4</string>
     <string name="efficientdet_lite4_key">lite-model_efficientdet_lite4_detection_metadata_2.tflite</string>
+    <string name="default_pose_model_key">@string/movenet_lightning_key</string>
+    <string name="movenet_lightning_title">MoveNet Lightning</string>
+    <string name="movenet_lightning_key">lite-model_movenet_singlepose_lightning_tflite_float16_4.tflite</string>
+    <string name="movenet_thunder_title">MoveNet Thunder</string>
+    <string name="movenet_thunder_key">lite-model_movenet_singlepose_thunder_tflite_float16_4.tflite</string>
 
     <!-- Scheduling algorithms -->
     <string name="round_robin_algorithm_title">Round-robin</string>

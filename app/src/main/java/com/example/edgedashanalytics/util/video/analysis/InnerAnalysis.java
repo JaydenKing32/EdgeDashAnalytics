@@ -3,6 +3,7 @@ package com.example.edgedashanalytics.util.video.analysis;
 import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
@@ -11,6 +12,9 @@ import android.graphics.RectF;
 import android.util.Log;
 
 import androidx.collection.SimpleArrayMap;
+import androidx.preference.PreferenceManager;
+
+import com.example.edgedashanalytics.R;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.tensorflow.lite.DataType;
@@ -47,12 +51,13 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
     public InnerAnalysis(Context context) {
         super(context);
 
-        Interpreter.Options options = new Interpreter.Options();
-        options.setNumThreads(threadNum);
-        // String modelFilename = "lite-model_movenet_singlepose_lightning_tflite_float16_4.tflite";
-        String modelFilename = "lite-model_movenet_singlepose_thunder_tflite_float16_4.tflite";
+        String defaultModel = context.getString(R.string.default_pose_model_key);
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        String modelFilename = pref.getString(context.getString(R.string.pose_model_key), defaultModel);
 
         try {
+            Interpreter.Options options = new Interpreter.Options();
+            options.setNumThreads(threadNum);
             interpreter = new Interpreter(FileUtil.loadMappedFile(context, modelFilename), options);
 
             inputWidth = interpreter.getInputTensor(0).shape()[1];
@@ -124,7 +129,7 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         boolean distracted = isDistracted(keyPoints, bitmap.getWidth(), bitmap.getHeight());
         frames.add(new InnerFrame(frameIndex, distracted, totalScore, keyPoints));
 
-        // May improve performance, investigate later
+        // TODO: May improve performance, investigate later
         // cropRegion = determineRectF(keyPoints, bitmap.getWidth(), bitmap.getHeight());
 
         if (verbose) {
