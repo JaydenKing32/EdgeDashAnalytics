@@ -274,9 +274,10 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
 
     public void printParameters() {
         StringJoiner paramMessage = new StringJoiner("\n  ");
-        paramMessage.add("Video analysis parameters:");
+        paramMessage.add("Inner analysis parameters:");
         paramMessage.add(String.format("bufferSize: %s", bufferSize));
-        paramMessage.add(String.format("threadNum: %s", THREAD_NUM));
+        paramMessage.add(String.format("THREAD_NUM: %s", THREAD_NUM));
+        paramMessage.add(String.format("MIN_SCORE: %s", MIN_SCORE));
 
         Log.i(I_TAG, paramMessage.toString());
     }

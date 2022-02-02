@@ -163,11 +163,11 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
 
     public void printParameters() {
         StringJoiner paramMessage = new StringJoiner("\n  ");
-        paramMessage.add("Video analysis parameters:");
+        paramMessage.add("Outer analysis parameters:");
         paramMessage.add(String.format("bufferSize: %s", bufferSize));
-        paramMessage.add(String.format("maxDetections: %s", MAX_DETECTIONS));
-        paramMessage.add(String.format("minScore: %s", MIN_SCORE));
-        paramMessage.add(String.format("threadNum: %s", THREAD_NUM));
+        paramMessage.add(String.format("THREAD_NUM: %s", THREAD_NUM));
+        paramMessage.add(String.format("MAX_DETECTIONS: %s", MAX_DETECTIONS));
+        paramMessage.add(String.format("MIN_SCORE: %s", MIN_SCORE));
 
         Log.i(I_TAG, paramMessage.toString());
     }
