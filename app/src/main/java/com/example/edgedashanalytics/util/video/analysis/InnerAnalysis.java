@@ -196,7 +196,7 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
     }
 
     /**
-     * Looking down, looking back (not reversing), drinking or eating
+     * Looking down, looking back (not reversing), drinking, eating, using a phone
      * Fairly basic, not very sophisticated
      */
     private boolean isDistracted(List<KeyPoint> keyPoints, int imageWidth, int imageHeight) {
@@ -210,30 +210,66 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
             }
         }
 
-        KeyPoint wristR = keyDict.get(BodyPart.RIGHT_WRIST);
         KeyPoint wristL = keyDict.get(BodyPart.LEFT_WRIST);
+        KeyPoint wristR = keyDict.get(BodyPart.RIGHT_WRIST);
 
-        if (wristR == null && wristL == null) {
+        if (wristL == null && wristR == null) {
             if (verbose) {
                 Log.v(TAG, "Could not identify wrist key points");
             }
             return false;
         }
-        return areHandsOccupied(wristR, imageHeight) || areHandsOccupied(wristL, imageHeight);
 
-        // TODO: Try getting average eye height position, flag if exceeds bounds
+        KeyPoint eyeL = keyDict.get(BodyPart.LEFT_EYE);
+        KeyPoint eyeR = keyDict.get(BodyPart.RIGHT_EYE);
+        KeyPoint earL = keyDict.get(BodyPart.LEFT_EAR);
+        KeyPoint earR = keyDict.get(BodyPart.RIGHT_EAR);
+
+        if ((eyeL == null && earL == null) || (eyeR == null && earR == null)) {
+            if (verbose) {
+                Log.v(TAG, "Could not identify eye and ear key points");
+            }
+            return false;
+        }
+
+        return areHandsOccupied(wristL, imageHeight) || areHandsOccupied(wristR, imageHeight) ||
+                areEyesOccupied(eyeL, earL) || areEyesOccupied(eyeR, earR);
     }
 
+    /**
+     * If wrists are above 1/4 video height, then they aren't on the steering wheel and the driver is likely occupied
+     * with something such as drinking or talking on the phone
+     */
     private boolean areHandsOccupied(KeyPoint keyPoint, int imageHeight) {
         if (keyPoint == null) {
             return false;
         }
-        if (!keyPoint.bodyPart.equals(BodyPart.LEFT_WRIST) && !keyPoint.bodyPart.equals(BodyPart.RIGHT_WRIST)) {
+        if (!(keyPoint.bodyPart.equals(BodyPart.LEFT_WRIST) || keyPoint.bodyPart.equals(BodyPart.RIGHT_WRIST))) {
             Log.w(TAG, "Passed incorrect body part to areHandsOccupied");
             return false;
         }
         // Y coordinates are top-down, not bottom-up
         return keyPoint.coordinate.y < (imageHeight * 0.75);
+    }
+
+    /**
+     * When looking straight ahead (watching the road), the eyes are positioned above the ears
+     * When looking down (such as glancing at a phone), the eyes are vertically closer to the ears
+     */
+    private boolean areEyesOccupied(KeyPoint eye, KeyPoint ear) {
+        if (eye == null || ear == null) {
+            return false;
+        }
+        if (!(eye.bodyPart.equals(BodyPart.LEFT_EYE) || eye.bodyPart.equals(BodyPart.RIGHT_EYE)) ||
+                !(ear.bodyPart.equals(BodyPart.LEFT_EAR) || ear.bodyPart.equals(BodyPart.RIGHT_EAR))) {
+            Log.w(TAG, "Passed incorrect body part to areEyesOccupied");
+            return false;
+        }
+
+        float dist = ear.coordinate.y - eye.coordinate.y;
+        float threshold = ear.coordinate.y / 20;
+
+        return dist < threshold;
     }
 
     public void printParameters() {
