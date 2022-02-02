@@ -57,7 +57,7 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
 
         try {
             Interpreter.Options options = new Interpreter.Options();
-            options.setNumThreads(threadNum);
+            options.setNumThreads(THREAD_NUM);
             interpreter = new Interpreter(FileUtil.loadMappedFile(context, modelFilename), options);
 
             inputWidth = interpreter.getInputTensor(0).shape()[1];
@@ -276,7 +276,7 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         StringJoiner paramMessage = new StringJoiner("\n  ");
         paramMessage.add("Video analysis parameters:");
         paramMessage.add(String.format("bufferSize: %s", bufferSize));
-        paramMessage.add(String.format("threadNum: %s", threadNum));
+        paramMessage.add(String.format("threadNum: %s", THREAD_NUM));
 
         Log.i(I_TAG, paramMessage.toString());
     }

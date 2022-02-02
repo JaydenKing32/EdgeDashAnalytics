@@ -50,7 +50,7 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         super(context);
 
         try {
-            BaseOptions baseOptions = BaseOptions.builder().setNumThreads(threadNum).build();
+            BaseOptions baseOptions = BaseOptions.builder().setNumThreads(THREAD_NUM).build();
 
             ObjectDetector.ObjectDetectorOptions objectDetectorOptions =
                     ObjectDetector.ObjectDetectorOptions.builder()
@@ -167,7 +167,7 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         paramMessage.add(String.format("bufferSize: %s", bufferSize));
         paramMessage.add(String.format("maxDetections: %s", MAX_DETECTIONS));
         paramMessage.add(String.format("minScore: %s", MIN_SCORE));
-        paramMessage.add(String.format("threadNum: %s", threadNum));
+        paramMessage.add(String.format("threadNum: %s", THREAD_NUM));
 
         Log.i(I_TAG, paramMessage.toString());
     }
