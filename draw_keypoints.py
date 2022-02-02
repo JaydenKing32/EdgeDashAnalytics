@@ -1,10 +1,10 @@
 import json
 import os
 from argparse import ArgumentParser
-from datetime import datetime
 from typing import Union
 
-import cv2.cv2 as cv2
+import cv2
+from tqdm import tqdm
 
 body_parts = [
     "NOSE",
@@ -51,33 +51,36 @@ out = cv2.VideoWriter(out_filename, fourcc, frame_rate, (frame_width, frame_heig
 
 frame = 0
 
-while cap.isOpened():
-    ret, image_np = cap.read()
+length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    if not ret:
-        print(f"{datetime.now()}: Completed video analysis")
-        break
+with tqdm(desc=out_filename, total=length, smoothing=0.01) as pbar:
+    while cap.isOpened():
+        ret, image_np = cap.read()
 
-    for key in key_points[frame]["keyPoints"]:
-        x, y = key["coordinate"].values()
-        x, y = int(x), int(y)
-        part = key["bodyPart"]
-        # part = body_parts.index(key["bodyPart"])
+        if not ret:
+            break
 
-        colour = (0, 255, 0)
+        for key in key_points[frame]["keyPoints"]:
+            x, y = key["coordinate"].values()
+            x, y = int(x), int(y)
+            part = key["bodyPart"]
+            # part = body_parts.index(key["bodyPart"])
 
-        font_face = cv2.FONT_HERSHEY_SIMPLEX
-        font_colour = (0, 255, 0)
-        image_np = cv2.putText(image_np, str(part), (x, y), font_face, 0.5, font_colour, 1)
+            colour = (0, 255, 0)
 
-    circle_size = 20
-    circle_colour = (0, 0, 255) if key_points[frame]["distracted"] else (0, 255, 0)
-    image_np = cv2.circle(image_np, (circle_size, circle_size), circle_size, circle_colour, -1)
+            font_face = cv2.FONT_HERSHEY_SIMPLEX
+            font_colour = (0, 255, 0)
+            image_np = cv2.putText(image_np, str(part), (x, y), font_face, 0.5, font_colour, 1)
 
-    # cv2.imwrite(f"./out/{frame:04d}.png", image_np)
-    out.write(image_np)
+        circle_size = 20
+        circle_colour = (0, 0, 255) if key_points[frame]["distracted"] else (0, 255, 0)
+        image_np = cv2.circle(image_np, (circle_size, circle_size), circle_size, circle_colour, -1)
 
-    frame += 1
+        # cv2.imwrite(f"./out/{frame:04d}.png", image_np)
+        out.write(image_np)
+
+        frame += 1
+        pbar.update()
 
 cap.release()
 out.release()
