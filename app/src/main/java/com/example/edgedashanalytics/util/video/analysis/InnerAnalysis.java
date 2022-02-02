@@ -11,7 +11,6 @@ import android.graphics.PointF;
 import android.graphics.RectF;
 import android.util.Log;
 
-import androidx.collection.SimpleArrayMap;
 import androidx.preference.PreferenceManager;
 
 import com.example.edgedashanalytics.R;
@@ -30,7 +29,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 
 // https://www.tensorflow.org/lite/examples/pose_estimation/overview
@@ -200,24 +201,18 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
      * Fairly basic, not very sophisticated
      */
     private boolean isDistracted(List<KeyPoint> keyPoints, int imageWidth, int imageHeight) {
-        SimpleArrayMap<BodyPart, KeyPoint> keyDict = new SimpleArrayMap<>(keyPoints.size());
+        Map<BodyPart, KeyPoint> keyDict = keyPoints.stream().collect(Collectors.toMap(k -> k.bodyPart, k -> k));
 
-        for (KeyPoint keyPoint : keyPoints) {
-            // May return keyPoint results for body parts that are not actually visible (e.g. arms in face view),
-            //  to address this, drop keyPoints with a very low confidence score
-            if (keyPoint.score >= MIN_SCORE) {
-                keyDict.put(keyPoint.bodyPart, keyPoint);
-            }
-        }
+        boolean handsOccupied = false;
 
         KeyPoint wristL = keyDict.get(BodyPart.LEFT_WRIST);
         KeyPoint wristR = keyDict.get(BodyPart.RIGHT_WRIST);
 
-        if (wristL == null && wristR == null) {
-            if (verbose) {
-                Log.v(TAG, "Could not identify wrist key points");
-            }
-            return false;
+        if (wristL.score >= MIN_SCORE) {
+            handsOccupied = areHandsOccupied(wristL, imageHeight);
+        }
+        if (wristR.score >= MIN_SCORE) {
+            handsOccupied = handsOccupied || areHandsOccupied(wristR, imageHeight);
         }
 
         KeyPoint eyeL = keyDict.get(BodyPart.LEFT_EYE);
@@ -225,31 +220,25 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         KeyPoint earL = keyDict.get(BodyPart.LEFT_EAR);
         KeyPoint earR = keyDict.get(BodyPart.RIGHT_EAR);
 
-        if ((eyeL == null && earL == null) || (eyeR == null && earR == null)) {
-            if (verbose) {
-                Log.v(TAG, "Could not identify eye and ear key points");
-            }
-            return false;
-        }
+        boolean eyesOccupied = areEyesOccupied(eyeL, earL) || areEyesOccupied(eyeR, earR);
 
-        return areHandsOccupied(wristL, imageHeight) || areHandsOccupied(wristR, imageHeight) ||
-                areEyesOccupied(eyeL, earL) || areEyesOccupied(eyeR, earR);
+        return handsOccupied || eyesOccupied;
     }
 
     /**
      * If wrists are above 1/4 video height, then they aren't on the steering wheel and the driver is likely occupied
      * with something such as drinking or talking on the phone
      */
-    private boolean areHandsOccupied(KeyPoint keyPoint, int imageHeight) {
-        if (keyPoint == null) {
+    private boolean areHandsOccupied(KeyPoint wrist, int imageHeight) {
+        if (wrist == null) {
             return false;
         }
-        if (!(keyPoint.bodyPart.equals(BodyPart.LEFT_WRIST) || keyPoint.bodyPart.equals(BodyPart.RIGHT_WRIST))) {
+        if (!(wrist.bodyPart.equals(BodyPart.LEFT_WRIST) || wrist.bodyPart.equals(BodyPart.RIGHT_WRIST))) {
             Log.w(TAG, "Passed incorrect body part to areHandsOccupied");
             return false;
         }
         // Y coordinates are top-down, not bottom-up
-        return keyPoint.coordinate.y < (imageHeight * 0.75);
+        return wrist.coordinate.y < (imageHeight * 0.75);
     }
 
     /**
@@ -266,8 +255,8 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
             return false;
         }
 
-        float dist = ear.coordinate.y - eye.coordinate.y;
-        float threshold = ear.coordinate.y / 20;
+        double dist = ear.coordinate.y - eye.coordinate.y;
+        double threshold = ear.coordinate.y / 20.0;
 
         return dist < threshold;
     }
