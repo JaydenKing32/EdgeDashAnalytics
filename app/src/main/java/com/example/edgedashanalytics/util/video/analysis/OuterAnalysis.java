@@ -41,7 +41,7 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
 
     private ObjectDetector detector;
 
-    // Include bicycle?
+    // Include or exclude bicycles?
     private static final ArrayList<String> vehicleCategories = new ArrayList<>(Arrays.asList(
             "bicycle", "car", "motorcycle", "bus", "truck"
     ));
@@ -134,14 +134,6 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         return String.format("%s\n", result);
     }
 
-    private Rect getDangerZone(int imageWidth, int imageHeight) {
-        int dangerLeft = imageWidth / 4;
-        int dangerRight = (imageWidth / 4) * 3;
-        int dangerTop = imageHeight / 2;
-
-        return new Rect(dangerLeft, dangerTop, dangerRight, imageHeight);
-    }
-
     private boolean isDanger(Detection detection, int imageWidth, int imageHeight) {
         List<Category> categoryList = detection.getCategories();
         if (categoryList == null || categoryList.size() == 0) {
@@ -149,16 +141,37 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         }
 
         String detCategory = categoryList.get(0).getLabel();
-        Rect bb = new Rect();
-        detection.getBoundingBox().roundOut(bb);
+        Rect detBox = new Rect();
+        detection.getBoundingBox().roundOut(detBox);
 
         if (vehicleCategories.contains(detCategory)) {
-            // Close vehicles will have large bounding boxes
-            return bb.height() > (imageHeight / 4) || bb.width() > (imageWidth / 4);
+            // Check tailgating
+            Rect tailgateZone = getTailgateZone(imageWidth, imageHeight);
+            return tailgateZone.contains(detBox) || tailgateZone.intersect(detBox);
         } else {
+            // Check obstruction
             Rect dangerZone = getDangerZone(imageWidth, imageHeight);
-            return dangerZone.contains(bb) || dangerZone.intersect(bb);
+            return dangerZone.contains(detBox) || dangerZone.intersect(detBox);
         }
+    }
+
+    private Rect getDangerZone(int imageWidth, int imageHeight) {
+        int dangerLeft = imageWidth / 4;
+        int dangerRight = (imageWidth / 4) * 3;
+        int dangerTop = (imageHeight / 10) * 4;
+
+        return new Rect(dangerLeft, dangerTop, dangerRight, imageHeight);
+    }
+
+    private Rect getTailgateZone(int imageWidth, int imageHeight) {
+        int tailLeft = imageWidth / 3;
+        int tailRight = (imageWidth / 3) * 2;
+        int tailTop = (imageHeight / 4) * 3;
+        // Exclude driving car's bonnet, assuming it always occupies the same space
+        //  Realistically, due to dash cam position/angle, bonnets will occupy differing proportion of the video
+        int tailBottom = imageHeight - imageHeight / 10;
+
+        return new Rect(tailLeft, tailTop, tailRight, tailBottom);
     }
 
     public void printParameters() {
