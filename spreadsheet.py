@@ -56,7 +56,8 @@ class Analysis:
         self.seg_num = -1
         self.nodes = len([log for log in os.listdir(self.log_dir) if is_log(log)])
         self.algorithm = "offline"
-        self.model = ""
+        self.object_model = ""
+        self.pose_model = ""
         self.local = False
         self.dash_down_time = -1.0
         self.down_time = -1.0
@@ -118,7 +119,8 @@ class Analysis:
                 delay = re_down_delay.match(line)
 
                 if pref is not None:
-                    model = master_log.readline().split()[-1]
+                    object_model = master_log.readline().split()[-1]
+                    pose_model = master_log.readline().split()[-1]
                     algo = master_log.readline().split()[-1]
                     local = master_log.readline().split()[-1] == "true"
                     master_log.readline()  # skip auto-download line
@@ -127,7 +129,8 @@ class Analysis:
 
                     self.algorithm = algo
                     self.seg_num = seg_num
-                    self.model = model
+                    self.object_model = object_model
+                    self.pose_model = pose_model
                     self.local = local
 
                 if delay is not None:
@@ -382,7 +385,8 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], out_name: str):
                 writer.writerow(["Device: {}".format(run.get_master_short_name())])
                 writer.writerow([
                     "Download Delay: {}".format(run.delay),
-                    "Model: {}".format(run.model),
+                    "Object Model: {}".format(run.object_model),
+                    "Pose Model: {}".format(run.pose_model),
                     "Total Power: {}".format(device.total_power),
                     "Average Power: {}".format(device.average_power)
                 ])
@@ -421,7 +425,8 @@ def make_spreadsheet(run: Analysis, out: str):
         writer.writerow([
             "Local Processing: {}".format(run.local),
             "Download Delay: {}".format(run.delay),
-            "Model: {}".format(run.model),
+            "Object Model: {}".format(run.object_model),
+            "Pose Model: {}".format(run.pose_model),
             "Dir: {}".format(run.get_sub_log_dir())
         ])
 
