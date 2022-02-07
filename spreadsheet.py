@@ -119,8 +119,8 @@ class Analysis:
                 delay = re_down_delay.match(line)
 
                 if pref is not None:
-                    object_model = master_log.readline().split()[-1]
-                    pose_model = master_log.readline().split()[-1]
+                    object_model_filename = master_log.readline().split()[-1]
+                    pose_model_filename = master_log.readline().split()[-1]
                     algo = master_log.readline().split()[-1]
                     local = master_log.readline().split()[-1] == "true"
                     master_log.readline()  # skip auto-download line
@@ -129,8 +129,8 @@ class Analysis:
 
                     self.algorithm = algo
                     self.seg_num = seg_num
-                    self.object_model = object_model
-                    self.pose_model = pose_model
+                    self.object_model = models[object_model_filename]
+                    self.pose_model = models[pose_model_filename]
                     self.local = local
 
                 if delay is not None:
@@ -171,6 +171,16 @@ serial_numbers = {
     "1825": "0b3b6fd50c371825"  # Nexus 5
 }
 milliamp_devices = ["2802", "X9BT", "43e2"]
+models = {
+    "lite-model_ssd_mobilenet_v1_1_metadata_2.tflite": "MobileNetV1",
+    "lite-model_efficientdet_lite0_detection_metadata_1.tflite": "EfficientDet-Lite0",
+    "lite-model_efficientdet_lite1_detection_metadata_1.tflite": "EfficientDet-Lite1",
+    "lite-model_efficientdet_lite2_detection_metadata_1.tflite": "EfficientDet-Lite2",
+    "lite-model_efficientdet_lite3_detection_metadata_1.tflite": "EfficientDet-Lite3",
+    "lite-model_efficientdet_lite4_detection_metadata_2.tflite": "EfficientDet-Lite4",
+    "lite-model_movenet_singlepose_lightning_tflite_float16_4.tflite": "MoveNet Lightning",
+    "lite-model_movenet_singlepose_thunder_tflite_float16_4.tflite": "MoveNet Thunder"
+}
 
 timestamp = r"^(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s+\d+\s+\d+ "
 re_timestamp = re.compile(r"^(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{3})(?=\s+\d+\s+\d+).*(?:\s+)?$")
