@@ -214,17 +214,7 @@ public class DashCam {
             "out_17.mp4", "inn_17.mp4",
             "out_18.mp4", "inn_18.mp4",
             "out_19.mp4", "inn_19.mp4",
-            "out_20.mp4", "inn_20.mp4",
-            "out_21.mp4", "inn_21.mp4",
-            "out_22.mp4", "inn_22.mp4",
-            "out_23.mp4", "inn_23.mp4",
-            "out_24.mp4", "inn_24.mp4",
-            "out_25.mp4", "inn_25.mp4",
-            "out_26.mp4", "inn_26.mp4",
-            "out_27.mp4", "inn_27.mp4",
-            "out_28.mp4", "inn_28.mp4",
-            "out_29.mp4", "inn_29.mp4",
-            "out_30.mp4", "inn_30.mp4"
+            "out_20.mp4", "inn_20.mp4"
     ));
 }
 
