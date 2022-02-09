@@ -214,6 +214,7 @@ public class MainActivity extends AppCompatActivity implements
             return true;
         } else if (itemId == R.id.action_power) {
             Log.v(TAG, "Power button clicked");
+            PowerMonitor.startPowerMonitor(this);
             Toast.makeText(this,
                     String.format(Locale.ENGLISH, "Average power: %dmW", PowerMonitor.getAveragePowerMilliWatts()),
                     Toast.LENGTH_SHORT).show();
