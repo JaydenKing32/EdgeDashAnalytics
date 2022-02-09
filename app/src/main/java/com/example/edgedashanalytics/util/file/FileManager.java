@@ -157,6 +157,16 @@ public class FileManager {
         }
     }
 
+    public static boolean clearLogs() {
+        try {
+            FileUtils.deleteDirectory(LOG_DIR);
+            return true;
+        } catch (IOException e) {
+            Log.e(TAG, String.format("Failed to clear logs: \n%s", e.getMessage()));
+            return false;
+        }
+    }
+
     public static String getFilenameFromPath(String filePath) {
         return filePath.substring(filePath.lastIndexOf('/') + 1);
     }

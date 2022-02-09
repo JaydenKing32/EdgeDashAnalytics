@@ -91,5 +91,9 @@
         android:key="@string/verbose_output_key"
         android:persistent="true"
         android:title="@string/verbose_output_title" />
+    <Preference
+        android:id="@+id/clear_logs_button"
+        android:key="@string/clear_logs_key"
+        android:title="@string/clear_logs_title" />
 
 </PreferenceScreen>
