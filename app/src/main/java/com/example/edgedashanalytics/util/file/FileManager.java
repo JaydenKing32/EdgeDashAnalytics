@@ -58,7 +58,7 @@ public class FileManager {
     private static final File LOG_DIR = new File(MOVIE_DIR, LOG_DIR_NAME);
 
     private static final List<File> DIRS = Arrays.asList(
-            RAW_DIR, RESULTS_DIR, NEARBY_DIR, SEGMENT_DIR, SEGMENT_RES_DIR);
+            RAW_DIR, RESULTS_DIR, NEARBY_DIR, SEGMENT_DIR, SEGMENT_RES_DIR, LOG_DIR);
 
     public static String getRawDirPath() {
         return RAW_DIR.getAbsolutePath();
@@ -144,8 +144,8 @@ public class FileManager {
     public static void cleanDirectories(Context context) {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         List<File> dirs = pref.getBoolean(context.getString(R.string.remove_raw_key), false) ?
-                DIRS :
-                Arrays.asList(RESULTS_DIR, NEARBY_DIR, SEGMENT_DIR, SEGMENT_RES_DIR);
+                DIRS.stream().filter(d -> !d.equals(LOG_DIR)).collect(Collectors.toList()) :
+                DIRS.stream().filter(d -> !d.equals(LOG_DIR) && !d.equals(RAW_DIR)).collect(Collectors.toList());
 
         for (File dir : dirs) {
             try {
