@@ -221,12 +221,29 @@ def get_master(log_dir: str) -> str:
             return file
 
 
+def get_basename_sans_ext(filename: str) -> str:
+    return os.path.splitext(os.path.basename(filename))[0]
+
+
 def get_video_name(name: str) -> str:
     sep = '!'
     if sep in name:
         return name.split(sep)[0]
     else:
         return name
+
+
+def compare_offline_files(files: List[str]) -> int:
+    try:
+        filename = next(filter(is_log, files))
+    except StopIteration:
+        return -1
+
+    serial = get_basename_sans_ext(filename)
+    if serial not in serial_numbers.values():
+        return -1
+
+    return list(serial_numbers.values()).index(serial)
 
 
 def timestamp_to_datetime(line: str) -> datetime:
@@ -348,10 +365,12 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], out_name: str):
 
         # Offline directories should only contain two files, normal log and verbose log
         for (path, dirs, files) in sorted(
-                [(path, dirs, files) for (path, dirs, files) in os.walk(log_dir) if len(files) == 2]):
+                [(path, dirs, files) for (path, dirs, files) in os.walk(log_dir) if len(files) == 2],
+                key=lambda pdf: compare_offline_files(pdf[2])
+        ):
             for log in files:
-                # Skip verbose logs
-                if "verbose" in log:
+                # Skip verbose logs and non-log files
+                if not is_log(log):
                     continue
 
                 log_path = os.path.join(path, log)
@@ -538,7 +557,7 @@ def spread(root: str, out: str):
     make_offline_spreadsheet(root, runs, out)
 
     for (path, dirs, files) in sorted([(path, dirs, files) for (path, dirs, files) in os.walk(root) if len(files) > 2]):
-        master_sn = os.path.splitext(os.path.basename(get_master(path)))[0]
+        master_sn = get_basename_sans_ext(get_master(path))
         logs = [log for log in os.listdir(path) if is_log(log)]
         devices = {device[-8:-4]: Device(device[-8:-4]) for device in logs}  # Initialise device dictionary
 
