@@ -4,6 +4,7 @@ import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
@@ -105,13 +106,16 @@ public abstract class NearbyFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        deviceAdapter = new DeviceListAdapter(listener, getContext(), discoveredEndpoints);
 
-        Context context = getContext();
-        if (context != null) {
-            connectionsClient = Nearby.getConnectionsClient(context);
-            setLocalName(context);
+        Activity activity = getActivity();
+        if (activity == null) {
+            Log.e(TAG, "No activity");
+            return;
         }
+
+        deviceAdapter = new DeviceListAdapter(listener, activity, discoveredEndpoints);
+        connectionsClient = Nearby.getConnectionsClient(activity);
+        setLocalName(activity);
     }
 
     private void setLocalName(Context context) {
@@ -208,6 +212,7 @@ public abstract class NearbyFragment extends Fragment {
                             break;
                         default:
                             // Unknown status code
+                            Log.e(TAG, "Unknown status code");
                     }
                 }
 
@@ -225,7 +230,8 @@ public abstract class NearbyFragment extends Fragment {
             };
 
     protected void startAdvertising() {
-        AdvertisingOptions advertisingOptions = new AdvertisingOptions.Builder().setStrategy(STRATEGY).build();
+        AdvertisingOptions advertisingOptions = new AdvertisingOptions.Builder()
+                .setStrategy(STRATEGY).setDisruptiveUpgrade(false).build();
         connectionsClient.startAdvertising(localName, SERVICE_ID, connectionLifecycleCallback, advertisingOptions)
                 .addOnSuccessListener((Void unused) ->
                         Log.d(TAG, "Started advertising"))
@@ -616,7 +622,7 @@ public abstract class NearbyFragment extends Fragment {
         if (context instanceof Listener) {
             listener = (Listener) context;
         } else {
-            throw new RuntimeException(context.toString() + " must implement NearbyFragment.Listener");
+            throw new RuntimeException(context + " must implement NearbyFragment.Listener");
         }
     }
 
