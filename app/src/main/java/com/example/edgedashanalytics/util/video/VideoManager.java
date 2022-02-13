@@ -159,7 +159,7 @@ public class VideoManager {
                     videos.add(video);
                     Log.d(TAG, video.toString());
                 } else {
-                    Log.e(TAG, "Video is null");
+                    Log.w(TAG, "Video is null");
                 }
             } while (videoCursor.moveToNext());
         }
@@ -175,7 +175,7 @@ public class VideoManager {
             BigInteger size = new BigInteger(cursor.getString(cursor.getColumnIndex(Media.SIZE)));
             video = new Video(id, name, data, MIME_TYPE, size);
         } catch (Exception e) {
-            Log.e(TAG, String.format("videoFromCursor error: \n%s", e.getMessage()));
+            Log.w(TAG, String.format("videoFromCursor error: \n%s", e.getMessage()));
         }
         return video;
     }
