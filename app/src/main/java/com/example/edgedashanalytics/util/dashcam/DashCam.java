@@ -176,15 +176,29 @@ public class DashCam {
     public static Runnable downloadTestVideos(Consumer<Video> downloadCallback, Context context) {
         return () -> {
             List<String> newVideos = new ArrayList<>(CollectionUtils.disjunction(testVideos, downloads));
-            newVideos.sort(Comparator.comparingInt((String a) -> Integer.parseInt(a.substring(4, 6))));
+            newVideos.sort(DashCam::testVideoComparator);
 
             if (newVideos.size() != 0) {
                 String toDownload = newVideos.get(0);
+                Log.v(TAG, String.format("Passing to download callback: %s", toDownload));
                 downloadVideo(videoDirUrl + toDownload, downloadCallback, context);
             } else {
+                Log.v(TAG, "All test videos downloaded");
                 downloadCallback.accept(null);
             }
         };
+    }
+
+    private static int testVideoComparator(String videoA, String videoB) {
+        String prefixA = videoA.substring(0, 3);
+        String prefixB = videoB.substring(0, 3);
+        int suffixA = Integer.parseInt(videoA.substring(4, 6));
+        int suffixB = Integer.parseInt(videoB.substring(4, 6));
+
+        if (suffixA != suffixB) {
+            return suffixA - suffixB;
+        }
+        return prefixA.compareTo(prefixB);
     }
 
     // public static Bitmap getLiveBitmap() {
