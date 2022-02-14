@@ -131,6 +131,17 @@ public class MainActivity extends AppCompatActivity implements
         if (hasPermissions()) {
             requestPermissions(PERMISSIONS, REQUEST_PERMISSIONS);
         }
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            String[] ANDROID_12_PERMISSIONS = {
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_ADVERTISE,
+                    Manifest.permission.BLUETOOTH_CONNECT
+            };
+            if (hasPermissions()) {
+                requestPermissions(ANDROID_12_PERMISSIONS, REQUEST_PERMISSIONS);
+            }
+        }
     }
 
     private boolean hasPermissions(String... permissions) {
