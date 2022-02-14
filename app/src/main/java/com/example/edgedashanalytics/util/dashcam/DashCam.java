@@ -189,6 +189,15 @@ public class DashCam {
         };
     }
 
+    public static void downloadTestVideosLoop(Context c) {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.submit(() -> {
+            for (String filename : testVideos) {
+                downloadVideo(videoDirUrl + filename, v -> EventBus.getDefault().post(new AddEvent(v, Type.RAW)), c);
+            }
+        });
+    }
+
     private static int testVideoComparator(String videoA, String videoB) {
         String prefixA = videoA.substring(0, 3);
         String prefixB = videoB.substring(0, 3);

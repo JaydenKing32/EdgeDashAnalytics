@@ -216,7 +216,7 @@ public class MainActivity extends AppCompatActivity implements
         } else if (itemId == R.id.action_download) {
             Log.v(TAG, "Download button clicked");
             Toast.makeText(this, "Starting download", Toast.LENGTH_SHORT).show();
-            DashCam.startDownloadAll(this);
+            DashCam.downloadTestVideosLoop(this);
             return true;
         } else if (itemId == R.id.action_clean) {
             Log.v(TAG, "Clean button clicked");
