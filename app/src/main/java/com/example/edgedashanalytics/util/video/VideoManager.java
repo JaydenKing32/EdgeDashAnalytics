@@ -169,10 +169,29 @@ public class VideoManager {
         Log.v(TAG, "videoFromCursor");
         Video video = null;
         try {
-            String id = cursor.getString(cursor.getColumnIndex(Media._ID));
-            String name = cursor.getString(cursor.getColumnIndex(Media.DISPLAY_NAME));
-            String data = cursor.getString(cursor.getColumnIndex(Media.DATA));
-            BigInteger size = new BigInteger(cursor.getString(cursor.getColumnIndex(Media.SIZE)));
+            int idIndex = cursor.getColumnIndex(Media._ID);
+            int nameIndex = cursor.getColumnIndex(Media.DISPLAY_NAME);
+            int dataIndex = cursor.getColumnIndex(Media.DATA);
+            int sizeIndex = cursor.getColumnIndex(Media.SIZE);
+
+            if (idIndex < 0 || nameIndex < 0 || dataIndex < 0 || sizeIndex < 0) {
+                Log.w(TAG, "videoFromCursor error: index is below zero");
+                return null;
+            }
+
+            String id = cursor.getString(idIndex);
+            String name = cursor.getString(nameIndex);
+            String data = cursor.getString(dataIndex);
+            BigInteger size;
+
+            try {
+                String sizeString = cursor.getString(sizeIndex);
+                size = new BigInteger(sizeString);
+            } catch (NullPointerException e) {
+                Log.w(TAG, "videoFromCursor error: Could not retrieve video file size, setting to zero");
+                size = new BigInteger("0");
+            }
+
             video = new Video(id, name, data, MIME_TYPE, size);
         } catch (Exception e) {
             Log.w(TAG, String.format("videoFromCursor error: \n%s", e.getMessage()));
