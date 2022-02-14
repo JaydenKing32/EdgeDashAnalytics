@@ -46,6 +46,7 @@ import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.AdvertisingOptions;
 import com.google.android.gms.nearby.connection.ConnectionInfo;
 import com.google.android.gms.nearby.connection.ConnectionLifecycleCallback;
+import com.google.android.gms.nearby.connection.ConnectionOptions;
 import com.google.android.gms.nearby.connection.ConnectionResolution;
 import com.google.android.gms.nearby.connection.ConnectionsClient;
 import com.google.android.gms.nearby.connection.ConnectionsStatusCodes;
@@ -308,7 +309,9 @@ public abstract class NearbyFragment extends Fragment {
     public void connectEndpoint(Endpoint endpoint) {
         Log.d(TAG, String.format("Selected '%s'", endpoint));
         if (!endpoint.connected) {
-            connectionsClient.requestConnection(localName, endpoint.id, connectionLifecycleCallback)
+            ConnectionOptions connectionOptions = new ConnectionOptions.Builder().setDisruptiveUpgrade(false).build();
+
+            connectionsClient.requestConnection(localName, endpoint.id, connectionLifecycleCallback, connectionOptions)
                     .addOnSuccessListener(
                             // We successfully requested a connection. Now both sides
                             // must accept before the connection is established.
