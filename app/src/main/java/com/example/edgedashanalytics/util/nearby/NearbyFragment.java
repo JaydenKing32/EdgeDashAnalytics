@@ -91,7 +91,7 @@ public abstract class NearbyFragment extends Fragment {
     private static final String MESSAGE_SEPARATOR = "~";
     private static int transferCount = 0;
 
-    private final PayloadCallback payloadCallback = new ReceiveFilePayloadCallback();
+    private final ReceiveFilePayloadCallback payloadCallback = new ReceiveFilePayloadCallback();
     private final Queue<Message> transferQueue = new LinkedList<>();
     private final LinkedHashMap<String, Endpoint> discoveredEndpoints = new LinkedHashMap<>();
     private final ExecutorService analysisExecutor = Executors.newSingleThreadExecutor();
@@ -117,6 +117,18 @@ public abstract class NearbyFragment extends Fragment {
         deviceAdapter = new DeviceListAdapter(listener, activity, discoveredEndpoints);
         connectionsClient = Nearby.getConnectionsClient(activity);
         setLocalName(activity);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+        stopDashDownload();
+        stopAdvertising();
+        stopDiscovery();
+
+        payloadCallback.cancelAllPayloads();
+        connectionsClient.stopAllEndpoints();
     }
 
     private void setLocalName(Context context) {
@@ -838,6 +850,15 @@ public abstract class NearbyFragment extends Fragment {
                 if (payload != null && payload.getType() == Payload.Type.FILE) {
                     processFilePayload(payloadId, endpointId);
                 }
+            }
+        }
+
+        private void cancelAllPayloads() {
+            Log.v(TAG, "Cancelling all payloads");
+
+            for (int i = 0; i < incomingFilePayloads.size(); i++) {
+                Long payloadId = incomingFilePayloads.keyAt(i);
+                connectionsClient.cancelPayload(payloadId);
             }
         }
     }
