@@ -139,7 +139,8 @@ public class MainActivity extends AppCompatActivity implements
             String[] ANDROID_12_PERMISSIONS = {
                     Manifest.permission.BLUETOOTH_SCAN,
                     Manifest.permission.BLUETOOTH_ADVERTISE,
-                    Manifest.permission.BLUETOOTH_CONNECT
+                    Manifest.permission.BLUETOOTH_CONNECT,
+                    Manifest.permission.MANAGE_EXTERNAL_STORAGE
             };
             if (hasPermissions()) {
                 requestPermissions(ANDROID_12_PERMISSIONS, REQUEST_PERMISSIONS);
