@@ -103,6 +103,7 @@ public abstract class NearbyFragment extends Fragment {
     protected DeviceListAdapter deviceAdapter;
     protected String localName = null;
     private Listener listener;
+    private boolean verbose;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -113,6 +114,9 @@ public abstract class NearbyFragment extends Fragment {
             Log.e(TAG, "No activity");
             return;
         }
+
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(activity);
+        verbose = pref.getBoolean(getString(R.string.verbose_output_key), false);
 
         deviceAdapter = new DeviceListAdapter(listener, activity, discoveredEndpoints);
         connectionsClient = Nearby.getConnectionsClient(activity);
@@ -668,6 +672,9 @@ public abstract class NearbyFragment extends Fragment {
         private final SimpleArrayMap<Long, Command> filePayloadCommands = new SimpleArrayMap<>();
         private final SimpleArrayMap<Long, Instant> startTimes = new SimpleArrayMap<>();
 
+        private Instant lastUpdate = Instant.now();
+        private static final int updateInterval = 10;
+
         @Override
         public void onPayloadReceived(@NonNull String endpointId, @NonNull Payload payload) {
             Log.d(TAG, String.format("onPayloadReceived(endpointId=%s, payload=%s)", endpointId, payload));
@@ -837,8 +844,15 @@ public abstract class NearbyFragment extends Fragment {
 
         @Override
         public void onPayloadTransferUpdate(@NonNull String endpointId, @NonNull PayloadTransferUpdate update) {
-            // int progress = (int) (100.0 * (update.getBytesTransferred() / (double) update.getTotalBytes()));
-            // Log.v(TAG, String.format("Transfer to %s: %d%%", endpointId, progress));
+            if (verbose) {
+                Instant now = Instant.now();
+
+                if (Duration.between(lastUpdate, now).compareTo(Duration.ofSeconds(updateInterval)) > 0) {
+                    lastUpdate = now;
+                    int progress = (int) (100.0 * (update.getBytesTransferred() / (double) update.getTotalBytes()));
+                    Log.v(TAG, String.format("Transfer to %s: %d%%", endpointId, progress));
+                }
+            }
 
             if (update.getStatus() == PayloadTransferUpdate.Status.SUCCESS) {
                 Log.v(TAG, String.format("Transfer to %s complete", discoveredEndpoints.get(endpointId)));
