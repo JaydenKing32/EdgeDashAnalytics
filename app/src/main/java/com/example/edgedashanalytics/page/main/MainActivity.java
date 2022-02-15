@@ -5,7 +5,11 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.MediaScannerConnection;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -18,6 +22,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.preference.PreferenceManager;
 
+import com.example.edgedashanalytics.BuildConfig;
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.data.result.ResultRepository;
 import com.example.edgedashanalytics.data.video.ExternalStorageVideosRepository;
@@ -145,6 +150,12 @@ public class MainActivity extends AppCompatActivity implements
             if (hasPermissions()) {
                 requestPermissions(ANDROID_12_PERMISSIONS, REQUEST_PERMISSIONS);
             }
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
+            Uri uri = Uri.parse("package:" + BuildConfig.APPLICATION_ID);
+            Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, uri);
+            startActivity(intent);
         }
     }
 
