@@ -1,11 +1,14 @@
 package com.example.edgedashanalytics.page.main;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -226,6 +229,7 @@ public class MainActivity extends AppCompatActivity implements
 
         if (itemId == R.id.action_connect) {
             Log.v(TAG, "Connect button clicked");
+            checkWifiStrength();
             showNewFragmentAndHideOldFragment(connectionFragment);
             return true;
         } else if (itemId == R.id.action_download) {
@@ -265,6 +269,23 @@ public class MainActivity extends AppCompatActivity implements
         processingFragment.cleanRepository(this);
         resultsFragment.cleanRepository(this);
         FileManager.cleanDirectories(this);
+    }
+
+    private void checkWifiStrength() {
+        WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+        int level;
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            level = wifiManager.calculateSignalLevel(wifiInfo.getRssi());
+        } else {
+            int numberOfLevels = 5;
+            level = WifiManager.calculateSignalLevel(wifiInfo.getRssi(), numberOfLevels);
+        }
+
+        String signalMessage = String.format("Wi-Fi signal strength: %s", level);
+        Log.v(TAG, signalMessage);
+        Toast.makeText(this, signalMessage, Toast.LENGTH_SHORT).show();
     }
 
     @Override
