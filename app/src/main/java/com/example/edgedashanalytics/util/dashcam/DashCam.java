@@ -58,7 +58,7 @@ public class DashCam {
             List<String> allFiles = getViofoFilenames();
 
             if (allFiles == null) {
-                Log.e(TAG, "Dashcam file list is null");
+                Log.e(TAG, "Dash cam file list is null");
                 return;
             }
 
@@ -75,7 +75,7 @@ public class DashCam {
         try {
             doc = Jsoup.connect(baseUrl + "blackvue_vod.cgi").get();
         } catch (IOException e) {
-            Log.e(TAG, "Could not connect to dashcam");
+            Log.e(TAG, "Could not connect to dash cam");
             return null;
         }
         List<String> allFiles = new ArrayList<>();
@@ -98,7 +98,7 @@ public class DashCam {
         try {
             doc = Jsoup.connect(baseUrl).get();
         } catch (IOException e) {
-            Log.e(TAG, "Could not connect to dashcam");
+            Log.e(TAG, "Could not connect to dash cam");
             return null;
         }
         List<String> allFiles = new ArrayList<>();

@@ -86,7 +86,7 @@ import java.util.stream.Collectors;
 public abstract class NearbyFragment extends Fragment {
     private static final String TAG = NearbyFragment.class.getSimpleName();
     private static final Strategy STRATEGY = Strategy.P2P_STAR;
-    private static final String SERVICE_ID = "com.example.edgesum";
+    private static final String SERVICE_ID = "com.example.edgedashanalytics";
     private static final String LOCAL_NAME_KEY = "LOCAL_NAME";
     private static final String MESSAGE_SEPARATOR = "~";
     private static int transferCount = 0;
@@ -288,7 +288,7 @@ public abstract class NearbyFragment extends Fragment {
 
         SettingsActivity.printPreferences(true, context);
         Log.i(I_TAG, String.format("Download delay: %ds", delay));
-        Log.w(I_TAG, "Started downloading from dashcam");
+        Log.w(I_TAG, "Started downloading from dash cam");
         PowerMonitor.startPowerMonitor(context);
 
         downloadTaskExecutor.scheduleWithFixedDelay(DashCam.downloadTestVideos(this::downloadCallback, context),
@@ -296,7 +296,7 @@ public abstract class NearbyFragment extends Fragment {
     }
 
     protected void stopDashDownload() {
-        Log.w(I_TAG, "Stopped downloading from dashcam");
+        Log.w(I_TAG, "Stopped downloading from dash cam");
         downloadTaskExecutor.shutdown();
     }
 

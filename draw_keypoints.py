@@ -37,7 +37,7 @@ with open(args.key) as json_file:
     key_points = json.load(json_file)
 
 video_name = os.path.splitext(os.path.basename(args.video))[0]
-out_filename = f"{video_name}-keypoints.avi"
+out_filename = f"{video_name}-keyPoints.avi"
 
 if os.path.isfile(out_filename):
     os.remove(out_filename)
