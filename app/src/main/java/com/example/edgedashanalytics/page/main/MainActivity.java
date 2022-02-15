@@ -100,6 +100,7 @@ public class MainActivity extends AppCompatActivity implements
 
     private void storeLogsInFile() {
         int id = android.os.Process.myPid();
+        @SuppressWarnings("SpellCheckingInspection")
         String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.ENGLISH).format(new Date());
         String logPath = String.format("%s/%s.log", FileManager.getLogDirPath(), timestamp);
 
@@ -107,7 +108,9 @@ public class MainActivity extends AppCompatActivity implements
             // Clear logcat buffer
             Runtime.getRuntime().exec("logcat -c");
             // Write logcat messages to logPath
-            Runtime.getRuntime().exec(String.format("logcat --pid %s -f %s", id, logPath));
+            String loggingCommand = String.format("logcat --pid %s -f %s", id, logPath);
+            Log.v(TAG, String.format("Running logging command: %s", loggingCommand));
+            Runtime.getRuntime().exec(loggingCommand);
         } catch (IOException e) {
             Log.e(TAG, String.format("Unable to store log in file:\n%s", e.getMessage()));
         }

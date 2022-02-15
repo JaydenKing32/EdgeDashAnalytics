@@ -58,7 +58,7 @@ fi
 serial_string=$(join ", " "${serials[@]}")
 printf "Collecting logs from %s\n" "${serial_string}"
 
-phone_dir="/storage/emulated/0/Movies/out"
+phone_dir="/storage/emulated/0/Documents/out"
 read -ra log_times -d '' <<<"$(adb.exe -s "${serials[0]}" shell ls "${phone_dir}" | sed 's/\.log\r$//')"
 
 # Assumes that all connected devices have the same number of log files
