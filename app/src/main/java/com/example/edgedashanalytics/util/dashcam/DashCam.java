@@ -3,13 +3,16 @@ package com.example.edgedashanalytics.util.dashcam;
 import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.collection.SimpleArrayMap;
+import androidx.preference.PreferenceManager;
 
+import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.event.video.AddEvent;
 import com.example.edgedashanalytics.event.video.Type;
 import com.example.edgedashanalytics.model.Video;
@@ -50,6 +53,7 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+// TODO: convert to singleton
 public class DashCam {
     private static final String TAG = DashCam.class.getSimpleName();
     // BlackVue
@@ -63,15 +67,20 @@ public class DashCam {
     private static final SimpleArrayMap<String, Instant> downloadStarts = new SimpleArrayMap<>();
 
     private static Fetch fetch = null;
+    private static final long updateInterval = 5000;
+    private static boolean verbose;
 
     public static void setFetch(Context context) {
         if (fetch == null) {
             FetchConfiguration fetchConfiguration = new FetchConfiguration.Builder(context)
-                    .setDownloadConcurrentLimit(1).build();
+                    .setDownloadConcurrentLimit(1).setProgressReportingInterval(updateInterval).build();
 
             fetch = Fetch.Impl.getInstance(fetchConfiguration);
             clearDownloads();
         }
+
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        verbose = pref.getBoolean(context.getString(R.string.verbose_output_key), false);
     }
 
     public static void clearDownloads() {
@@ -317,13 +326,21 @@ public class DashCam {
                 downloadCallback.accept(video);
             }
 
+            public void onProgress(@NonNull Download d, long etaMilli, long bytesPerSec) {
+                if (verbose) {
+                    Log.v(TAG, String.format("Downloading %s, Progress: %3s%%, ETA: %2ss, MB/s: %4s",
+                            FileManager.getFilenameFromPath(d.getUrl()),
+                            d.getProgress(), etaMilli / 1000, bytesPerSec / 1000
+                    ));
+                }
+            }
+
             // @formatter:off
             public void onAdded(@NonNull Download d) {}
             public void onQueued(@NonNull Download d, boolean b) {}
             public void onWaitingNetwork(@NonNull Download d) {}
             public void onError(@NonNull Download d, @NonNull Error error, @Nullable Throwable throwable) {}
             public void onDownloadBlockUpdated(@NonNull Download d, @NonNull DownloadBlock dBlock, int i) {}
-            public void onProgress(@NonNull Download d, long l, long l1) {}
             public void onPaused(@NonNull Download d) {}
             public void onResumed(@NonNull Download d) {}
             public void onCancelled(@NonNull Download d) {}
