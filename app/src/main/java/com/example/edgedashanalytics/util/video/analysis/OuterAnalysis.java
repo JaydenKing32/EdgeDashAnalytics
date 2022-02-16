@@ -6,8 +6,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
-import android.graphics.RectF;
-import android.media.MediaMetadataRetriever;
 import android.util.Log;
 
 import androidx.preference.PreferenceManager;
@@ -22,11 +20,10 @@ import org.tensorflow.lite.task.vision.detector.ObjectDetector;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.StringJoiner;
-import java.util.stream.Collectors;
 
 // https://www.tensorflow.org/lite/models/object_detection/overview
 // https://tfhub.dev/tensorflow/collections/lite/task-library/object-detector/1
@@ -37,30 +34,34 @@ import java.util.stream.Collectors;
 public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
     private static final String TAG = OuterAnalysis.class.getSimpleName();
 
-    private final int maxDetections;
-    private final float minScore;
-    private int scaleFactor = 1;
+    // Different models have different maximum detection limits
+    //  MobileNet's is 10, EfficientDet's is 25
+    private static final int MAX_DETECTIONS = -1;
+    private static final float MIN_SCORE = 0.2f;
+
     private ObjectDetector detector;
+
+    // Include or exclude bicycles?
+    private static final ArrayList<String> vehicleCategories = new ArrayList<>(Arrays.asList(
+            "bicycle", "car", "motorcycle", "bus", "truck"
+    ));
 
     public OuterAnalysis(Context context) {
         super(context);
-        this.maxDetections = -1;
-        this.minScore = 0.2f;
 
         try {
-            BaseOptions baseOptions = BaseOptions.builder().setNumThreads(threadNum).build();
+            BaseOptions baseOptions = BaseOptions.builder().setNumThreads(THREAD_NUM).build();
 
             ObjectDetector.ObjectDetectorOptions objectDetectorOptions =
                     ObjectDetector.ObjectDetectorOptions.builder()
                             .setBaseOptions(baseOptions)
-                            .setMaxResults(maxDetections)
-                            .setScoreThreshold(minScore)
-                            .setLabelAllowList(Collections.singletonList("person"))
+                            .setMaxResults(MAX_DETECTIONS)
+                            .setScoreThreshold(MIN_SCORE)
                             .build();
 
-            String defaultModel = context.getString(R.string.default_model_key);
+            String defaultModel = context.getString(R.string.default_object_model_key);
             SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-            String modelFilename = pref.getString(context.getString(R.string.model_key), defaultModel);
+            String modelFilename = pref.getString(context.getString(R.string.object_model_key), defaultModel);
 
             detector = ObjectDetector.createFromFileAndOptions(context, modelFilename, objectDetectorOptions);
         } catch (IOException e) {
@@ -68,53 +69,10 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         }
     }
 
-    private void scaledFramesLoop(MediaMetadataRetriever retriever, int totalFrames) {
-        String videoWidthString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH);
-        String videoHeightString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT);
-
-        if (videoWidthString == null || videoHeightString == null) {
-            Log.e(TAG, "Could not retrieve metadata");
-            return;
-        }
-        scaleFactor = 3;
-
-        int videoWidth = Integer.parseInt(videoWidthString);
-        int videoHeight = Integer.parseInt(videoHeightString);
-        int scaledWidth = videoWidth / scaleFactor;
-        int scaledHeight = videoHeight / scaleFactor;
-
-        for (int i = 0; i < totalFrames; i += bufferSize) {
-            if (Thread.currentThread().isInterrupted()) {
-                return;
-            }
-            int frameBuffSize = Integer.min(bufferSize, totalFrames - i);
-            // 1080p bitmaps too memory intensive, need to scale down
-            List<Bitmap> frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize).stream()
-                    .map(b -> Bitmap.createScaledBitmap(b, scaledWidth, scaledHeight, false))
-                    .collect(Collectors.toList());
-
-            for (int k = 0; k < frameBuffSize; k++) {
-                Bitmap bitmap = frameBuffer.get(k);
-                int curFrame = i + k;
-
-                if (bitmap == null) {
-                    Log.w(TAG, String.format("Could not extract frame at index %d", curFrame));
-                    continue;
-                }
-
-                processFrame(bitmap, curFrame);
-            }
-        }
-    }
-
     void processFrame(Bitmap bitmap, int frameIndex) {
-        if (Thread.currentThread().isInterrupted()) {
-            Log.e(TAG, String.format("Stopping at frame %d", frameIndex));
-            return;
-        }
         TensorImage image = TensorImage.fromBitmap(bitmap);
         List<Detection> detectionList = detector.detect(image);
-        List<Person> people = new ArrayList<>(detectionList.size());
+        List<Hazard> hazards = new ArrayList<>(detectionList.size());
 
         for (Detection detection : detectionList) {
             List<Category> categoryList = detection.getCategories();
@@ -123,31 +81,29 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
                 continue;
             }
             Category category = categoryList.get(0);
-            RectF bb = detection.getBoundingBox();
-            Rect boundingBox = new Rect(
-                    (int) bb.left * scaleFactor,
-                    (int) bb.top * scaleFactor,
-                    (int) bb.right * scaleFactor,
-                    (int) bb.bottom * scaleFactor
-            );
+            Rect boundingBox = new Rect();
+            detection.getBoundingBox().roundOut(boundingBox);
 
-            people.add(new Person(category.getScore(), isClose(detection, detectionList), boundingBox));
+            hazards.add(new Hazard(
+                    category.getLabel(),
+                    category.getScore(),
+                    isDanger(detection, bitmap.getWidth(), bitmap.getHeight()),
+                    boundingBox
+            ));
         }
-        frames.add(new OuterFrame(frameIndex, people));
+        frames.add(new OuterFrame(frameIndex, hazards));
 
         if (verbose) {
-            String resultHead = String.format(Locale.ENGLISH,
-                    "Analysis completed for frame: %04d\nDetected objects: %02d\n",
-                    frameIndex, detectionList.size());
+            String resultHead = String.format(
+                    Locale.ENGLISH,
+                    "Analysis completed for frame: %04d\nDetected hazards: %02d\n",
+                    frameIndex, detectionList.size()
+            );
             StringBuilder builder = new StringBuilder(resultHead);
 
             for (Detection detection : detectionList) {
                 String resultBody = getDetectionString(detection);
                 builder.append(resultBody);
-
-                // if (isClose(detection, detectionList)) {
-                //     System.out.println(frameIndex);
-                // }
             }
             builder.append('\n');
 
@@ -172,45 +128,59 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
 
         StringJoiner result = new StringJoiner("\n  ");
         result.add(String.format("Category: %s", category.getLabel()));
-        result.add(String.format(Locale.ENGLISH, "Confidence: %.2f", score));
+        result.add(String.format(Locale.ENGLISH, "Score: %.2f", score));
         result.add(String.format("BBox: %s", boundingBox));
 
-        return String.format("%s\n", result.toString());
+        return String.format("%s\n", result);
     }
 
-    private boolean isClose(Detection object, List<Detection> others) {
-        Rect boxA = new Rect();
-        Rect boxB = new Rect();
-        object.getBoundingBox().roundOut(boxA);
-
-        int offset = boxA.height() / 2;
-        expandRect(boxA, offset);
-
-        for (Detection other : others) {
-            other.getBoundingBox().roundOut(boxB);
-            // expandRect(boxB, offset);
-
-            if (!object.equals(other) && boxA.intersect(boxB)) {
-                return true;
-            }
+    private boolean isDanger(Detection detection, int imageWidth, int imageHeight) {
+        List<Category> categoryList = detection.getCategories();
+        if (categoryList == null || categoryList.size() == 0) {
+            return false;
         }
-        return false;
+
+        String detCategory = categoryList.get(0).getLabel();
+        Rect detBox = new Rect();
+        detection.getBoundingBox().roundOut(detBox);
+
+        if (vehicleCategories.contains(detCategory)) {
+            // Check tailgating
+            Rect tailgateZone = getTailgateZone(imageWidth, imageHeight);
+            return tailgateZone.contains(detBox) || tailgateZone.intersect(detBox);
+        } else {
+            // Check obstruction
+            Rect dangerZone = getDangerZone(imageWidth, imageHeight);
+            return dangerZone.contains(detBox) || dangerZone.intersect(detBox);
+        }
     }
 
-    private void expandRect(Rect rect, int expandBy) {
-        rect.left -= expandBy;
-        rect.top -= expandBy;
-        rect.bottom += expandBy;
-        rect.right += expandBy;
+    private Rect getDangerZone(int imageWidth, int imageHeight) {
+        int dangerLeft = imageWidth / 4;
+        int dangerRight = (imageWidth / 4) * 3;
+        int dangerTop = (imageHeight / 10) * 4;
+
+        return new Rect(dangerLeft, dangerTop, dangerRight, imageHeight);
+    }
+
+    private Rect getTailgateZone(int imageWidth, int imageHeight) {
+        int tailLeft = imageWidth / 3;
+        int tailRight = (imageWidth / 3) * 2;
+        int tailTop = (imageHeight / 4) * 3;
+        // Exclude driving car's bonnet, assuming it always occupies the same space
+        //  Realistically, due to dash cam position/angle, bonnets will occupy differing proportion of the video
+        int tailBottom = imageHeight - imageHeight / 10;
+
+        return new Rect(tailLeft, tailTop, tailRight, tailBottom);
     }
 
     public void printParameters() {
         StringJoiner paramMessage = new StringJoiner("\n  ");
-        paramMessage.add("Video analysis parameters:");
+        paramMessage.add("Outer analysis parameters:");
         paramMessage.add(String.format("bufferSize: %s", bufferSize));
-        paramMessage.add(String.format("maxDetections: %s", maxDetections));
-        paramMessage.add(String.format("minScore: %s", minScore));
-        paramMessage.add(String.format("threadNum: %s", threadNum));
+        paramMessage.add(String.format("THREAD_NUM: %s", THREAD_NUM));
+        paramMessage.add(String.format("MAX_DETECTIONS: %s", MAX_DETECTIONS));
+        paramMessage.add(String.format("MIN_SCORE: %s", MIN_SCORE));
 
         Log.i(I_TAG, paramMessage.toString());
     }

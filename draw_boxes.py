@@ -1,10 +1,9 @@
 import json
 import os
 from argparse import ArgumentParser
-from datetime import datetime
 
 import cv2
-
+from tqdm import tqdm
 
 parser = ArgumentParser(description="Draw boundary boxes of detected objects in a video file")
 parser.add_argument("video", help="Filepath of video file")
@@ -29,21 +28,29 @@ out = cv2.VideoWriter(out_filename, fourcc, frame_rate, (frame_width, frame_heig
 
 frame = 0
 
-while cap.isOpened():
-    ret, image_np = cap.read()
+length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    if not ret:
-        print(f"{datetime.now()}: Completed video analysis")
-        break
+with tqdm(desc=out_filename, total=length, smoothing=0.01) as pbar:
+    while cap.isOpened():
+        ret, image_np = cap.read()
 
-    for det in detections[frame]["people"]:
-        bbox = det["bBox"]
-        colour = (0, 0, 255) if det["close"] else (0, 255, 0)
-        image_np = cv2.rectangle(image_np, (bbox["left"], bbox["top"]), (bbox["right"], bbox["bottom"]), colour, 1)
+        if not ret:
+            break
 
-    out.write(image_np)
+        for det in detections[frame]["hazards"]:
+            bbox = det["bBox"]
+            colour = (0, 0, 255) if det["danger"] else (0, 255, 0)
 
-    frame += 1
+            image_np = cv2.rectangle(image_np, (bbox["left"], bbox["top"]), (bbox["right"], bbox["bottom"]), colour, 1)
+
+            ff = cv2.FONT_HERSHEY_SIMPLEX
+            fc = (255, 255, 255)
+            image_np = cv2.putText(image_np, det["category"], (bbox["left"], bbox["bottom"] + 10), ff, 0.5, fc, 1)
+        # cv2.imwrite(f"./out/{frame:04d}.png", image_np)
+        out.write(image_np)
+
+        frame += 1
+        pbar.update()
 
 cap.release()
 out.release()

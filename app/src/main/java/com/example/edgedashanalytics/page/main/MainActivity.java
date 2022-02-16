@@ -1,11 +1,18 @@
 package com.example.edgedashanalytics.page.main;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.MediaScannerConnection;
+import android.net.Uri;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -18,6 +25,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.preference.PreferenceManager;
 
+import com.example.edgedashanalytics.BuildConfig;
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.data.result.ResultRepository;
 import com.example.edgedashanalytics.data.video.ExternalStorageVideosRepository;
@@ -100,6 +108,7 @@ public class MainActivity extends AppCompatActivity implements
 
     private void storeLogsInFile() {
         int id = android.os.Process.myPid();
+        @SuppressWarnings("SpellCheckingInspection")
         String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.ENGLISH).format(new Date());
         String logPath = String.format("%s/%s.log", FileManager.getLogDirPath(), timestamp);
 
@@ -107,7 +116,9 @@ public class MainActivity extends AppCompatActivity implements
             // Clear logcat buffer
             Runtime.getRuntime().exec("logcat -c");
             // Write logcat messages to logPath
-            Runtime.getRuntime().exec(String.format("logcat --pid %s -f %s", id, logPath));
+            String loggingCommand = String.format("logcat --pid %s -f %s", id, logPath);
+            Log.v(TAG, String.format("Running logging command: %s", loggingCommand));
+            Runtime.getRuntime().exec(loggingCommand);
         } catch (IOException e) {
             Log.e(TAG, String.format("Unable to store log in file:\n%s", e.getMessage()));
         }
@@ -130,6 +141,24 @@ public class MainActivity extends AppCompatActivity implements
 
         if (hasPermissions()) {
             requestPermissions(PERMISSIONS, REQUEST_PERMISSIONS);
+        }
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            String[] ANDROID_12_PERMISSIONS = {
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_ADVERTISE,
+                    Manifest.permission.BLUETOOTH_CONNECT,
+                    Manifest.permission.MANAGE_EXTERNAL_STORAGE
+            };
+            if (hasPermissions()) {
+                requestPermissions(ANDROID_12_PERMISSIONS, REQUEST_PERMISSIONS);
+            }
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
+            Uri uri = Uri.parse("package:" + BuildConfig.APPLICATION_ID);
+            Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, uri);
+            startActivity(intent);
         }
     }
 
@@ -200,12 +229,13 @@ public class MainActivity extends AppCompatActivity implements
 
         if (itemId == R.id.action_connect) {
             Log.v(TAG, "Connect button clicked");
+            checkWifiStrength();
             showNewFragmentAndHideOldFragment(connectionFragment);
             return true;
         } else if (itemId == R.id.action_download) {
             Log.v(TAG, "Download button clicked");
             Toast.makeText(this, "Starting download", Toast.LENGTH_SHORT).show();
-            DashCam.startDownloadAll(this);
+            DashCam.downloadTestVideosLoop(this);
             return true;
         } else if (itemId == R.id.action_clean) {
             Log.v(TAG, "Clean button clicked");
@@ -214,6 +244,7 @@ public class MainActivity extends AppCompatActivity implements
             return true;
         } else if (itemId == R.id.action_power) {
             Log.v(TAG, "Power button clicked");
+            PowerMonitor.startPowerMonitor(this);
             Toast.makeText(this,
                     String.format(Locale.ENGLISH, "Average power: %dmW", PowerMonitor.getAveragePowerMilliWatts()),
                     Toast.LENGTH_SHORT).show();
@@ -238,6 +269,23 @@ public class MainActivity extends AppCompatActivity implements
         processingFragment.cleanRepository(this);
         resultsFragment.cleanRepository(this);
         FileManager.cleanDirectories(this);
+    }
+
+    private void checkWifiStrength() {
+        WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+        int level;
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            level = wifiManager.calculateSignalLevel(wifiInfo.getRssi());
+        } else {
+            int numberOfLevels = 5;
+            level = WifiManager.calculateSignalLevel(wifiInfo.getRssi(), numberOfLevels);
+        }
+
+        String signalMessage = String.format("Wi-Fi signal strength: %s", level);
+        Log.v(TAG, signalMessage);
+        Toast.makeText(this, signalMessage, Toast.LENGTH_SHORT).show();
     }
 
     @Override

@@ -29,8 +29,8 @@ import java.util.Locale;
 public abstract class VideoAnalysis<T extends Frame> {
     private static final String TAG = VideoAnalysis.class.getSimpleName();
     private static final boolean DEFAULT_VERBOSE = false;
+    final static int THREAD_NUM = 4;
 
-    final int threadNum;
     final int bufferSize;
     final boolean verbose;
     final List<T> frames;
@@ -39,8 +39,6 @@ public abstract class VideoAnalysis<T extends Frame> {
      * Set up default parameters
      */
     VideoAnalysis(Context context) {
-        this.threadNum = 4;
-
         // Check if phone has at least (roughly) 2GB of RAM
         HardwareInfo hwi = new HardwareInfo(context);
         this.bufferSize = hwi.totalRam < 2000000000L ? 5 : 50;

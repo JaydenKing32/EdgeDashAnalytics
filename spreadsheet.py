@@ -56,7 +56,8 @@ class Analysis:
         self.seg_num = -1
         self.nodes = len([log for log in os.listdir(self.log_dir) if is_log(log)])
         self.algorithm = "offline"
-        self.model = ""
+        self.object_model = ""
+        self.pose_model = ""
         self.local = False
         self.dash_down_time = -1.0
         self.down_time = -1.0
@@ -118,7 +119,8 @@ class Analysis:
                 delay = re_down_delay.match(line)
 
                 if pref is not None:
-                    model = master_log.readline().split()[-1]
+                    object_model_filename = master_log.readline().split()[-1]
+                    pose_model_filename = master_log.readline().split()[-1]
                     algo = master_log.readline().split()[-1]
                     local = master_log.readline().split()[-1] == "true"
                     master_log.readline()  # skip auto-download line
@@ -127,7 +129,8 @@ class Analysis:
 
                     self.algorithm = algo
                     self.seg_num = seg_num
-                    self.model = model
+                    self.object_model = models[object_model_filename]
+                    self.pose_model = models[pose_model_filename]
                     self.local = local
 
                 if delay is not None:
@@ -168,6 +171,16 @@ serial_numbers = {
     "1825": "0b3b6fd50c371825"  # Nexus 5
 }
 milliamp_devices = ["2802", "X9BT", "43e2"]
+models = {
+    "lite-model_ssd_mobilenet_v1_1_metadata_2.tflite": "MobileNetV1",
+    "lite-model_efficientdet_lite0_detection_metadata_1.tflite": "EfficientDet-Lite0",
+    "lite-model_efficientdet_lite1_detection_metadata_1.tflite": "EfficientDet-Lite1",
+    "lite-model_efficientdet_lite2_detection_metadata_1.tflite": "EfficientDet-Lite2",
+    "lite-model_efficientdet_lite3_detection_metadata_1.tflite": "EfficientDet-Lite3",
+    "lite-model_efficientdet_lite4_detection_metadata_2.tflite": "EfficientDet-Lite4",
+    "lite-model_movenet_singlepose_lightning_tflite_float16_4.tflite": "MoveNet Lightning",
+    "lite-model_movenet_singlepose_thunder_tflite_float16_4.tflite": "MoveNet Thunder"
+}
 
 timestamp = r"^(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s+\d+\s+\d+ "
 re_timestamp = re.compile(r"^(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{3})(?=\s+\d+\s+\d+).*(?:\s+)?$")
@@ -208,12 +221,29 @@ def get_master(log_dir: str) -> str:
             return file
 
 
+def get_basename_sans_ext(filename: str) -> str:
+    return os.path.splitext(os.path.basename(filename))[0]
+
+
 def get_video_name(name: str) -> str:
     sep = '!'
     if sep in name:
         return name.split(sep)[0]
     else:
         return name
+
+
+def compare_offline_files(files: List[str]) -> int:
+    try:
+        filename = next(filter(is_log, files))
+    except StopIteration:
+        return -1
+
+    serial = get_basename_sans_ext(filename)
+    if serial not in serial_numbers.values():
+        return -1
+
+    return list(serial_numbers.values()).index(serial)
 
 
 def timestamp_to_datetime(line: str) -> datetime:
@@ -335,10 +365,12 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], out_name: str):
 
         # Offline directories should only contain two files, normal log and verbose log
         for (path, dirs, files) in sorted(
-                [(path, dirs, files) for (path, dirs, files) in os.walk(log_dir) if len(files) == 2]):
+                [(path, dirs, files) for (path, dirs, files) in os.walk(log_dir) if len(files) == 2],
+                key=lambda pdf: compare_offline_files(pdf[2])
+        ):
             for log in files:
-                # Skip verbose logs
-                if "verbose" in log:
+                # Skip verbose logs and non-log files
+                if not is_log(log):
                     continue
 
                 log_path = os.path.join(path, log)
@@ -382,7 +414,8 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], out_name: str):
                 writer.writerow(["Device: {}".format(run.get_master_short_name())])
                 writer.writerow([
                     "Download Delay: {}".format(run.delay),
-                    "Model: {}".format(run.model),
+                    "Object Model: {}".format(run.object_model),
+                    "Pose Model: {}".format(run.pose_model),
                     "Total Power: {}".format(device.total_power),
                     "Average Power: {}".format(device.average_power)
                 ])
@@ -421,7 +454,8 @@ def make_spreadsheet(run: Analysis, out: str):
         writer.writerow([
             "Local Processing: {}".format(run.local),
             "Download Delay: {}".format(run.delay),
-            "Model: {}".format(run.model),
+            "Object Model: {}".format(run.object_model),
+            "Pose Model: {}".format(run.pose_model),
             "Dir: {}".format(run.get_sub_log_dir())
         ])
 
@@ -523,7 +557,7 @@ def spread(root: str, out: str):
     make_offline_spreadsheet(root, runs, out)
 
     for (path, dirs, files) in sorted([(path, dirs, files) for (path, dirs, files) in os.walk(root) if len(files) > 2]):
-        master_sn = os.path.splitext(os.path.basename(get_master(path)))[0]
+        master_sn = get_basename_sans_ext(get_master(path))
         logs = [log for log in os.listdir(path) if is_log(log)]
         devices = {device[-8:-4]: Device(device[-8:-4]) for device in logs}  # Initialise device dictionary
 

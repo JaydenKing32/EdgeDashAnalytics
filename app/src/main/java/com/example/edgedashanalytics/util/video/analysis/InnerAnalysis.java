@@ -3,6 +3,7 @@ package com.example.edgedashanalytics.util.video.analysis;
 import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
@@ -10,7 +11,9 @@ import android.graphics.PointF;
 import android.graphics.RectF;
 import android.util.Log;
 
-import androidx.collection.SimpleArrayMap;
+import androidx.preference.PreferenceManager;
+
+import com.example.edgedashanalytics.R;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.tensorflow.lite.DataType;
@@ -26,7 +29,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 
 // https://www.tensorflow.org/lite/examples/pose_estimation/overview
@@ -47,12 +52,13 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
     public InnerAnalysis(Context context) {
         super(context);
 
-        Interpreter.Options options = new Interpreter.Options();
-        options.setNumThreads(threadNum);
-        // String modelFilename = "lite-model_movenet_singlepose_lightning_tflite_float16_4.tflite";
-        String modelFilename = "lite-model_movenet_singlepose_thunder_tflite_float16_4.tflite";
+        String defaultModel = context.getString(R.string.default_pose_model_key);
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        String modelFilename = pref.getString(context.getString(R.string.pose_model_key), defaultModel);
 
         try {
+            Interpreter.Options options = new Interpreter.Options();
+            options.setNumThreads(THREAD_NUM);
             interpreter = new Interpreter(FileUtil.loadMappedFile(context, modelFilename), options);
 
             inputWidth = interpreter.getInputTensor(0).shape()[1];
@@ -124,7 +130,7 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         boolean distracted = isDistracted(keyPoints, bitmap.getWidth(), bitmap.getHeight());
         frames.add(new InnerFrame(frameIndex, distracted, totalScore, keyPoints));
 
-        // May improve performance, investigate later
+        // TODO: May improve performance, investigate later
         // cropRegion = determineRectF(keyPoints, bitmap.getWidth(), bitmap.getHeight());
 
         if (verbose) {
@@ -191,47 +197,76 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
     }
 
     /**
-     * Looking down, looking back (not reversing), drinking or eating
+     * Looking down, looking back (not reversing), drinking, eating, using a phone
      * Fairly basic, not very sophisticated
      */
     private boolean isDistracted(List<KeyPoint> keyPoints, int imageWidth, int imageHeight) {
-        SimpleArrayMap<BodyPart, KeyPoint> keyDict = new SimpleArrayMap<>(keyPoints.size());
+        Map<BodyPart, KeyPoint> keyDict = keyPoints.stream().collect(Collectors.toMap(k -> k.bodyPart, k -> k));
 
-        for (KeyPoint keyPoint : keyPoints) {
-            // May return keyPoint results for body parts that are not actually visible (e.g. arms in face view),
-            //  to address this, drop keyPoints with a very low confidence score
-            if (keyPoint.score >= MIN_SCORE) {
-                keyDict.put(keyPoint.bodyPart, keyPoint);
-            }
-        }
+        boolean handsOccupied = false;
 
-        KeyPoint wristR = keyDict.get(BodyPart.RIGHT_WRIST);
         KeyPoint wristL = keyDict.get(BodyPart.LEFT_WRIST);
+        KeyPoint wristR = keyDict.get(BodyPart.RIGHT_WRIST);
 
-        if (wristR == null || wristL == null) {
-            if (verbose) {
-                Log.v(TAG, "Could not identify wrist key points");
-            }
-            return false;
+        if (wristL.score >= MIN_SCORE) {
+            handsOccupied = areHandsOccupied(wristL, imageHeight);
         }
-        // Try getting average eye height position, flag if exceeds bounds
-        return areHandsOccupied(wristR, imageHeight) || areHandsOccupied(wristL, imageHeight);
+        if (wristR.score >= MIN_SCORE) {
+            handsOccupied = handsOccupied || areHandsOccupied(wristR, imageHeight);
+        }
+
+        KeyPoint eyeL = keyDict.get(BodyPart.LEFT_EYE);
+        KeyPoint eyeR = keyDict.get(BodyPart.RIGHT_EYE);
+        KeyPoint earL = keyDict.get(BodyPart.LEFT_EAR);
+        KeyPoint earR = keyDict.get(BodyPart.RIGHT_EAR);
+
+        boolean eyesOccupied = areEyesOccupied(eyeL, earL) || areEyesOccupied(eyeR, earR);
+
+        return handsOccupied || eyesOccupied;
     }
 
-    private boolean areHandsOccupied(KeyPoint keyPoint, int imageHeight) {
-        if (!keyPoint.bodyPart.equals(BodyPart.LEFT_WRIST) && !keyPoint.bodyPart.equals(BodyPart.RIGHT_WRIST)) {
+    /**
+     * If wrists are above 1/4 video height, then they aren't on the steering wheel and the driver is likely occupied
+     * with something such as drinking or talking on the phone
+     */
+    private boolean areHandsOccupied(KeyPoint wrist, int imageHeight) {
+        if (wrist == null) {
+            return false;
+        }
+        if (!(wrist.bodyPart.equals(BodyPart.LEFT_WRIST) || wrist.bodyPart.equals(BodyPart.RIGHT_WRIST))) {
             Log.w(TAG, "Passed incorrect body part to areHandsOccupied");
             return false;
         }
         // Y coordinates are top-down, not bottom-up
-        return keyPoint.coordinate.y < (imageHeight * 0.75);
+        return wrist.coordinate.y < (imageHeight * 0.75);
+    }
+
+    /**
+     * When looking straight ahead (watching the road), the eyes are positioned above the ears
+     * When looking down (such as glancing at a phone), the eyes are vertically closer to the ears
+     */
+    private boolean areEyesOccupied(KeyPoint eye, KeyPoint ear) {
+        if (eye == null || ear == null) {
+            return false;
+        }
+        if (!(eye.bodyPart.equals(BodyPart.LEFT_EYE) || eye.bodyPart.equals(BodyPart.RIGHT_EYE)) ||
+                !(ear.bodyPart.equals(BodyPart.LEFT_EAR) || ear.bodyPart.equals(BodyPart.RIGHT_EAR))) {
+            Log.w(TAG, "Passed incorrect body part to areEyesOccupied");
+            return false;
+        }
+
+        double dist = ear.coordinate.y - eye.coordinate.y;
+        double threshold = ear.coordinate.y / 20.0;
+
+        return dist < threshold;
     }
 
     public void printParameters() {
         StringJoiner paramMessage = new StringJoiner("\n  ");
-        paramMessage.add("Video analysis parameters:");
+        paramMessage.add("Inner analysis parameters:");
         paramMessage.add(String.format("bufferSize: %s", bufferSize));
-        paramMessage.add(String.format("threadNum: %s", threadNum));
+        paramMessage.add(String.format("THREAD_NUM: %s", THREAD_NUM));
+        paramMessage.add(String.format("MIN_SCORE: %s", MIN_SCORE));
 
         Log.i(I_TAG, paramMessage.toString());
     }

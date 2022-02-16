@@ -26,7 +26,7 @@ public class Algorithm {
     }
 
     /**
-     * @return an inactive endpoint with the most completed summarisations, or the endpoint with the shortest job queue
+     * @return an inactive endpoint with the most completions, or the endpoint with the shortest job queue
      */
     static Endpoint getFastestEndpoint(List<Endpoint> endpoints) {
         int maxComplete = Integer.MIN_VALUE;

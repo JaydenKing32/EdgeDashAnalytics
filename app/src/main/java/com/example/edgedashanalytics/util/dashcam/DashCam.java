@@ -58,7 +58,7 @@ public class DashCam {
             List<String> allFiles = getViofoFilenames();
 
             if (allFiles == null) {
-                Log.e(TAG, "Dashcam file list is null");
+                Log.e(TAG, "Dash cam file list is null");
                 return;
             }
 
@@ -75,7 +75,7 @@ public class DashCam {
         try {
             doc = Jsoup.connect(baseUrl + "blackvue_vod.cgi").get();
         } catch (IOException e) {
-            Log.e(TAG, "Could not connect to dashcam");
+            Log.e(TAG, "Could not connect to dash cam");
             return null;
         }
         List<String> allFiles = new ArrayList<>();
@@ -98,7 +98,7 @@ public class DashCam {
         try {
             doc = Jsoup.connect(baseUrl).get();
         } catch (IOException e) {
-            Log.e(TAG, "Could not connect to dashcam");
+            Log.e(TAG, "Could not connect to dash cam");
             return null;
         }
         List<String> allFiles = new ArrayList<>();
@@ -175,17 +175,39 @@ public class DashCam {
 
     public static Runnable downloadTestVideos(Consumer<Video> downloadCallback, Context context) {
         return () -> {
-            List<String> newVideos = new ArrayList<>(CollectionUtils.disjunction(testVideosBdd, downloads));
-            newVideos.sort(Comparator.comparing(String::toString));
+            List<String> newVideos = new ArrayList<>(CollectionUtils.disjunction(testVideos, downloads));
+            newVideos.sort(DashCam::testVideoComparator);
 
             if (newVideos.size() != 0) {
-                // Get oldest new video, testVideos should already be sorted
                 String toDownload = newVideos.get(0);
+                Log.v(TAG, String.format("Passing to download callback: %s", toDownload));
                 downloadVideo(videoDirUrl + toDownload, downloadCallback, context);
             } else {
+                Log.v(TAG, "All test videos downloaded");
                 downloadCallback.accept(null);
             }
         };
+    }
+
+    public static void downloadTestVideosLoop(Context c) {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.submit(() -> {
+            for (String filename : testVideos) {
+                downloadVideo(videoDirUrl + filename, v -> EventBus.getDefault().post(new AddEvent(v, Type.RAW)), c);
+            }
+        });
+    }
+
+    private static int testVideoComparator(String videoA, String videoB) {
+        String prefixA = videoA.substring(0, 3);
+        String prefixB = videoB.substring(0, 3);
+        int suffixA = Integer.parseInt(videoA.substring(4, 6));
+        int suffixB = Integer.parseInt(videoB.substring(4, 6));
+
+        if (suffixA != suffixB) {
+            return suffixA - suffixB;
+        }
+        return prefixA.compareTo(prefixB);
     }
 
     // public static Bitmap getLiveBitmap() {
@@ -195,73 +217,27 @@ public class DashCam {
     //     return retriever.getFrameAtTime();
     // }
 
-    private static final ArrayList<String> testVideosBdd = new ArrayList<>(Arrays.asList(
-            "b1c66a42-6f7d68ca.mp4",
-            "b1c9c847-3bda4659.mp4",
-            "b1ca2e5d-84cf9134.mp4",
-            "b1cd1e94-26dd524f.mp4",
-            "b1cd1e94-549d0bfe.mp4",
-            "b1ceb32e-a106591d.mp4",
-            "b1d0a191-03dcecc2.mp4",
-            "b1d0a191-06deb55d.mp4",
-            "b1d0a191-2ed2269e.mp4",
-            "b1d0a191-65deaeef.mp4",
-            "b1d0a191-de8948f6.mp4",
-            "b1d10d08-c35503b8.mp4",
-            "b1d22ed6-f1cac061.mp4",
-            "b1d7b3ac-2a92e19f.mp4",
-            "b1dac7f7-6b2e0382.mp4",
-            "b1e0c01d-dd9e6e2f.mp4",
-            "b1e1a7b8-0aec80e8.mp4",
-            "b1e1a7b8-65ec7612.mp4",
-            "b1ee702d-0ae1fc10.mp4",
-            "b1f0efd9-e900c6e5.mp4",
-            "b1f20aa0-3401c3bf.mp4",
-            "b1f4491b-16256d7c.mp4",
-            "b1f4491b-33824f31.mp4",
-            "b1f4491b-9958bd99.mp4",
-            "b1f62c41-ed0c6521.mp4",
-            "b1ff4656-0435391e.mp4",
-            "b2a8e8b4-50058f09.mp4",
-            "b2a8e8b4-a4e93829.mp4",
-            "b2a9d547-f7f6fa92.mp4",
-            "b2ae4fc5-d1082ddf.mp4"
-    ));
-
-
-    private static final ArrayList<String> testVideosPets = new ArrayList<>(Arrays.asList(
-            "S0=City_Center=Time_12-34=View_001.mp4",
-            "S0=City_Center=Time_12-34=View_002.mp4",
-            "S0=City_Center=Time_12-34=View_003.mp4",
-            "S0=City_Center=Time_12-34=View_004.mp4",
-            "S0=City_Center=Time_12-34=View_005.mp4",
-            "S0=City_Center=Time_12-34=View_006.mp4",
-            "S0=City_Center=Time_12-34=View_007.mp4",
-            "S0=City_Center=Time_12-34=View_008.mp4",
-            "S0=City_Center=Time_14-55=View_001.mp4",
-            "S0=City_Center=Time_14-55=View_002.mp4",
-            "S0=City_Center=Time_14-55=View_003.mp4",
-            "S0=City_Center=Time_14-55=View_004.mp4",
-            "S0=Regular_Flow=Time_13-57=View_001.mp4",
-            "S0=Regular_Flow=Time_13-57=View_002.mp4",
-            "S0=Regular_Flow=Time_13-57=View_003.mp4",
-            "S0=Regular_Flow=Time_13-57=View_004.mp4",
-            "S0=Regular_Flow=Time_13-59=View_001.mp4",
-            "S0=Regular_Flow=Time_13-59=View_002.mp4",
-            "S0=Regular_Flow=Time_13-59=View_003.mp4",
-            "S0=Regular_Flow=Time_13-59=View_004.mp4",
-            "S0=Regular_Flow=Time_14-03=View_001.mp4",
-            "S0=Regular_Flow=Time_14-03=View_002.mp4",
-            "S0=Regular_Flow=Time_14-03=View_003.mp4",
-            "S0=Regular_Flow=Time_14-03=View_004.mp4",
-            "S0=Regular_Flow=Time_14-06=View_001.mp4",
-            "S0=Regular_Flow=Time_14-06=View_002.mp4",
-            "S0=Regular_Flow=Time_14-06=View_003.mp4",
-            "S0=Regular_Flow=Time_14-06=View_004.mp4",
-            "S0=Regular_Flow=Time_14-29=View_001.mp4",
-            "S0=Regular_Flow=Time_14-29=View_002.mp4",
-            "S0=Regular_Flow=Time_14-29=View_003.mp4",
-            "S0=Regular_Flow=Time_14-29=View_004.mp4"
+    private static final ArrayList<String> testVideos = new ArrayList<>(Arrays.asList(
+            "out_01.mp4", "inn_01.mp4",
+            "out_02.mp4", "inn_02.mp4",
+            "out_03.mp4", "inn_03.mp4",
+            "out_04.mp4", "inn_04.mp4",
+            "out_05.mp4", "inn_05.mp4",
+            "out_06.mp4", "inn_06.mp4",
+            "out_07.mp4", "inn_07.mp4",
+            "out_08.mp4", "inn_08.mp4",
+            "out_09.mp4", "inn_09.mp4",
+            "out_10.mp4", "inn_10.mp4",
+            "out_11.mp4", "inn_11.mp4",
+            "out_12.mp4", "inn_12.mp4",
+            "out_13.mp4", "inn_13.mp4",
+            "out_14.mp4", "inn_14.mp4",
+            "out_15.mp4", "inn_15.mp4",
+            "out_16.mp4", "inn_16.mp4",
+            "out_17.mp4", "inn_17.mp4",
+            "out_18.mp4", "inn_18.mp4",
+            "out_19.mp4", "inn_19.mp4",
+            "out_20.mp4", "inn_20.mp4"
     ));
 }
 

@@ -24,13 +24,22 @@
         android:title="@string/scheduling_algorithm_title"
         app:useSimpleSummaryProvider="true" />
     <ListPreference
-        android:id="@+id/model_preference"
-        android:defaultValue="@string/mobilenet_v1_key"
-        android:entries="@array/model_titles"
-        android:entryValues="@array/model_keys"
-        android:key="@string/model_key"
+        android:id="@+id/object_model_preference"
+        android:defaultValue="@string/default_object_model_key"
+        android:entries="@array/object_model_titles"
+        android:entryValues="@array/object_model_keys"
+        android:key="@string/object_model_key"
         android:persistent="true"
-        android:title="@string/model_title"
+        android:title="@string/object_model_title"
+        app:useSimpleSummaryProvider="true" />
+    <ListPreference
+        android:id="@+id/pose_model_preference"
+        android:defaultValue="@string/default_pose_model_key"
+        android:entries="@array/pose_model_titles"
+        android:entryValues="@array/pose_model_keys"
+        android:key="@string/pose_model_key"
+        android:persistent="true"
+        android:title="@string/pose_model_title"
         app:useSimpleSummaryProvider="true" />
     <SwitchPreferenceCompat
         android:id="@+id/enable_segment_preference"
@@ -82,5 +91,9 @@
         android:key="@string/verbose_output_key"
         android:persistent="true"
         android:title="@string/verbose_output_title" />
+    <Preference
+        android:id="@+id/clear_logs_button"
+        android:key="@string/clear_logs_key"
+        android:title="@string/clear_logs_title" />
 
 </PreferenceScreen>

@@ -50,15 +50,16 @@ public class FileManager {
 
     private static final File MOVIE_DIR = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES);
     private static final File DOWN_DIR = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+    private static final File DOC_DIR = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
     private static final File RAW_DIR = new File(MOVIE_DIR, RAW_DIR_NAME);
     private static final File RESULTS_DIR = new File(MOVIE_DIR, RESULTS_DIR_NAME);
     private static final File NEARBY_DIR = new File(DOWN_DIR, NEARBY_DIR_NAME);
     private static final File SEGMENT_DIR = new File(MOVIE_DIR, SEGMENT_DIR_NAME);
     private static final File SEGMENT_RES_DIR = new File(MOVIE_DIR, SEGMENT_RES_DIR_NAME);
-    private static final File LOG_DIR = new File(MOVIE_DIR, LOG_DIR_NAME);
+    private static final File LOG_DIR = new File(DOC_DIR, LOG_DIR_NAME);
 
     private static final List<File> DIRS = Arrays.asList(
-            RAW_DIR, RESULTS_DIR, NEARBY_DIR, SEGMENT_DIR, SEGMENT_RES_DIR);
+            RAW_DIR, RESULTS_DIR, NEARBY_DIR, SEGMENT_DIR, SEGMENT_RES_DIR, LOG_DIR);
 
     public static String getRawDirPath() {
         return RAW_DIR.getAbsolutePath();
@@ -142,10 +143,11 @@ public class FileManager {
     }
 
     public static void cleanDirectories(Context context) {
+        Log.v(TAG, "Cleaning directories");
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         List<File> dirs = pref.getBoolean(context.getString(R.string.remove_raw_key), false) ?
-                DIRS :
-                Arrays.asList(RESULTS_DIR, NEARBY_DIR, SEGMENT_DIR, SEGMENT_RES_DIR);
+                DIRS.stream().filter(d -> !d.equals(LOG_DIR)).collect(Collectors.toList()) :
+                DIRS.stream().filter(d -> !d.equals(LOG_DIR) && !d.equals(RAW_DIR)).collect(Collectors.toList());
 
         for (File dir : dirs) {
             try {
@@ -154,6 +156,17 @@ public class FileManager {
                 Log.e(TAG, String.format("Failed to delete %s", dir.getAbsolutePath()));
                 Log.e(TAG, String.format("cleanVideoDirectories error: \n%s", e.getMessage()));
             }
+        }
+    }
+
+    public static boolean clearLogs() {
+        try {
+            Log.v(TAG, "Clearing logs");
+            FileUtils.deleteDirectory(LOG_DIR);
+            return true;
+        } catch (IOException e) {
+            Log.e(TAG, String.format("Failed to clear logs: \n%s", e.getMessage()));
+            return false;
         }
     }
 

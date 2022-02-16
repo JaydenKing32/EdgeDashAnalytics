@@ -4,6 +4,7 @@ import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
@@ -45,6 +46,7 @@ import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.AdvertisingOptions;
 import com.google.android.gms.nearby.connection.ConnectionInfo;
 import com.google.android.gms.nearby.connection.ConnectionLifecycleCallback;
+import com.google.android.gms.nearby.connection.ConnectionOptions;
 import com.google.android.gms.nearby.connection.ConnectionResolution;
 import com.google.android.gms.nearby.connection.ConnectionsClient;
 import com.google.android.gms.nearby.connection.ConnectionsStatusCodes;
@@ -84,12 +86,12 @@ import java.util.stream.Collectors;
 public abstract class NearbyFragment extends Fragment {
     private static final String TAG = NearbyFragment.class.getSimpleName();
     private static final Strategy STRATEGY = Strategy.P2P_STAR;
-    private static final String SERVICE_ID = "com.example.edgesum";
+    private static final String SERVICE_ID = "com.example.edgedashanalytics";
     private static final String LOCAL_NAME_KEY = "LOCAL_NAME";
     private static final String MESSAGE_SEPARATOR = "~";
     private static int transferCount = 0;
 
-    private final PayloadCallback payloadCallback = new ReceiveFilePayloadCallback();
+    private final ReceiveFilePayloadCallback payloadCallback = new ReceiveFilePayloadCallback();
     private final Queue<Message> transferQueue = new LinkedList<>();
     private final LinkedHashMap<String, Endpoint> discoveredEndpoints = new LinkedHashMap<>();
     private final ExecutorService analysisExecutor = Executors.newSingleThreadExecutor();
@@ -101,17 +103,36 @@ public abstract class NearbyFragment extends Fragment {
     protected DeviceListAdapter deviceAdapter;
     protected String localName = null;
     private Listener listener;
+    private boolean verbose;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        deviceAdapter = new DeviceListAdapter(listener, getContext(), discoveredEndpoints);
 
-        Context context = getContext();
-        if (context != null) {
-            connectionsClient = Nearby.getConnectionsClient(context);
-            setLocalName(context);
+        Activity activity = getActivity();
+        if (activity == null) {
+            Log.e(TAG, "No activity");
+            return;
         }
+
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(activity);
+        verbose = pref.getBoolean(getString(R.string.verbose_output_key), false);
+
+        deviceAdapter = new DeviceListAdapter(listener, activity, discoveredEndpoints);
+        connectionsClient = Nearby.getConnectionsClient(activity);
+        setLocalName(activity);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+        stopDashDownload();
+        stopAdvertising();
+        stopDiscovery();
+
+        payloadCallback.cancelAllPayloads();
+        connectionsClient.stopAllEndpoints();
     }
 
     private void setLocalName(Context context) {
@@ -208,6 +229,7 @@ public abstract class NearbyFragment extends Fragment {
                             break;
                         default:
                             // Unknown status code
+                            Log.e(TAG, "Unknown status code");
                     }
                 }
 
@@ -225,7 +247,8 @@ public abstract class NearbyFragment extends Fragment {
             };
 
     protected void startAdvertising() {
-        AdvertisingOptions advertisingOptions = new AdvertisingOptions.Builder().setStrategy(STRATEGY).build();
+        AdvertisingOptions advertisingOptions = new AdvertisingOptions.Builder()
+                .setStrategy(STRATEGY).setDisruptiveUpgrade(false).build();
         connectionsClient.startAdvertising(localName, SERVICE_ID, connectionLifecycleCallback, advertisingOptions)
                 .addOnSuccessListener((Void unused) ->
                         Log.d(TAG, "Started advertising"))
@@ -265,7 +288,7 @@ public abstract class NearbyFragment extends Fragment {
 
         SettingsActivity.printPreferences(true, context);
         Log.i(I_TAG, String.format("Download delay: %ds", delay));
-        Log.w(I_TAG, "Started downloading from dashcam");
+        Log.w(I_TAG, "Started downloading from dash cam");
         PowerMonitor.startPowerMonitor(context);
 
         downloadTaskExecutor.scheduleWithFixedDelay(DashCam.downloadTestVideos(this::downloadCallback, context),
@@ -273,7 +296,7 @@ public abstract class NearbyFragment extends Fragment {
     }
 
     protected void stopDashDownload() {
-        Log.w(I_TAG, "Stopped downloading from dashcam");
+        Log.w(I_TAG, "Stopped downloading from dash cam");
         downloadTaskExecutor.shutdown();
     }
 
@@ -302,7 +325,9 @@ public abstract class NearbyFragment extends Fragment {
     public void connectEndpoint(Endpoint endpoint) {
         Log.d(TAG, String.format("Selected '%s'", endpoint));
         if (!endpoint.connected) {
-            connectionsClient.requestConnection(localName, endpoint.id, connectionLifecycleCallback)
+            ConnectionOptions connectionOptions = new ConnectionOptions.Builder().setDisruptiveUpgrade(false).build();
+
+            connectionsClient.requestConnection(localName, endpoint.id, connectionLifecycleCallback, connectionOptions)
                     .addOnSuccessListener(
                             // We successfully requested a connection. Now both sides
                             // must accept before the connection is established.
@@ -616,7 +641,7 @@ public abstract class NearbyFragment extends Fragment {
         if (context instanceof Listener) {
             listener = (Listener) context;
         } else {
-            throw new RuntimeException(context.toString() + " must implement NearbyFragment.Listener");
+            throw new RuntimeException(context + " must implement NearbyFragment.Listener");
         }
     }
 
@@ -646,6 +671,9 @@ public abstract class NearbyFragment extends Fragment {
         private final SimpleArrayMap<Long, String> filePayloadFilenames = new SimpleArrayMap<>();
         private final SimpleArrayMap<Long, Command> filePayloadCommands = new SimpleArrayMap<>();
         private final SimpleArrayMap<Long, Instant> startTimes = new SimpleArrayMap<>();
+
+        private Instant lastUpdate = Instant.now();
+        private static final int updateInterval = 10;
 
         @Override
         public void onPayloadReceived(@NonNull String endpointId, @NonNull Payload payload) {
@@ -816,8 +844,15 @@ public abstract class NearbyFragment extends Fragment {
 
         @Override
         public void onPayloadTransferUpdate(@NonNull String endpointId, @NonNull PayloadTransferUpdate update) {
-            // int progress = (int) (100.0 * (update.getBytesTransferred() / (double) update.getTotalBytes()));
-            // Log.v(TAG, String.format("Transfer to %s: %d%%", endpointId, progress));
+            if (verbose) {
+                Instant now = Instant.now();
+
+                if (Duration.between(lastUpdate, now).compareTo(Duration.ofSeconds(updateInterval)) > 0) {
+                    lastUpdate = now;
+                    int progress = (int) (100.0 * (update.getBytesTransferred() / (double) update.getTotalBytes()));
+                    Log.v(TAG, String.format("Transfer to %s: %d%%", endpointId, progress));
+                }
+            }
 
             if (update.getStatus() == PayloadTransferUpdate.Status.SUCCESS) {
                 Log.v(TAG, String.format("Transfer to %s complete", discoveredEndpoints.get(endpointId)));
@@ -829,6 +864,15 @@ public abstract class NearbyFragment extends Fragment {
                 if (payload != null && payload.getType() == Payload.Type.FILE) {
                     processFilePayload(payloadId, endpointId);
                 }
+            }
+        }
+
+        private void cancelAllPayloads() {
+            Log.v(TAG, "Cancelling all payloads");
+
+            for (int i = 0; i < incomingFilePayloads.size(); i++) {
+                Long payloadId = incomingFilePayloads.keyAt(i);
+                connectionsClient.cancelPayload(payloadId);
             }
         }
     }
