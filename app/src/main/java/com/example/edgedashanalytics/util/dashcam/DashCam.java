@@ -6,11 +6,25 @@ import android.content.Context;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.collection.SimpleArrayMap;
+
 import com.example.edgedashanalytics.event.video.AddEvent;
 import com.example.edgedashanalytics.event.video.Type;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.video.VideoManager;
+import com.tonyodev.fetch2.Download;
+import com.tonyodev.fetch2.EnqueueAction;
+import com.tonyodev.fetch2.Error;
+import com.tonyodev.fetch2.Fetch;
+import com.tonyodev.fetch2.FetchConfiguration;
+import com.tonyodev.fetch2.FetchListener;
+import com.tonyodev.fetch2.NetworkType;
+import com.tonyodev.fetch2.Priority;
+import com.tonyodev.fetch2.Request;
+import com.tonyodev.fetch2core.DownloadBlock;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -46,6 +60,24 @@ public class DashCam {
     private static final String videoDirUrl = baseUrl;
     // Video stream: rtsp://192.168.1.254
     private static final Set<String> downloads = new HashSet<>();
+    private static final SimpleArrayMap<String, Instant> downloadStarts = new SimpleArrayMap<>();
+
+    private static Fetch fetch = null;
+
+    public static void setFetch(Context context) {
+        if (fetch == null) {
+            FetchConfiguration fetchConfiguration = new FetchConfiguration.Builder(context)
+                    .setDownloadConcurrentLimit(1).build();
+
+            fetch = Fetch.Impl.getInstance(fetchConfiguration);
+            clearDownloads();
+        }
+    }
+
+    public static void clearDownloads() {
+        fetch.cancelAll();
+        fetch.removeAll();
+    }
 
     public static void startDownloadAll(Context context) {
         ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -118,7 +150,7 @@ public class DashCam {
     private static void downloadVideo(String url, Consumer<Video> downloadCallback, Context context) {
         String filename = FileManager.getFilenameFromPath(url);
         String filePath = String.format("%s/%s", FileManager.getRawDirPath(), filename);
-        Log.v(TAG, String.format("Started downloading: %s", filename));
+        Log.v(TAG, String.format("Started download: %s", filename));
         Instant start = Instant.now();
 
         try {
@@ -147,6 +179,18 @@ public class DashCam {
         String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
         Log.i(I_TAG, String.format("Successfully downloaded %s in %ss", filename, time));
         downloadCallback.accept(video);
+    }
+
+    private static void downloadVideo(String url) {
+        String filename = FileManager.getFilenameFromPath(url);
+        String filePath = String.format("%s/%s", FileManager.getRawDirPath(), filename);
+
+        final Request request = new Request(url, filePath);
+        request.setPriority(Priority.HIGH);
+        request.setNetworkType(NetworkType.ALL);
+        request.setEnqueueAction(EnqueueAction.REPLACE_EXISTING);
+        fetch.enqueue(request, updatedRequest -> Log.v(TAG, String.format("Enqueued %s", request)),
+                error -> Log.v(TAG, String.format("Enqueueing error: %s", error)));
     }
 
     public static Runnable downloadLatestVideos(Consumer<Video> downloadCallback, Context context) {
@@ -189,13 +233,12 @@ public class DashCam {
         };
     }
 
-    public static void downloadTestVideosLoop(Context c) {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        executor.submit(() -> {
-            for (String filename : testVideos) {
-                downloadVideo(videoDirUrl + filename, v -> EventBus.getDefault().post(new AddEvent(v, Type.RAW)), c);
-            }
-        });
+    public static void downloadTestVideosLoop(Context context) {
+        fetch.addListener(getFetchListener(context, v -> EventBus.getDefault().post(new AddEvent(v, Type.RAW))));
+
+        for (String filename : testVideos) {
+            downloadVideo(videoDirUrl + filename);
+        }
     }
 
     private static int testVideoComparator(String videoA, String videoB) {
@@ -208,6 +251,10 @@ public class DashCam {
             return suffixA - suffixB;
         }
         return prefixA.compareTo(prefixB);
+    }
+
+    public static void setDownloadCallback(Context context, Consumer<Video> downloadCallback) {
+        fetch.addListener(getFetchListener(context, downloadCallback));
     }
 
     // public static Bitmap getLiveBitmap() {
@@ -239,5 +286,51 @@ public class DashCam {
             "out_19.mp4", "inn_19.mp4",
             "out_20.mp4", "inn_20.mp4"
     ));
+
+    private static FetchListener getFetchListener(Context context, Consumer<Video> downloadCallback) {
+        return new FetchListener() {
+            public void onStarted(@NonNull Download d, @NonNull List<? extends DownloadBlock> list, int i) {
+                String filename = FileManager.getFilenameFromPath(d.getFile());
+
+                downloadStarts.put(filename, Instant.now());
+                Log.v(TAG, String.format("Started download: %s", filename));
+            }
+
+            @Override
+            public void onCompleted(@NonNull Download d) {
+                Video video = VideoManager.getVideoFromPath(context, d.getFile());
+                String videoName = video.getName();
+                downloads.add(videoName);
+
+                String time;
+                Instant start = downloadStarts.get(videoName);
+
+                if (start != null) {
+                    long duration = Duration.between(start, Instant.now()).toMillis();
+                    time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
+                } else {
+                    Log.e(TAG, String.format("Could not record download time of %s", videoName));
+                    time = "0.000";
+                }
+
+                Log.i(I_TAG, String.format("Successfully downloaded %s in %ss", videoName, time));
+                downloadCallback.accept(video);
+            }
+
+            // @formatter:off
+            public void onAdded(@NonNull Download d) {}
+            public void onQueued(@NonNull Download d, boolean b) {}
+            public void onWaitingNetwork(@NonNull Download d) {}
+            public void onError(@NonNull Download d, @NonNull Error error, @Nullable Throwable throwable) {}
+            public void onDownloadBlockUpdated(@NonNull Download d, @NonNull DownloadBlock dBlock, int i) {}
+            public void onProgress(@NonNull Download d, long l, long l1) {}
+            public void onPaused(@NonNull Download d) {}
+            public void onResumed(@NonNull Download d) {}
+            public void onCancelled(@NonNull Download d) {}
+            public void onRemoved(@NonNull Download d) {}
+            public void onDeleted(@NonNull Download d) {}
+            // @formatter:on
+        };
+    }
 }
 
