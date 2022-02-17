@@ -8,12 +8,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Endpoint {
+    static final int MAX_CONNECTION_ATTEMPTS = 10;
+
     final String id;
     final String name;
-    boolean connected;
     private final List<String> jobList = new ArrayList<>();
-    int completeCount = 0;
+
+    boolean connected;
     HardwareInfo hardwareInfo;
+    int completeCount = 0;
+    int connectionAttempt = 0;
 
     Endpoint(String id, String name) {
         this.id = id;

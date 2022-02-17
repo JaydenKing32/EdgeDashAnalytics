@@ -6,7 +6,6 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
@@ -16,7 +15,6 @@ import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.collection.SimpleArrayMap;
 import androidx.fragment.app.Fragment;
 import androidx.preference.PreferenceManager;
@@ -80,6 +78,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -104,6 +103,7 @@ public abstract class NearbyFragment extends Fragment {
     protected String localName = null;
     private Listener listener;
     private boolean verbose;
+    private boolean master = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -189,22 +189,7 @@ public abstract class NearbyFragment extends Fragment {
                         deviceAdapter.notifyItemInserted(discoveredEndpoints.size() - 1);
                     }
 
-                    Context context = getContext();
-                    if (context != null) {
-                        new AlertDialog.Builder(context)
-                                .setTitle("Accept connection to " + connectionInfo.getEndpointName())
-                                .setMessage("Confirm the code matches on both devices: " + connectionInfo.getAuthenticationDigits())
-                                .setPositiveButton(android.R.string.ok,
-                                        (DialogInterface dialog, int which) ->
-                                                // The user confirmed, so we can accept the connection.
-                                                connectionsClient.acceptConnection(endpointId, payloadCallback))
-                                .setNegativeButton(android.R.string.cancel,
-                                        (DialogInterface dialog, int which) ->
-                                                // The user canceled, so we should reject the connection.
-                                                connectionsClient.rejectConnection(endpointId))
-                                .setIcon(android.R.drawable.ic_dialog_alert)
-                                .show();
-                    }
+                    connectionsClient.acceptConnection(endpointId, payloadCallback);
                 }
 
                 @Override
@@ -217,6 +202,7 @@ public abstract class NearbyFragment extends Fragment {
 
                             if (endpoint != null) {
                                 endpoint.connected = true;
+                                endpoint.connectionAttempt = 0;
                                 requestHardwareInfo(endpointId);
                                 deviceAdapter.notifyDataSetChanged();
                             }
@@ -239,16 +225,42 @@ public abstract class NearbyFragment extends Fragment {
                 public void onDisconnected(@NonNull String endpointId) {
                     // We've been disconnected from this endpoint. No more data can be sent or received.
                     Endpoint endpoint = discoveredEndpoints.get(endpointId);
-                    Log.d(TAG, String.format("Disconnected from %s", endpoint));
 
-                    if (endpoint != null) {
+                    if (endpoint == null) {
+                        Log.d(TAG, String.format("Disconnected from %s", endpointId));
+                        return;
+                    }
+
+                    if (endpoint.connected) {
+                        Log.d(TAG, String.format("Disconnected from %s", endpoint));
                         endpoint.connected = false;
                         deviceAdapter.notifyDataSetChanged();
                     }
+
+                    if (master && endpoint.connectionAttempt < Endpoint.MAX_CONNECTION_ATTEMPTS) {
+                        int delay = 5;
+                        ScheduledExecutorService reconnectExecutor = Executors.newSingleThreadScheduledExecutor();
+                        ScheduledFuture<?> promise = reconnectExecutor.scheduleWithFixedDelay(reconnect(endpoint),
+                                1, delay, TimeUnit.SECONDS);
+                        reconnectExecutor.schedule(() -> promise.cancel(false),
+                                delay * Endpoint.MAX_CONNECTION_ATTEMPTS, TimeUnit.SECONDS);
+                    }
+                }
+
+                private Runnable reconnect(Endpoint endpoint) {
+                    return () -> {
+                        Log.d(TAG, String.format("Attempting reconnection with %s (attempt %s)",
+                                endpoint, endpoint.connectionAttempt));
+                        endpoint.connectionAttempt++;
+                        connectEndpoint(endpoint);
+                    };
                 }
             };
 
     protected void startAdvertising() {
+        // Only master should advertise
+        master = true;
+
         AdvertisingOptions advertisingOptions = new AdvertisingOptions.Builder()
                 .setStrategy(STRATEGY).setDisruptiveUpgrade(false).build();
         connectionsClient.startAdvertising(localName, SERVICE_ID, connectionLifecycleCallback, advertisingOptions)
@@ -325,7 +337,7 @@ public abstract class NearbyFragment extends Fragment {
     }
 
     public void connectEndpoint(Endpoint endpoint) {
-        Log.d(TAG, String.format("Selected '%s'", endpoint));
+        Log.d(TAG, String.format("Attempting to connect to %s", endpoint));
         if (!endpoint.connected) {
             ConnectionOptions connectionOptions = new ConnectionOptions.Builder().setDisruptiveUpgrade(false).build();
 
@@ -416,8 +428,7 @@ public abstract class NearbyFragment extends Fragment {
         List<Endpoint> endpoints = getConnectedEndpoints();
         Message message = new Message(content, Command.RETURN);
 
-        // Workers should only have a single connection to the master endpoint
-        if (endpoints.size() == 1) {
+        if (!master) {
             sendFile(message, endpoints.get(0));
         } else {
             Log.e(TAG, "Non-worker attempting to return a video");
