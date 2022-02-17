@@ -230,12 +230,11 @@ public class DashCam {
 
             if (newVideos.size() != 0) {
                 String toDownload = newVideos.get(0);
-                Log.v(TAG, String.format("Passing to download callback: %s", toDownload));
 
                 downloads.add(toDownload);
                 downloadVideo(videoDirUrl + toDownload);
             } else {
-                Log.v(TAG, "All test video downloads enqueued");
+                Log.v(TAG, "All test videos queued for download");
             }
         };
     }
@@ -326,14 +325,6 @@ public class DashCam {
 
                 Log.i(I_TAG, String.format("Successfully downloaded %s in %ss", videoName, time));
                 downloadCallback.accept(video);
-
-                if (downloadStarts.isEmpty() && downloads.size() == testVideos.size()) {
-                    // When downloadStarts is empty, all enqueued downloads have completed.
-                    // Will work fine for stopping when all test videos have downloaded, probably won't work for
-                    //  non-test download scenarios, will need alternative stopping method.
-                    Log.v(TAG, "All videos downloaded");
-                    downloadCallback.accept(null);
-                }
             }
 
             public void onProgress(@NonNull Download d, long etaMilli, long bytesPerSec) {
@@ -343,8 +334,16 @@ public class DashCam {
                 ));
             }
 
+            public void onAdded(@NonNull Download d) {
+                // Stop condition for queuing test video downloads.
+                // Won't work for non-test download scenarios, will need alternative stopping method.
+                if (downloads.size() == testVideos.size()) {
+                    Log.v(TAG, "All test videos queued for download, stopping queuing thread");
+                    downloadCallback.accept(null);
+                }
+            }
+
             // @formatter:off
-            public void onAdded(@NonNull Download d) {}
             public void onQueued(@NonNull Download d, boolean b) {}
             public void onWaitingNetwork(@NonNull Download d) {}
             public void onError(@NonNull Download d, @NonNull Error error, @Nullable Throwable throwable) {}
