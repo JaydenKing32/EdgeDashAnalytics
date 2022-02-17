@@ -128,6 +128,8 @@ public abstract class NearbyFragment extends Fragment {
         super.onStop();
 
         stopDashDownload();
+        DashCam.clearDownloads();
+
         stopAdvertising();
         stopDiscovery();
 
@@ -291,8 +293,8 @@ public abstract class NearbyFragment extends Fragment {
         Log.w(I_TAG, "Started downloading from dash cam");
         PowerMonitor.startPowerMonitor(context);
 
-        downloadTaskExecutor.scheduleWithFixedDelay(DashCam.downloadTestVideos(this::downloadCallback, context),
-                0, delay, TimeUnit.SECONDS);
+        DashCam.setDownloadCallback(context, this::downloadCallback);
+        downloadTaskExecutor.scheduleWithFixedDelay(DashCam.downloadTestVideos(), 0, delay, TimeUnit.SECONDS);
     }
 
     protected void stopDashDownload() {

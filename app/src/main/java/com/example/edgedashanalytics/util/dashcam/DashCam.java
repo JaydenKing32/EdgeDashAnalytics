@@ -3,16 +3,13 @@ package com.example.edgedashanalytics.util.dashcam;
 import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.collection.SimpleArrayMap;
-import androidx.preference.PreferenceManager;
 
-import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.event.video.AddEvent;
 import com.example.edgedashanalytics.event.video.Type;
 import com.example.edgedashanalytics.model.Video;
@@ -67,8 +64,7 @@ public class DashCam {
     private static final SimpleArrayMap<String, Instant> downloadStarts = new SimpleArrayMap<>();
 
     private static Fetch fetch = null;
-    private static final long updateInterval = 5000;
-    private static boolean verbose;
+    private static final long updateInterval = 10000;
 
     public static void setFetch(Context context) {
         if (fetch == null) {
@@ -78,9 +74,6 @@ public class DashCam {
             fetch = Fetch.Impl.getInstance(fetchConfiguration);
             clearDownloads();
         }
-
-        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-        verbose = pref.getBoolean(context.getString(R.string.verbose_output_key), false);
     }
 
     public static void clearDownloads() {
@@ -156,6 +149,10 @@ public class DashCam {
         return allFiles;
     }
 
+    /**
+     * Old method of downloading videos through {@link FileUtils#copyURLToFile}
+     * TODO: replace usages with {@link DashCam#downloadVideo(String)}
+     */
     private static void downloadVideo(String url, Consumer<Video> downloadCallback, Context context) {
         String filename = FileManager.getFilenameFromPath(url);
         String filePath = String.format("%s/%s", FileManager.getRawDirPath(), filename);
@@ -226,7 +223,7 @@ public class DashCam {
         };
     }
 
-    public static Runnable downloadTestVideos(Consumer<Video> downloadCallback, Context context) {
+    public static Runnable downloadTestVideos() {
         return () -> {
             List<String> newVideos = new ArrayList<>(CollectionUtils.disjunction(testVideos, downloads));
             newVideos.sort(DashCam::testVideoComparator);
@@ -234,18 +231,24 @@ public class DashCam {
             if (newVideos.size() != 0) {
                 String toDownload = newVideos.get(0);
                 Log.v(TAG, String.format("Passing to download callback: %s", toDownload));
-                downloadVideo(videoDirUrl + toDownload, downloadCallback, context);
+
+                downloads.add(toDownload);
+                downloadVideo(videoDirUrl + toDownload);
             } else {
-                Log.v(TAG, "All test videos downloaded");
-                downloadCallback.accept(null);
+                Log.v(TAG, "All test video downloads enqueued");
             }
         };
     }
 
     public static void downloadTestVideosLoop(Context context) {
-        fetch.addListener(getFetchListener(context, v -> EventBus.getDefault().post(new AddEvent(v, Type.RAW))));
+        fetch.addListener(getFetchListener(context, v -> {
+            if (v != null) {
+                EventBus.getDefault().post(new AddEvent(v, Type.RAW));
+            }
+        }));
 
         for (String filename : testVideos) {
+            downloads.add(filename);
             downloadVideo(videoDirUrl + filename);
         }
     }
@@ -309,10 +312,9 @@ public class DashCam {
             public void onCompleted(@NonNull Download d) {
                 Video video = VideoManager.getVideoFromPath(context, d.getFile());
                 String videoName = video.getName();
-                downloads.add(videoName);
 
                 String time;
-                Instant start = downloadStarts.get(videoName);
+                Instant start = downloadStarts.remove(videoName);
 
                 if (start != null) {
                     long duration = Duration.between(start, Instant.now()).toMillis();
@@ -324,15 +326,21 @@ public class DashCam {
 
                 Log.i(I_TAG, String.format("Successfully downloaded %s in %ss", videoName, time));
                 downloadCallback.accept(video);
+
+                if (downloadStarts.isEmpty() && downloads.size() == testVideos.size()) {
+                    // When downloadStarts is empty, all enqueued downloads have completed.
+                    // Will work fine for stopping when all test videos have downloaded, probably won't work for
+                    //  non-test download scenarios, will need alternative stopping method.
+                    Log.v(TAG, "All videos downloaded");
+                    downloadCallback.accept(null);
+                }
             }
 
             public void onProgress(@NonNull Download d, long etaMilli, long bytesPerSec) {
-                if (verbose) {
-                    Log.v(TAG, String.format("Downloading %s, Progress: %3s%%, ETA: %2ss, MB/s: %4s",
-                            FileManager.getFilenameFromPath(d.getUrl()),
-                            d.getProgress(), etaMilli / 1000, bytesPerSec / 1000
-                    ));
-                }
+                Log.v(TAG, String.format("Downloading %s, Progress: %3s%%, ETA: %2ss, MB/s: %4s",
+                        FileManager.getFilenameFromPath(d.getUrl()),
+                        d.getProgress(), etaMilli / 1000, bytesPerSec / 1000
+                ));
             }
 
             // @formatter:off
