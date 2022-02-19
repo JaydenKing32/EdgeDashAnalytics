@@ -417,7 +417,8 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], out_name: str):
                     "Object Model: {}".format(run.object_model),
                     "Pose Model: {}".format(run.pose_model),
                     "Total Power: {}".format(device.total_power),
-                    "Average Power: {}".format(device.average_power)
+                    "Average Power: {}".format(device.average_power),
+                    "Dir: {}".format(run.get_sub_log_dir())
                 ])
                 writer.writerow(["Filename", "Download time (s)", "Analysis time (s)"])
 
@@ -456,6 +457,7 @@ def make_spreadsheet(run: Analysis, out: str):
             "Download Delay: {}".format(run.delay),
             "Object Model: {}".format(run.object_model),
             "Pose Model: {}".format(run.pose_model),
+            "",
             "Dir: {}".format(run.get_sub_log_dir())
         ])
 
