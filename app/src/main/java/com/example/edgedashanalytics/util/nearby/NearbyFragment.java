@@ -257,9 +257,10 @@ public abstract class NearbyFragment extends Fragment {
                 }
             };
 
-    protected void startAdvertising() {
+    protected void startAdvertising(Context context) {
         // Only master should advertise
         master = true;
+        PowerMonitor.startPowerMonitor(context);
 
         AdvertisingOptions advertisingOptions = new AdvertisingOptions.Builder()
                 .setStrategy(STRATEGY).setDisruptiveUpgrade(false).build();
@@ -270,7 +271,9 @@ public abstract class NearbyFragment extends Fragment {
                         Log.e(TAG, String.format("Advertisement failure: \n%s", e.getMessage())));
     }
 
-    protected void startDiscovery() {
+    protected void startDiscovery(Context context) {
+        PowerMonitor.startPowerMonitor(context);
+
         DiscoveryOptions discoveryOptions = new DiscoveryOptions.Builder().setStrategy(STRATEGY).build();
         connectionsClient.startDiscovery(SERVICE_ID, endpointDiscoveryCallback, discoveryOptions)
                 .addOnSuccessListener((Void unused) ->

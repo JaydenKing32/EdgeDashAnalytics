@@ -48,7 +48,7 @@ public class ConnectionFragment extends NearbyFragment {
         discoverSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
                 Log.v(TAG, "Discovery switch checked");
-                startDiscovery();
+                startDiscovery(buttonView.getContext());
             } else {
                 Log.v(TAG, "Discovery switch unchecked");
                 stopDiscovery();
@@ -58,10 +58,9 @@ public class ConnectionFragment extends NearbyFragment {
         advertiseSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
                 Log.v(TAG, "Advertisement switch checked");
-                startAdvertising();
+                startAdvertising(buttonView.getContext());
             } else {
                 Log.v(TAG, "Advertisement switch unchecked");
-                stopAdvertising();
             }
         });
 
