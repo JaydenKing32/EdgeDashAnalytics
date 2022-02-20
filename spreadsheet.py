@@ -20,19 +20,19 @@ algorithms = [
 
 
 class Video:
-    def __init__(self, name: str, dash_down_time: float = 0, down_time: float = 0,
+    def __init__(self, name: str, down_time: float = 0, transfer_time: float = 0,
                  analysis_time: float = 0, return_time: float = 0):
         self.name = name
-        self.dash_down_time = dash_down_time
         self.down_time = down_time
+        self.transfer_time = transfer_time
         self.analysis_time = analysis_time
         self.return_time = return_time
 
     def get_stats(self) -> List[str]:
         return [
             self.name,
-            "{:.3f}".format(self.dash_down_time),
-            "{:.3f}".format(self.down_time) if self.down_time != 0 else "n/a",
+            "{:.3f}".format(self.down_time),
+            "{:.3f}".format(self.transfer_time) if self.transfer_time != 0 else "n/a",
             "{:.3f}".format(self.return_time) if self.return_time != 0 else "n/a",
             "{:.3f}".format(self.analysis_time)
         ]
@@ -59,14 +59,14 @@ class Analysis:
         self.object_model = ""
         self.pose_model = ""
         self.local = False
-        self.dash_down_time = -1.0
         self.down_time = -1.0
+        self.transfer_time = -1.0
         self.analysis_time = -1.0
         self.return_time = -1.0
         self.delay = -1
         self.total_time = get_total_time(self.master_path)
-        self.avg_dash_down_time = 0
         self.avg_down_time = 0
+        self.avg_transfer_time = 0
         self.avg_return_time = 0
         self.avg_analysis_time = 0
         self.parse_preferences()
@@ -84,24 +84,24 @@ class Analysis:
 
     def get_total_stats(self) -> List[str]:
         return [
-            "{:.3f}".format(self.dash_down_time),
-            "{:.3f}".format(self.down_time) if self.down_time != 0 else "n/a",
-            "{:.3f}".format(self.return_time) if self.down_time != 0 else "n/a",
+            "{:.3f}".format(self.down_time),
+            "{:.3f}".format(self.transfer_time) if self.transfer_time != 0 else "n/a",
+            "{:.3f}".format(self.return_time) if self.transfer_time != 0 else "n/a",
             "{:.3f}".format(self.analysis_time)
         ]
 
     def set_average_stats(self):
         video_count = len(self.videos)
 
-        self.avg_dash_down_time = self.dash_down_time / video_count
         self.avg_down_time = self.down_time / video_count
+        self.avg_transfer_time = self.transfer_time / video_count
         self.avg_return_time = self.return_time / video_count
         self.avg_analysis_time = self.analysis_time / video_count
 
     def get_average_stats(self) -> List[str]:
         return [
-            "{:.3f}".format(self.avg_dash_down_time),
-            "{:.3f}".format(self.avg_down_time) if self.avg_down_time != 0 else "n/a",
+            "{:.3f}".format(self.avg_down_time),
+            "{:.3f}".format(self.avg_transfer_time) if self.avg_transfer_time != 0 else "n/a",
             "{:.3f}".format(self.avg_return_time) if self.avg_return_time != 0 else "n/a",
             "{:.3f}".format(self.avg_analysis_time)
         ]
@@ -137,8 +137,8 @@ class Analysis:
                     self.delay = int(delay.group(2))
                     break
 
-        self.dash_down_time = sum(v.dash_down_time for v in self.videos.values())
         self.down_time = sum(v.down_time for v in self.videos.values())
+        self.transfer_time = sum(v.transfer_time for v in self.videos.values())
         self.return_time = sum(v.return_time for v in self.videos.values())
         self.analysis_time = sum(v.analysis_time for v in self.videos.values())
 
@@ -184,11 +184,11 @@ models = {
 
 timestamp = r"^(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s+\d+\s+\d+ "
 re_timestamp = re.compile(r"^(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{3})(?=\s+\d+\s+\d+).*(?:\s+)?$")
-re_dash_down = re.compile(
+re_down = re.compile(
     timestamp +
     r"I Important: Successfully downloaded "
     r"(.*)\.\w+ in (\d*\.?\d*)s(?:\s+)?$")
-re_down = re.compile(
+re_transfer = re.compile(
     timestamp +
     r"I Important: Completed downloading "
     r"(.*)\.\w+ from Endpoint{id=\S{4}, name=(.*) \[(\w+)]} in (\d*\.?\d*)s(?:\s+)?$")
@@ -271,7 +271,7 @@ def get_total_time(master_log_file: str) -> timedelta:
 
                 if pref is not None:
                     start = line
-            down_match = re_down.match(line)
+            down_match = re_transfer.match(line)
             comp_match = re_comp.match(line)
 
             if down_match is not None:
@@ -288,22 +288,22 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
         master_name = master_filename[-8:-4]
 
         for line in master_log:
-            dash_down = re_dash_down.match(line)
             down = re_down.match(line)
+            transfer = re_transfer.match(line)
             comp = re_comp.match(line)
             total_power = re_total_power.match(line)
             average_power = re_average_power.match(line)
 
-            if dash_down is not None:
-                video_name = get_video_name(dash_down.group(2))
-                dash_down_time = float(dash_down.group(3))
+            if down is not None:
+                video_name = get_video_name(down.group(2))
+                down_time = float(down.group(3))
 
-                video = Video(name=video_name, dash_down_time=dash_down_time)
+                video = Video(name=video_name, down_time=down_time)
                 videos[video_name] = video
                 devices[master_name].videos[video_name] = video
-            elif down is not None:
-                video_name = get_video_name(down.group(2))
-                return_time = float(down.group(5))
+            elif transfer is not None:
+                video_name = get_video_name(transfer.group(2))
+                return_time = float(transfer.group(5))
 
                 videos[video_name].return_time += return_time
             elif comp is not None:
@@ -331,17 +331,17 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
             device_name = log[-8:-4]
 
             for line in work_log:
-                down = re_down.match(line)
+                transfer = re_transfer.match(line)
                 comp = re_comp.match(line)
                 total_power = re_total_power.match(line)
                 average_power = re_average_power.match(line)
 
-                if down is not None:
-                    video_name = get_video_name(down.group(2))
-                    down_time = float(down.group(5))
+                if transfer is not None:
+                    video_name = get_video_name(transfer.group(2))
+                    transfer_time = float(transfer.group(5))
 
                     video = videos[video_name]
-                    video.down_time += down_time
+                    video.transfer_time += transfer_time
                     devices[device_name].videos[video_name] = video
                 elif comp is not None:
                     video_name = get_video_name(comp.group(2))
@@ -387,16 +387,16 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], out_name: str):
                     runs.append(run)
 
                     for line in offline_log:
-                        dash_down = re_dash_down.match(line)
+                        down = re_down.match(line)
                         comp = re_comp.match(line)
                         total_power = re_total_power.match(line)
                         average_power = re_average_power.match(line)
 
-                        if dash_down is not None:
-                            video_name = get_video_name(dash_down.group(2))
-                            dash_down_time = float(dash_down.group(3))
+                        if down is not None:
+                            video_name = get_video_name(down.group(2))
+                            down_time = float(down.group(3))
 
-                            videos[video_name] = Video(name=video_name, dash_down_time=dash_down_time)
+                            videos[video_name] = Video(name=video_name, down_time=down_time)
                         elif comp is not None:
                             video_name = get_video_name(comp.group(2))
                             analysis_time = float(comp.group(3))
@@ -423,18 +423,18 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], out_name: str):
                 writer.writerow(["Filename", "Download time (s)", "Analysis time (s)"])
 
                 for video in videos.values():
-                    writer.writerow([video.name, video.dash_down_time, video.analysis_time])
+                    writer.writerow([video.name, video.down_time, video.analysis_time])
 
-                total_dash_down_time = sum(v.dash_down_time for v in videos.values())
+                total_down_time = sum(v.down_time for v in videos.values())
                 total_analysis_time = sum(v.analysis_time for v in videos.values())
 
-                run.dash_down_time = total_dash_down_time
+                run.down_time = total_down_time
                 run.analysis_time = total_analysis_time
                 run.set_average_stats()
 
                 writer.writerow([
                     "Total",
-                    "{:.3f}".format(run.dash_down_time),
+                    "{:.3f}".format(run.down_time),
                     "{:.3f}".format(run.analysis_time)
                 ])
                 writer.writerow(["Actual total time", run.get_time_string()])
@@ -499,7 +499,7 @@ def make_spreadsheet(run: Analysis, out: str):
                 ])
 
                 # Master videos list should only contain videos that haven't been transferred
-                videos = [v for v in device.videos.values() if v.down_time == 0] \
+                videos = [v for v in device.videos.values() if v.transfer_time == 0] \
                     if device_name == run.get_master_short_name() \
                     else list(device.videos.values())
 
@@ -520,23 +520,23 @@ def make_spreadsheet(run: Analysis, out: str):
 
                 video_count = len(videos)
                 if video_count > 1:
-                    total_dash_down_time = sum(v.dash_down_time for v in videos)
                     total_down_time = sum(v.down_time for v in videos)
+                    total_transfer_time = sum(v.transfer_time for v in videos)
                     total_return_time = sum(v.return_time for v in videos)
                     total_analysis_time = sum(v.analysis_time for v in videos)
 
                     writer.writerow([
                         "Total",
-                        "{:.3f}".format(total_dash_down_time),
-                        "{:.3f}".format(total_down_time) if total_down_time != 0 else "n/a",
+                        "{:.3f}".format(total_down_time),
+                        "{:.3f}".format(total_transfer_time) if total_transfer_time != 0 else "n/a",
                         "{:.3f}".format(total_return_time) if total_return_time != 0 else "n/a",
                         "{:.3f}".format(total_analysis_time)
                     ])
 
                     writer.writerow([
                         "Average",
-                        "{:.3f}".format(total_dash_down_time / video_count),
-                        "{:.3f}".format(total_down_time / video_count) if total_down_time != 0 else "n/a",
+                        "{:.3f}".format(total_down_time / video_count),
+                        "{:.3f}".format(total_transfer_time / video_count) if total_transfer_time != 0 else "n/a",
                         "{:.3f}".format(total_return_time / video_count) if total_return_time != 0 else "n/a",
                         "{:.3f}".format(total_analysis_time / video_count)
                     ])
@@ -599,9 +599,9 @@ def spread(root: str, out: str):
         for run in runs:
             writer.writerow([
                 str(run),
-                "{:.3f}".format(run.dash_down_time),
-                "{:.3f}".format(run.down_time) if run.down_time > 0 else "n/a",
-                "{:.3f}".format(run.return_time) if run.down_time > 0 else "n/a",
+                "{:.3f}".format(run.down_time),
+                "{:.3f}".format(run.transfer_time) if run.transfer_time > 0 else "n/a",
+                "{:.3f}".format(run.return_time) if run.transfer_time > 0 else "n/a",
                 "{:.3f}".format(run.analysis_time),
                 run.get_total_power(),
                 run.get_total_average_power(),
@@ -610,8 +610,8 @@ def spread(root: str, out: str):
             ])
 
         writer.writerow(["Total"] + [
-            "{:.3f}".format(sum(run.dash_down_time for run in runs)),
             "{:.3f}".format(sum(run.down_time for run in runs)),
+            "{:.3f}".format(sum(run.transfer_time for run in runs)),
             "{:.3f}".format(sum(run.return_time for run in runs)),
             "{:.3f}".format(sum(run.analysis_time for run in runs)),
             sum(run.get_total_power() for run in runs),
@@ -620,8 +620,8 @@ def spread(root: str, out: str):
             "{:.11}\t".format(str(timedelta(seconds=sum(run.total_time.total_seconds() for run in runs))))
         ])
         writer.writerow(["Total Average"] + [
-            "{:.3f}".format(sum(run.avg_dash_down_time for run in runs)),
             "{:.3f}".format(sum(run.avg_down_time for run in runs)),
+            "{:.3f}".format(sum(run.avg_transfer_time for run in runs)),
             "{:.3f}".format(sum(run.avg_return_time for run in runs)),
             "{:.3f}".format(sum(run.avg_analysis_time for run in runs)),
             "{:.3f}".format(sum(run.get_total_power() / len(runs) for run in runs)),
@@ -630,8 +630,8 @@ def spread(root: str, out: str):
             "{:.11}\t".format(str(timedelta(seconds=sum(run.total_time.total_seconds() / len(runs) for run in runs))))
         ])
         writer.writerow(["True Average"] + [
-            "{:.3f}".format(sum(run.avg_dash_down_time for run in runs) / len(runs)),
             "{:.3f}".format(sum(run.avg_down_time for run in runs) / len(runs)),
+            "{:.3f}".format(sum(run.avg_transfer_time for run in runs) / len(runs)),
             "{:.3f}".format(sum(run.avg_return_time for run in runs) / len(runs)),
             "{:.3f}".format(sum(run.avg_analysis_time for run in runs) / len(runs)),
             "{:.3f}".format(sum(run.get_total_power() for run in runs) / len(runs)),
