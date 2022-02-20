@@ -43,7 +43,7 @@ class Device:
         self.name = name
         self.videos = {}  # type: Dict[str, Video]
         self.total_power = 0
-        self.average_power = 0  # type: float
+        self.average_power = 0
 
 
 class Analysis:
@@ -233,6 +233,13 @@ def get_video_name(name: str) -> str:
         return name
 
 
+def parse_power(power: str, device_name: str = None) -> int:
+    if device_name in milliamp_devices:
+        return int(power) * 1000
+    else:
+        return int(power)
+
+
 def compare_offline_files(files: List[str]) -> int:
     try:
         filename = next(filter(is_log, files))
@@ -312,13 +319,9 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
 
                 videos[video_name].analysis_time += analysis_time
             elif total_power is not None:
-                devices[master_name].total_power = int(total_power.group(2))
+                devices[master_name].total_power = parse_power(total_power.group(2), master_name)
             elif average_power is not None:
-                devices[master_name].average_power = int(average_power.group(2))
-
-        if master_name in milliamp_devices:
-            devices[master_name].total_power *= 1000
-            devices[master_name].average_power *= 1000
+                devices[master_name].average_power = parse_power(average_power.group(2), master_name)
 
     return videos
 
@@ -349,13 +352,9 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
 
                     videos[video_name].analysis_time += analysis_time
                 elif total_power is not None:
-                    devices[device_name].total_power = int(total_power.group(2))
+                    devices[device_name].total_power = parse_power(total_power.group(2), device_name)
                 elif average_power is not None:
-                    devices[device_name].average_power = int(average_power.group(2))
-
-            if device_name in milliamp_devices:
-                devices[device_name].total_power *= 1000
-                devices[device_name].average_power *= 1000
+                    devices[device_name].average_power = parse_power(average_power.group(2), device_name)
 
 
 def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], out_name: str):
@@ -403,13 +402,9 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], out_name: str):
 
                             videos[video_name].analysis_time = analysis_time
                         elif total_power is not None:
-                            device.total_power = int(total_power.group(2))
+                            device.total_power = parse_power(total_power.group(2), device_name)
                         elif average_power is not None:
-                            device.average_power = int(average_power.group(2))
-
-                    if device_name in milliamp_devices:
-                        device.total_power *= 1000
-                        device.average_power *= 1000
+                            device.average_power = parse_power(average_power.group(2), device_name)
 
                 writer.writerow(["Device: {}".format(run.get_master_short_name())])
                 writer.writerow([
