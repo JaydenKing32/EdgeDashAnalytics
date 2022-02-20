@@ -14,6 +14,7 @@ import com.example.edgedashanalytics.event.video.AddEvent;
 import com.example.edgedashanalytics.event.video.Type;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.util.file.FileManager;
+import com.example.edgedashanalytics.util.hardware.PowerMonitor;
 import com.example.edgedashanalytics.util.video.VideoManager;
 import com.tonyodev.fetch2.Download;
 import com.tonyodev.fetch2.EnqueueAction;
@@ -62,6 +63,7 @@ public class DashCam {
     // Video stream: rtsp://192.168.1.254
     private static final Set<String> downloads = new HashSet<>();
     private static final SimpleArrayMap<String, Instant> downloadStarts = new SimpleArrayMap<>();
+    private static final SimpleArrayMap<String, Long> downloadPowers = new SimpleArrayMap<>();
 
     private static Fetch fetch = null;
     private static final long updateInterval = 10000;
@@ -304,6 +306,7 @@ public class DashCam {
                 String filename = FileManager.getFilenameFromPath(d.getFile());
 
                 downloadStarts.put(filename, Instant.now());
+                downloadPowers.put(filename, PowerMonitor.getTotalPowerConsumption());
                 Log.v(TAG, String.format("Started download: %s", filename));
             }
 
@@ -313,9 +316,10 @@ public class DashCam {
                 String videoName = video.getName();
 
                 String time;
-                Instant start = downloadStarts.remove(videoName);
+                long power;
 
-                if (start != null) {
+                if (downloadStarts.containsKey(videoName)) {
+                    Instant start = downloadStarts.remove(videoName);
                     long duration = Duration.between(start, Instant.now()).toMillis();
                     time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
                 } else {
@@ -323,7 +327,14 @@ public class DashCam {
                     time = "0.000";
                 }
 
-                Log.i(I_TAG, String.format("Successfully downloaded %s in %ss", videoName, time));
+                if (downloadPowers.containsKey(videoName)) {
+                    power = PowerMonitor.getPowerConsumption(downloadPowers.remove(videoName));
+                } else {
+                    Log.e(TAG, String.format("Could not record download power consumption of %s", videoName));
+                    power = 0;
+                }
+
+                Log.i(I_TAG, String.format("Successfully downloaded %s in %ss, %dnW consumed", videoName, time, power));
                 downloadCallback.accept(video);
             }
 

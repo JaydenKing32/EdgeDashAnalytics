@@ -71,7 +71,8 @@ public abstract class VideoAnalysis<T extends Frame> {
         }
         int totalFrames = Integer.parseInt(totalFramesString);
 
-        Instant start = Instant.now();
+        Instant startTime = Instant.now();
+        long startPower = PowerMonitor.getTotalPowerConsumption();
         String startString = String.format("Starting analysis of %s", videoName);
         Log.d(I_TAG, startString);
         Log.d(TAG, String.format("Total frames of %s: %d", videoName, totalFrames));
@@ -79,10 +80,12 @@ public abstract class VideoAnalysis<T extends Frame> {
         processFramesLoop(retriever, totalFrames);
         writeResultsToJson(outPath);
 
-        long duration = Duration.between(start, Instant.now()).toMillis();
+        long duration = Duration.between(startTime, Instant.now()).toMillis();
         String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
+        long powerConsumption = PowerMonitor.getPowerConsumption(startPower);
 
-        String endString = String.format(Locale.ENGLISH, "Completed analysis of %s in %ss", videoName, time);
+        String endString = String.format(Locale.ENGLISH, "Completed analysis of %s in %ss, %dnW consumed",
+                videoName, time, powerConsumption);
         Log.d(I_TAG, endString);
         PowerMonitor.printSummary();
     }

@@ -59,6 +59,28 @@ public class PowerMonitor {
         }
     }
 
+    public static long getTotalPowerConsumption() {
+        return total;
+    }
+
+    /**
+     * Calculates the power consumed while performing a task.
+     * Requires providing a power measurement recorded prior to starting said task.
+     * May report 0 power consumption if no power changes are recorded by device during a task.
+     */
+    public static long getPowerConsumption(Long startingPower) {
+        if (startingPower == null) {
+            Log.e(TAG, "Starting power is null");
+            return 0;
+        }
+        return Math.abs(total - startingPower);
+    }
+
+    /**
+     * May not be that useful, as only records average power consumption per measurement.
+     * Different devices may have different power measurement timings, devices with more frequent measurements
+     * will have lower "average" power consumption than devices will less frequent measurements.
+     */
     private static double getAveragePower() {
         if (count == 0) {
             return total;

@@ -687,6 +687,7 @@ public abstract class NearbyFragment extends Fragment {
         private final SimpleArrayMap<Long, String> filePayloadFilenames = new SimpleArrayMap<>();
         private final SimpleArrayMap<Long, Command> filePayloadCommands = new SimpleArrayMap<>();
         private final SimpleArrayMap<Long, Instant> startTimes = new SimpleArrayMap<>();
+        private final SimpleArrayMap<Long, Long> startPowers = new SimpleArrayMap<>();
 
         private Instant lastUpdate = Instant.now();
         private static final int updateInterval = 10;
@@ -724,7 +725,9 @@ public abstract class NearbyFragment extends Fragment {
                         Log.v(TAG, String.format("Started downloading %s from %s", message, fromEndpoint));
                         PowerMonitor.startPowerMonitor(context);
                         payloadId = addPayloadFilename(parts);
+
                         startTimes.put(payloadId, Instant.now());
+                        startPowers.put(payloadId, PowerMonitor.getTotalPowerConsumption());
 
                         processFilePayload(payloadId, endpointId);
                         break;
@@ -732,7 +735,10 @@ public abstract class NearbyFragment extends Fragment {
                         videoName = parts[2];
                         Log.v(TAG, String.format("Started downloading %s from %s", videoName, fromEndpoint));
                         payloadId = addPayloadFilename(parts);
+
                         startTimes.put(payloadId, Instant.now());
+                        startPowers.put(payloadId, PowerMonitor.getTotalPowerConsumption());
+
                         fromEndpoint.removeJob(FileManager.getVideoNameFromResultName(videoName));
                         fromEndpoint.completeCount++;
 
@@ -795,8 +801,10 @@ public abstract class NearbyFragment extends Fragment {
             if (filePayload != null && filename != null && command != null) {
                 long duration = Duration.between(startTimes.remove(payloadId), Instant.now()).toMillis();
                 String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
-                Log.i(I_TAG, String.format("Completed downloading %s from %s in %ss",
-                        filename, discoveredEndpoints.get(fromEndpointId), time));
+                long power = PowerMonitor.getPowerConsumption(startPowers.remove(payloadId));
+
+                Log.i(I_TAG, String.format("Completed downloading %s from %s in %ss, %dnW consumed",
+                        filename, discoveredEndpoints.get(fromEndpointId), time, power));
 
                 completedFilePayloads.remove(payloadId);
                 filePayloadFilenames.remove(payloadId);
