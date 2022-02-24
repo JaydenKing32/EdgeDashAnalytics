@@ -828,18 +828,18 @@ public abstract class NearbyFragment extends Fragment {
                     return;
                 }
 
-                // Move the file.
-                File receivedFile = new File(FileManager.getRawDirPath(), filename);
-                try {
-                    Files.move(payloadFile.toPath(), receivedFile.toPath(), REPLACE_EXISTING);
-                } catch (IOException e) {
-                    Log.e(TAG, String.format("Could not move %s:\n%s", filename, e.getMessage()));
-                    return;
-                }
-
                 if (Message.isAnalyse(command)) {
-                    MediaScannerConnection.scanFile(getContext(), new String[]{receivedFile.getAbsolutePath()}, null,
-                            (path, uri) -> analyse(receivedFile));
+                    File videoDest = new File(FileManager.getRawDirPath(), filename);
+
+                    try {
+                        Files.move(payloadFile.toPath(), videoDest.toPath(), REPLACE_EXISTING);
+                    } catch (IOException e) {
+                        Log.e(TAG, String.format("Could not move %s:\n%s", filename, e.getMessage()));
+                        return;
+                    }
+
+                    MediaScannerConnection.scanFile(getContext(), new String[]{videoDest.getAbsolutePath()}, null,
+                            (path, uri) -> analyse(videoDest));
 
                 } else if (command.equals(Command.RETURN)) {
                     String resultName = FileManager.getResultNameFromVideoName(filename);
@@ -847,7 +847,7 @@ public abstract class NearbyFragment extends Fragment {
                     File resultsDest = new File(resultsDestPath);
 
                     try {
-                        Files.copy(receivedFile.toPath(), resultsDest.toPath(), REPLACE_EXISTING);
+                        Files.move(payloadFile.toPath(), resultsDest.toPath(), REPLACE_EXISTING);
                     } catch (IOException e) {
                         Log.e(TAG, String.format("processFilePayload copy error: \n%s", e.getMessage()));
                         return;
