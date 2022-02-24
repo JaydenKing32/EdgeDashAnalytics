@@ -3,7 +3,7 @@ package com.example.edgedashanalytics.util.video.analysis;
 import java.util.List;
 
 @SuppressWarnings({"FieldCanBeLocal", "unused"})
-class InnerFrame extends Frame {
+public class InnerFrame extends Frame {
     private final boolean distracted;
     private final float fullScore;
     private final List<KeyPoint> keyPoints;

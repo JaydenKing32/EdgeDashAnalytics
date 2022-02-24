@@ -14,6 +14,8 @@ import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.model.Result;
 import com.example.edgedashanalytics.util.video.FfmpegTools;
 import com.example.edgedashanalytics.util.video.analysis.Frame;
+import com.example.edgedashanalytics.util.video.analysis.InnerFrame;
+import com.example.edgedashanalytics.util.video.analysis.OuterFrame;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -142,6 +144,14 @@ public class FileManager {
         return filename.regionMatches(true, extensionStartIndex, RESULT_EXTENSION, 0, RESULT_EXTENSION.length());
     }
 
+    public static boolean isInner(String filename) {
+        return FilenameUtils.getBaseName(filename).startsWith("inn");
+    }
+
+    public static boolean isOuter(String filename) {
+        return FilenameUtils.getBaseName(filename).startsWith("out");
+    }
+
     public static void cleanDirectories(Context context) {
         Log.v(TAG, "Cleaning directories");
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
@@ -238,11 +248,18 @@ public class FileManager {
         if (resultPaths == null) {
             return null;
         }
-        String outPath = String.format("%s/%s", getResultDirPath(), parentName);
 
+        String outPath = String.format("%s/%s", getResultDirPath(), parentName);
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        Type collectionType = new TypeToken<Collection<Frame>>() {
-        }.getType();
+        Type collectionType;
+
+        if (isInner(baseName)) {
+            collectionType = new TypeToken<Collection<InnerFrame>>() {
+            }.getType();
+        } else {
+            collectionType = new TypeToken<Collection<OuterFrame>>() {
+            }.getType();
+        }
 
         int offset = 0;
         List<Frame> allFrames = new ArrayList<>();

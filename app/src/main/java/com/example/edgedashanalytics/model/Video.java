@@ -8,7 +8,7 @@ import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
 
-import org.apache.commons.io.FilenameUtils;
+import com.example.edgedashanalytics.util.file.FileManager;
 
 import java.math.BigInteger;
 
@@ -93,11 +93,11 @@ public class Video extends Content {
     }
 
     public boolean isInner() {
-        return FilenameUtils.getBaseName(getData()).startsWith("inn");
+        return FileManager.isInner(getData());
     }
 
     public boolean isOuter() {
-        return FilenameUtils.getBaseName(getData()).startsWith("out");
+        return FileManager.isOuter(getData());
     }
 
     @NonNull
