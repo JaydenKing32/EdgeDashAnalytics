@@ -517,10 +517,9 @@ def make_spreadsheet(run: Analysis, writer):
 
     # Cannot cleanly separate videos between devices when segmentation is used
     if run.seg_num > 1:
-        # TODO: test this section, may have been broken at some point
-        writer.writerow(["Device"])
+        writer.writerow(["Device", "Actual Power (nW)"])
         for device_name, device in run.devices.items():
-            writer.writerow([device_name])
+            writer.writerow([device_name, device.total_power])
 
         writer.writerow([
             "Filename",
@@ -530,7 +529,6 @@ def make_spreadsheet(run: Analysis, writer):
             "Analysis time (s)",
             "Network power (nW)",
             "Analysis power (nW)",
-            "Actual total power", device.total_power
         ])
 
         for video in run.videos.values():
