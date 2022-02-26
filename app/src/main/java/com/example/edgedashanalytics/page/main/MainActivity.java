@@ -285,7 +285,7 @@ public class MainActivity extends AppCompatActivity implements
             level = WifiManager.calculateSignalLevel(wifiInfo.getRssi(), numberOfLevels);
         }
 
-        String signalMessage = String.format("Wi-Fi signal strength: %s", level);
+        String signalMessage = String.format("Signal strength: %s, Speed: %s MB/s", level, DashCam.latestDownloadSpeed);
         Log.v(TAG, signalMessage);
         Toast.makeText(this, signalMessage, Toast.LENGTH_SHORT).show();
     }

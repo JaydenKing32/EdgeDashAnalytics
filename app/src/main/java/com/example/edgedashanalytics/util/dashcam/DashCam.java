@@ -67,6 +67,8 @@ public class DashCam {
 
     private static Fetch fetch = null;
     private static final long updateInterval = 10000;
+    // bytes per second / 1000, aka MB/s
+    public static long latestDownloadSpeed = 0;
 
     public static void setFetch(Context context) {
         if (fetch == null) {
@@ -339,9 +341,11 @@ public class DashCam {
             }
 
             public void onProgress(@NonNull Download d, long etaMilli, long bytesPerSec) {
+                latestDownloadSpeed = bytesPerSec / 1000;
+
                 Log.v(TAG, String.format("Downloading %s, Progress: %3s%%, ETA: %2ss, MB/s: %4s",
                         FileManager.getFilenameFromPath(d.getUrl()),
-                        d.getProgress(), etaMilli / 1000, bytesPerSec / 1000
+                        d.getProgress(), etaMilli / 1000, latestDownloadSpeed
                 ));
             }
 
