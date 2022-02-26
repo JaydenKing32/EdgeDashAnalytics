@@ -13,6 +13,7 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 
+import com.example.edgedashanalytics.BuildConfig;
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.nearby.Algorithm;
@@ -80,6 +81,11 @@ public class SettingsActivity extends AppCompatActivity {
             Preference clearLogsButton = findPreference(getString(R.string.clear_logs_key));
             if (clearLogsButton != null) {
                 clearLogsButton.setOnPreferenceClickListener(preference -> FileManager.clearLogs());
+            }
+
+            Preference versionNumber = findPreference(getString(R.string.version_number_key));
+            if (versionNumber != null) {
+                versionNumber.setTitle(getString(R.string.version_number_title) + BuildConfig.VERSION_CODE);
             }
         }
     }

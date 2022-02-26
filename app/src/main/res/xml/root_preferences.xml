@@ -1,6 +1,10 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <Preference
+        android:id="@+id/version_number"
+        android:key="@string/version_number_key"
+        android:title="@string/version_number_title" />
     <CheckBoxPreference
         android:id="@+id/remove_raw_preference"
         android:defaultValue="false"

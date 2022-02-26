@@ -31,6 +31,8 @@
     <string name="result_name_content_description">result name</string>
 
     <!-- Preferences -->
+    <string name="version_number_title">Version number:</string>
+    <string name="version_number_key">version_number</string>
     <string name="remove_raw_title">Remove raw</string>
     <string name="remove_raw_summary">Remove raw videos during clean</string>
     <string name="remove_raw_key">remove_raw</string>
