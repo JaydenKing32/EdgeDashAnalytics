@@ -138,6 +138,7 @@ class Analysis:
                 delay = re_down_delay.match(line)
 
                 if pref is not None:
+                    master_log.readline()  # skip master line
                     object_model_filename = master_log.readline().split()[-1]
                     pose_model_filename = master_log.readline().split()[-1]
                     algo = master_log.readline().split()[-1]
@@ -222,6 +223,7 @@ re_pref = re.compile(timestamp + r"I Important: Preferences:(?:\s+)?$")
 re_down_delay = re.compile(timestamp + r"I Important: Download delay: (\d*\.?\d*)s(?:\s+)?$")
 re_total_power = re.compile(timestamp + r"D PowerMonitor:\s+Total: -?(\d+)nW(?:\s+)?$")
 re_average_power = re.compile(timestamp + r"D PowerMonitor:\s+Average: -?(\d+)\.(\d+)nW(?:\s+)?$")
+re_master = re.compile(timestamp + r"I Important:\s+Master: (\w+)(?:\s+)?$")
 
 
 def is_master(log_path: str) -> bool:
@@ -231,7 +233,10 @@ def is_master(log_path: str) -> bool:
             pref = re_pref.match(log.readline())
 
             if pref is not None:
-                return True
+                master = re_master.match(log.readline())
+
+                if master is not None:
+                    return master.group(2) == "true"
     return False
 
 
