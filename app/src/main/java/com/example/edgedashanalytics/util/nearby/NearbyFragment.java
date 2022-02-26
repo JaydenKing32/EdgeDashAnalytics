@@ -273,6 +273,7 @@ public abstract class NearbyFragment extends Fragment {
 
     protected void startDiscovery(Context context) {
         PowerMonitor.startPowerMonitor(context);
+        SettingsActivity.printPreferences(master,false, context);
 
         DiscoveryOptions discoveryOptions = new DiscoveryOptions.Builder().setStrategy(STRATEGY).build();
         connectionsClient.startDiscovery(SERVICE_ID, endpointDiscoveryCallback, discoveryOptions)
@@ -303,7 +304,7 @@ public abstract class NearbyFragment extends Fragment {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         int delay = pref.getInt(getString(R.string.download_delay_key), defaultDelay);
 
-        SettingsActivity.printPreferences(true, context);
+        SettingsActivity.printPreferences(master,true, context);
         Log.i(I_TAG, String.format("Download delay: %ds", delay));
         Log.w(I_TAG, "Started downloading from dash cam");
         PowerMonitor.startPowerMonitor(context);

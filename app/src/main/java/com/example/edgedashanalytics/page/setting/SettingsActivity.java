@@ -4,6 +4,8 @@ import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -41,7 +43,22 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
-    public static void printPreferences(boolean autoDown, Context c) {
+    private static String getWifiName(Context context) {
+        WifiManager manager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+
+        if (manager.isWifiEnabled()) {
+            WifiInfo wifiInfo = manager.getConnectionInfo();
+
+            if (wifiInfo != null) {
+                // SSIDs are surrounded with quotation marks, should remove them
+                return wifiInfo.getSSID().replace("\"", "");
+            }
+        }
+
+        return "offline";
+    }
+
+    public static void printPreferences(boolean isMaster, boolean autoDownEnabled, Context c) {
         StringJoiner prefMessage = new StringJoiner("\n  ");
         prefMessage.add("Preferences:");
 
@@ -56,13 +73,15 @@ public class SettingsActivity extends AppCompatActivity {
         boolean segmentationEnabled = pref.getBoolean(c.getString(R.string.enable_segment_key), false);
         int segNum = pref.getInt(c.getString(R.string.segment_number_key), -1);
 
+        prefMessage.add(String.format("Master: %s", isMaster));
         prefMessage.add(String.format("Object detection model: %s", objectModel));
         prefMessage.add(String.format("Pose estimation model: %s", poseModel));
         prefMessage.add(String.format("Algorithm: %s", algorithm.name()));
         prefMessage.add(String.format("Local processing: %s", local));
-        prefMessage.add(String.format("Auto download: %s", autoDown));
+        prefMessage.add(String.format("Auto download: %s", autoDownEnabled));
         prefMessage.add(String.format("Segmentation: %s", segmentationEnabled));
         prefMessage.add(String.format("Segment number: %s", segNum));
+        prefMessage.add(String.format("Wi-Fi: %s", getWifiName(c)));
 
         Log.i(I_TAG, prefMessage.toString());
 
