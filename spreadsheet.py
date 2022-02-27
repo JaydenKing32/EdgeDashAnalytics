@@ -49,6 +49,17 @@ class Device:
         self.videos = {}  # type: Dict[str, Video]
         self.total_power = 0
         self.average_power = 0
+        self.network = ""
+
+    def set_network(self, log_path: str):
+        with open(log_path, 'r') as log:
+            for line in log:
+                net = re_network.match(line)
+
+                if net is not None:
+                    network = net.group(2)
+                    self.network = "Direct" if network == "offline" else "Dash cam"
+                    break
 
 
 class Analysis:
@@ -138,6 +149,7 @@ class Analysis:
                 delay = re_down_delay.match(line)
 
                 if pref is not None:
+                    master_log.readline()  # skip master line
                     object_model_filename = master_log.readline().split()[-1]
                     pose_model_filename = master_log.readline().split()[-1]
                     algo = master_log.readline().split()[-1]
@@ -222,6 +234,8 @@ re_pref = re.compile(timestamp + r"I Important: Preferences:(?:\s+)?$")
 re_down_delay = re.compile(timestamp + r"I Important: Download delay: (\d*\.?\d*)s(?:\s+)?$")
 re_total_power = re.compile(timestamp + r"D PowerMonitor:\s+Total: -?(\d+)nW(?:\s+)?$")
 re_average_power = re.compile(timestamp + r"D PowerMonitor:\s+Average: -?(\d+)\.(\d+)nW(?:\s+)?$")
+re_master = re.compile(timestamp + r"I Important:\s+Master: (\w+)(?:\s+)?$")
+re_network = re.compile(timestamp + r"I Important:\s+Wi-Fi: (\w+)(?:\s+)?$")
 
 
 def is_master(log_path: str) -> bool:
@@ -231,7 +245,10 @@ def is_master(log_path: str) -> bool:
             pref = re_pref.match(log.readline())
 
             if pref is not None:
-                return True
+                master = re_master.match(log.readline())
+
+                if master is not None:
+                    return master.group(2) == "true"
     return False
 
 
@@ -315,9 +332,12 @@ def get_total_time(master_log_file: str) -> timedelta:
 
 def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: str) -> Dict[str, Video]:
     videos = {}  # type: Dict[str, Video]
+    log_path = os.path.join(log_dir, master_filename)
 
-    with open(os.path.join(log_dir, master_filename), 'r') as master_log:
+    with open(log_path, 'r') as master_log:
         master_name = master_filename[-8:-4]
+        master = devices[master_name]
+        master.set_network(log_path)
 
         for line in master_log:
             down = re_down.match(line)
@@ -333,7 +353,7 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
 
                 video = Video(name=video_name, down_time=down_time, down_power=down_power)
                 videos[video_name] = video
-                devices[master_name].videos[video_name] = video
+                master.videos[video_name] = video
             elif transfer is not None:
                 video_name = get_video_name(transfer.group(2))
                 return_time = float(transfer.group(5))
@@ -349,9 +369,9 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
                 videos[video_name].analysis_time += analysis_time
                 videos[video_name].analysis_power += analysis_power
             elif total_power is not None:
-                devices[master_name].total_power = parse_power(total_power.group(2), master_name)
+                master.total_power = parse_power(total_power.group(2), master_name)
             elif average_power is not None:
-                devices[master_name].average_power = parse_power(average_power.group(2), master_name)
+                master.average_power = parse_power(average_power.group(2), master_name)
 
     return videos
 
@@ -360,8 +380,12 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
     worker_logs = [log for log in os.listdir(log_dir) if is_log(log) and master_sn not in log]
 
     for log in worker_logs:
-        with open(os.path.join(log_dir, log), 'r') as work_log:
+        log_path = os.path.join(log_dir, log)
+
+        with open(log_path, 'r') as work_log:
             device_name = log[-8:-4]
+            worker = devices[device_name]
+            worker.set_network(log_path)
 
             for line in work_log:
                 transfer = re_transfer.match(line)
@@ -378,7 +402,7 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
                     video.transfer_time += transfer_time
                     video.transfer_power += transfer_power
 
-                    devices[device_name].videos[video_name] = video
+                    worker.videos[video_name] = video
                 elif comp is not None:
                     video_name = get_video_name(comp.group(2))
                     analysis_time = float(comp.group(3))
@@ -387,9 +411,9 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
                     videos[video_name].analysis_time += analysis_time
                     videos[video_name].analysis_power += analysis_power
                 elif total_power is not None:
-                    devices[device_name].total_power = parse_power(total_power.group(2), device_name)
+                    worker.total_power = parse_power(total_power.group(2), device_name)
                 elif average_power is not None:
-                    devices[device_name].average_power = parse_power(average_power.group(2), device_name)
+                    worker.average_power = parse_power(average_power.group(2), device_name)
 
 
 def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
@@ -412,6 +436,7 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
                 device_name = device_sn[-4:]
                 videos = {}  # type: Dict[str, Video]
                 device = Device(device_name)
+                device.set_network(log_path)
 
                 run = Analysis(path, device_sn, {device_name: device}, videos)
                 run.local = False
@@ -517,9 +542,9 @@ def make_spreadsheet(run: Analysis, writer):
 
     # Cannot cleanly separate videos between devices when segmentation is used
     if run.seg_num > 1:
-        writer.writerow(["Device", "Actual Power (nW)"])
+        writer.writerow(["Device", "Actual Power (nW)", "Network"])
         for device_name, device in run.devices.items():
-            writer.writerow([device_name, device.total_power])
+            writer.writerow([device_name, device.total_power, device.network])
 
         writer.writerow([
             "Filename",
@@ -540,7 +565,7 @@ def make_spreadsheet(run: Analysis, writer):
 
     else:
         for device_name, device in run.devices.items():
-            writer.writerow(["Device: {}".format(device_name)])
+            writer.writerow(["Device: {}".format(device_name), "Network: {}".format(device.network)])
 
             # Master videos list should only contain videos that haven't been transferred
             videos = [v for v in device.videos.values() if v.transfer_time == 0] \
