@@ -86,8 +86,9 @@ public class SettingsActivity extends AppCompatActivity {
 
         Log.i(I_TAG, prefMessage.toString());
 
-        OuterAnalysis outerAnalysis = new OuterAnalysis(c);
-        InnerAnalysis innerAnalysis = new InnerAnalysis(c);
+        final boolean sleep = false;
+        OuterAnalysis outerAnalysis = new OuterAnalysis(c, sleep);
+        InnerAnalysis innerAnalysis = new InnerAnalysis(c, sleep);
         outerAnalysis.printParameters();
         innerAnalysis.printParameters();
     }

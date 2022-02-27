@@ -34,11 +34,12 @@ public abstract class VideoAnalysis<T extends Frame> {
     final int bufferSize;
     final boolean verbose;
     final List<T> frames;
+    private final boolean sleep;
 
     /**
      * Set up default parameters
      */
-    VideoAnalysis(Context context) {
+    VideoAnalysis(Context context, boolean sleep) {
         // Check if phone has at least (roughly) 2GB of RAM
         HardwareInfo hwi = new HardwareInfo(context);
         this.bufferSize = hwi.totalRam < 2000000000L ? 5 : 50;
@@ -46,6 +47,7 @@ public abstract class VideoAnalysis<T extends Frame> {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         this.verbose = pref.getBoolean(context.getString(R.string.verbose_output_key), DEFAULT_VERBOSE);
 
+        this.sleep = sleep;
         this.frames = new ArrayList<>();
     }
 
@@ -95,9 +97,15 @@ public abstract class VideoAnalysis<T extends Frame> {
         // Using getFramesAtIndex on a full video requires too much memory, while extracting each frame separately
         // through getFrameAtIndex is too slow. Instead use a buffer, extracting groups of frames
         for (int i = 0; i < totalFrames; i += bufferSize) {
-            if (Thread.currentThread().isInterrupted()) {
-                return;
+            if (sleep) {
+                try {
+                    // Let nearby connections send keep-alive messages
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    Log.d(TAG, String.format("Sleep interrupted:\n  %s", e.getMessage()));
+                }
             }
+
             int frameBuffSize = Integer.min(bufferSize, totalFrames - i);
             List<Bitmap> frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize);
 

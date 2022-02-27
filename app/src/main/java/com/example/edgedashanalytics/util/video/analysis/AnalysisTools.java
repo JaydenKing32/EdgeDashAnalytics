@@ -38,7 +38,11 @@ public class AnalysisTools {
 
     private static Runnable processRunnable(Video video, String outPath, Context context) {
         return () -> {
-            VideoAnalysis<?> videoAnalysis = video.isInner() ? new InnerAnalysis(context) : new OuterAnalysis(context);
+            // Only used for offline processing, sleeping is unnecessary
+            final boolean sleep = false;
+
+            VideoAnalysis<?> videoAnalysis = video.isInner() ?
+                    new InnerAnalysis(context, sleep) : new OuterAnalysis(context, sleep);
             videoAnalysis.analyse(video.getData(), outPath);
 
             analysisFutures.remove(video.getData());

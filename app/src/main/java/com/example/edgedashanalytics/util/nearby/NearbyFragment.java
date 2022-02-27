@@ -631,7 +631,10 @@ public abstract class NearbyFragment extends Fragment {
 
     private Runnable analysisRunnable(Video video, String outPath, Context context, boolean returnResult) {
         return () -> {
-            VideoAnalysis<?> videoAnalysis = video.isInner() ? new InnerAnalysis(context) : new OuterAnalysis(context);
+            boolean sleep = payloadCallback.getIncomingPayloadsCount() > 2;
+
+            VideoAnalysis<?> videoAnalysis = video.isInner() ?
+                    new InnerAnalysis(context, sleep) : new OuterAnalysis(context, sleep);
             videoAnalysis.analyse(video.getData(), outPath);
 
             Result result = new Result(outPath);
@@ -899,6 +902,10 @@ public abstract class NearbyFragment extends Fragment {
                 Long payloadId = incomingFilePayloads.keyAt(i);
                 connectionsClient.cancelPayload(payloadId);
             }
+        }
+
+        private int getIncomingPayloadsCount() {
+            return incomingFilePayloads.size();
         }
     }
 }

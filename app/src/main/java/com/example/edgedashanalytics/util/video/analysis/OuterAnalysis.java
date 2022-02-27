@@ -46,8 +46,8 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
             "bicycle", "car", "motorcycle", "bus", "truck"
     ));
 
-    public OuterAnalysis(Context context) {
-        super(context);
+    public OuterAnalysis(Context context, boolean sleep) {
+        super(context, sleep);
 
         try {
             BaseOptions baseOptions = BaseOptions.builder().setNumThreads(THREAD_NUM).build();

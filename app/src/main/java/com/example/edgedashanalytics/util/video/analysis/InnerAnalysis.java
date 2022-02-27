@@ -49,8 +49,8 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
     private int inputHeight;
     private int[] outputShape;
 
-    public InnerAnalysis(Context context) {
-        super(context);
+    public InnerAnalysis(Context context, boolean sleep) {
+        super(context, sleep);
 
         String defaultModel = context.getString(R.string.default_pose_model_key);
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
