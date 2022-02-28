@@ -54,12 +54,24 @@ class Device:
     def set_network(self, log_path: str):
         with open(log_path, 'r') as log:
             for line in log:
-                net = re_network.match(line)
+                network_match = re_network.match(line)
 
-                if net is not None:
-                    network = net.group(2)
-                    self.network = "Direct" if network == "offline" else "Dash cam"
-                    break
+                if network_match is not None:
+                    network = network_match.group(2)
+
+                    if network == "offline":
+                        self.network = "Direct"
+                        return
+
+                    net = "Dash cam "
+
+                    if "5G" in network:
+                        net += "5 GHz"
+                    else:
+                        net += "2.4 GHz"
+
+                    self.network = net
+                    return
 
 
 class Analysis:
