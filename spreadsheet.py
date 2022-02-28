@@ -310,7 +310,7 @@ def compare_offline_files(files: List[str]) -> int:
 def timestamp_to_datetime(line: str) -> datetime:
     match = re_timestamp.match(line)
 
-    year = 2020
+    year = 2022
     month = int(match.group(1))
     day = int(match.group(2))
     hour = int(match.group(3))
