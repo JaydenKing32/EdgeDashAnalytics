@@ -279,6 +279,15 @@ def get_basename_sans_ext(filename: str) -> str:
     return os.path.splitext(os.path.basename(filename))[0]
 
 
+def check_video_count(videos: List[Video], log_dir: str):
+    # There are 40 test videos, if the logs do not specify 40 videos, then something went wrong during a test run
+    expected_video_count = 40
+    video_count = len(videos)
+
+    if video_count != expected_video_count:
+        print(f"Unexpected video count: {video_count} in {os.path.basename(log_dir)}")
+
+
 def get_video_name(name: str) -> str:
     sep = '!'
     if sep in name:
@@ -479,6 +488,7 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
                     elif average_power is not None:
                         device.average_power = parse_power(average_power.group(2), device_name)
 
+            check_video_count(list(videos.values()), path)
             writer.writerow(["Device: {}".format(run.get_master_short_name())])
             writer.writerow([
                 "Download Delay: {}".format(run.delay),
@@ -661,6 +671,7 @@ def spread(root: str, out: str):
 
             videos = parse_master_log(devices, "{}.log".format(master_sn), path)
             parse_worker_logs(devices, videos, path, master_sn)
+            check_video_count(list(videos.values()), path)
 
             run = Analysis(path, master_sn, devices, videos)
             make_spreadsheet(run, writer)
