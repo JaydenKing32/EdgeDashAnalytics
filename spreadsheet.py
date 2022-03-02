@@ -279,13 +279,14 @@ def get_basename_sans_ext(filename: str) -> str:
     return os.path.splitext(os.path.basename(filename))[0]
 
 
-def check_video_count(videos: List[Video], log_dir: str):
+def check_video_count(videos: List[Video], log_dir: str) -> int:
     # There are 40 test videos, if the logs do not specify 40 videos, then something went wrong during a test run
     expected_video_count = 40
     video_count = len(videos)
 
     if video_count != expected_video_count:
         print(f"Unexpected video count: {video_count} in {os.path.basename(log_dir)}")
+    return expected_video_count - video_count
 
 
 def get_video_name(name: str) -> str:
@@ -488,13 +489,14 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
                     elif average_power is not None:
                         device.average_power = parse_power(average_power.group(2), device_name)
 
-            check_video_count(list(videos.values()), path)
+            missed = check_video_count(list(videos.values()), path)
             writer.writerow(["Device: {}".format(run.get_master_short_name())])
             writer.writerow([
                 "Download Delay: {}".format(run.delay),
                 "Object Model: {}".format(run.object_model),
                 "Pose Model: {}".format(run.pose_model),
-                "Dir: {}".format(run.get_sub_log_dir())
+                "Dir: {}".format(run.get_sub_log_dir()),
+                f"MISSING {missed}" if missed else ""
             ])
             writer.writerow([
                 "Filename",
@@ -547,6 +549,8 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
 
 
 def make_spreadsheet(run: Analysis, writer):
+    missed = check_video_count(list(run.videos.values()), run.log_dir)
+
     writer.writerow([
         "Master: {}".format(run.get_master_short_name()),
         "Segments: {}".format(run.seg_num),
@@ -559,7 +563,8 @@ def make_spreadsheet(run: Analysis, writer):
         "Object Model: {}".format(run.object_model),
         "Pose Model: {}".format(run.pose_model),
         "",
-        "Dir: {}".format(run.get_sub_log_dir())
+        "Dir: {}".format(run.get_sub_log_dir()),
+        f"MISSING {missed}" if missed else ""
     ])
 
     # Cannot cleanly separate videos between devices when segmentation is used
@@ -671,7 +676,6 @@ def spread(root: str, out: str):
 
             videos = parse_master_log(devices, "{}.log".format(master_sn), path)
             parse_worker_logs(devices, videos, path, master_sn)
-            check_video_count(list(videos.values()), path)
 
             run = Analysis(path, master_sn, devices, videos)
             make_spreadsheet(run, writer)
