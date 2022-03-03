@@ -197,6 +197,7 @@ parser.add_argument("-d", "--dir", default="out", help="directory of logs")
 parser.add_argument("-o", "--output", default="results.csv", help="name of output file")
 parser.add_argument("-a", "--append", action="store_true", help="append to the results file instead of overwriting it")
 parser.add_argument("-s", "--sort", action="store_true", help="sort totals summary based on log directory structure")
+parser.add_argument("-e", "--excel", action="store_true", help="use measures to prevent excel cell type conversion")
 args = parser.parse_args()
 
 serial_numbers = {
@@ -271,6 +272,11 @@ def get_master(log_dir: str) -> str:
 
 def get_basename_sans_ext(filename: str) -> str:
     return os.path.splitext(os.path.basename(filename))[0]
+
+
+def excel_format(string: str) -> str:
+    # \t prevents excel cell type conversion
+    return "\t{}".format(string) if args.excel and string else string
 
 
 def check_video_count(videos: List[Video], log_dir: str) -> int:
@@ -704,7 +710,6 @@ def spread(root: str, out: str):
             "Network"
         ])
 
-        # \t is for preventing excel cell type conversion
         for run in runs:
             workers = sorted([d.name for d in run.devices.values() if d.name != run.get_master_short_name()],
                              key=lambda d: list(serial_numbers.keys()).index(d))
@@ -720,11 +725,12 @@ def spread(root: str, out: str):
                 run.analysis_power,
                 run.get_total_power(),
                 run.total_time.total_seconds(),
-                "{:.11}\t".format(str(run.total_time)),
-                "-".join(workers),
+                excel_format("{:.11}".format(str(run.total_time))),
+                excel_format("-".join(workers)),
                 net
             ])
 
+        time = timedelta(seconds=sum(run.total_time.total_seconds() for run in runs))
         writer.writerow(["Total"] + [
             "{:.3f}".format(sum(run.down_time for run in runs)),
             "{:.3f}".format(sum(run.transfer_time for run in runs)),
@@ -734,8 +740,10 @@ def spread(root: str, out: str):
             sum(run.analysis_power for run in runs),
             sum(run.get_total_power() for run in runs),
             "{:.3f}".format(sum(run.total_time.total_seconds() for run in runs)),
-            "{:.11}\t".format(str(timedelta(seconds=sum(run.total_time.total_seconds() for run in runs))))
+            excel_format("{:.11}".format(str(time)))
         ])
+
+        time = timedelta(seconds=sum(run.total_time.total_seconds() / len(runs) for run in runs))
         writer.writerow(["Total Average"] + [
             "{:.3f}".format(sum(run.avg_down_time for run in runs)),
             "{:.3f}".format(sum(run.avg_transfer_time for run in runs)),
@@ -745,8 +753,10 @@ def spread(root: str, out: str):
             "{:.3f}".format(sum(run.avg_analysis_power for run in runs)),
             "{:.3f}".format(sum(run.get_total_power() / len(runs) for run in runs)),
             "{:.3f}".format(sum(run.total_time.total_seconds() / len(runs) for run in runs)),
-            "{:.11}\t".format(str(timedelta(seconds=sum(run.total_time.total_seconds() / len(runs) for run in runs))))
+            excel_format("{:.11}".format(str(time)))
         ])
+
+        time = timedelta(seconds=sum(run.total_time.total_seconds() for run in runs) / len(runs))
         writer.writerow(["True Average"] + [
             "{:.3f}".format(sum(run.avg_down_time for run in runs) / len(runs)),
             "{:.3f}".format(sum(run.avg_transfer_time for run in runs) / len(runs)),
@@ -756,7 +766,7 @@ def spread(root: str, out: str):
             "{:.3f}".format(sum(run.avg_analysis_power for run in runs) / len(runs)),
             "{:.3f}".format(sum(run.get_total_power() for run in runs) / len(runs)),
             "{:.3f}".format(sum(run.total_time.total_seconds() for run in runs) / len(runs)),
-            "{:.11}\t".format(str(timedelta(seconds=sum(run.total_time.total_seconds() for run in runs) / len(runs))))
+            excel_format("{:.11}".format(str(time)))
         ])
         writer.writerow('')
 
