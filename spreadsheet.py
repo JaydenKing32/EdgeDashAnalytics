@@ -61,16 +61,8 @@ class Device:
 
                     if network == "offline":
                         self.network = "Direct"
-                        return
-
-                    net = "Dash cam "
-
-                    if "5G" in network:
-                        net += "5 GHz"
                     else:
-                        net += "2.4 GHz"
-
-                    self.network = net
+                        self.network = "Dash 5GHz" if "5G" in network else "Dash 2.4GHz"
                     return
 
 
