@@ -26,6 +26,7 @@ import com.tonyodev.fetch2.NetworkType;
 import com.tonyodev.fetch2.Priority;
 import com.tonyodev.fetch2.Request;
 import com.tonyodev.fetch2core.DownloadBlock;
+import com.tonyodev.fetch2core.Downloader;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -358,10 +359,17 @@ public class DashCam {
                 }
             }
 
+            public void onError(@NonNull Download d, @NonNull Error error, @Nullable Throwable throwable) {
+                Downloader.Response response = error.getHttpResponse();
+                String responseString = response != null ? response.getErrorResponse() : "No response";
+
+                Log.e(TAG, String.format("Error downloading %s:\n%s\n%s",
+                        FileManager.getFilenameFromPath(d.getUrl()), error, responseString));
+            }
+
             // @formatter:off
             public void onQueued(@NonNull Download d, boolean b) {}
             public void onWaitingNetwork(@NonNull Download d) {}
-            public void onError(@NonNull Download d, @NonNull Error error, @Nullable Throwable throwable) {}
             public void onDownloadBlockUpdated(@NonNull Download d, @NonNull DownloadBlock dBlock, int i) {}
             public void onPaused(@NonNull Download d) {}
             public void onResumed(@NonNull Download d) {}
