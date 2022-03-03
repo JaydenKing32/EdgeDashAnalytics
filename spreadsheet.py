@@ -187,7 +187,8 @@ class Analysis:
             abs(self.seg_num),
             abs(self.delay),
             self.nodes,
-            self.algorithm
+            # Selected algorithm does not affect anything with only two devices
+            "duo" if len(self.devices) == 2 else self.algorithm
         )
 
 
