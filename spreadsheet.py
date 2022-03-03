@@ -707,10 +707,16 @@ def spread(root: str, out: str):
             "Actual total power (nW)",
             "Actual time (s)",
             "Human-readable time",
+            "Workers",
+            "Network"
         ])
 
         # \t is for preventing excel cell type conversion
         for run in runs:
+            workers = sorted([d.name for d in run.devices.values() if d.name != run.get_master_short_name()],
+                             key=lambda d: list(serial_numbers.keys()).index(d))
+            net = next(iter(run.devices.values())).network if all(d.network for d in run.devices.values()) else "Direct"
+
             writer.writerow([
                 str(run),
                 "{:.3f}".format(run.down_time),
@@ -721,7 +727,9 @@ def spread(root: str, out: str):
                 run.analysis_power,
                 run.get_total_power(),
                 run.total_time.total_seconds(),
-                "{:.11}\t".format(str(run.total_time))
+                "{:.11}\t".format(str(run.total_time)),
+                "-".join(workers),
+                net
             ])
 
         writer.writerow(["Total"] + [
