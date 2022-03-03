@@ -203,6 +203,7 @@ parser = ArgumentParser(description="Generates spreadsheets from logs")
 parser.add_argument("-d", "--dir", default="out", help="directory of logs")
 parser.add_argument("-o", "--output", default="results.csv", help="name of output file")
 parser.add_argument("-a", "--append", action="store_true", help="append to the results file instead of overwriting it")
+parser.add_argument("-s", "--sort", action="store_true", help="sort totals summary based on log directory structure")
 args = parser.parse_args()
 
 serial_numbers = {
@@ -681,15 +682,18 @@ def spread(root: str, out: str):
             make_spreadsheet(run, writer)
             runs.append(run)
 
-        runs.sort(key=lambda r: (
-            r.nodes,
-            r.seg_num,
-            r.delay,
-            r.local,
-            r.get_master_short_name(),
-            algorithms.index(r.algorithm),
-            r.get_sub_log_dir()
-        ))
+        if args.sort:
+            runs.sort(key=lambda r: r.log_dir)
+        else:
+            runs.sort(key=lambda r: (
+                r.nodes,
+                r.seg_num,
+                r.delay,
+                r.local,
+                r.get_master_short_name(),
+                algorithms.index(r.algorithm),
+                r.get_sub_log_dir()
+            ))
 
         writer.writerow(["Summary of totals"])
         writer.writerow([
