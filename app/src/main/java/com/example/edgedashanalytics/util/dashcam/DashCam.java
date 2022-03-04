@@ -282,6 +282,18 @@ public class DashCam {
         fetch.addListener(getFetchListener(context, downloadCallback));
     }
 
+    public static void printTurnaroundTime(String filename) {
+        Instant start = downloadStarts.remove(filename);
+
+        if (start == null) {
+            Log.w(TAG, String.format("Could not calculate the turnaround time of %s", filename));
+        } else {
+            long duration = Duration.between(start, Instant.now()).toMillis();
+            String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
+            Log.i(I_TAG, String.format("Turnaround time of %s: %ss", filename, time));
+        }
+    }
+
     // public static Bitmap getLiveBitmap() {
     //     FFmpegMediaMetadataRetriever retriever = new FFmpegMediaMetadataRetriever();
     //     retriever.setDataSource("rtsp://192.168.1.254");
@@ -331,7 +343,7 @@ public class DashCam {
                 long power;
 
                 if (downloadStarts.containsKey(videoName)) {
-                    Instant start = downloadStarts.remove(videoName);
+                    Instant start = downloadStarts.get(videoName);
                     long duration = Duration.between(start, Instant.now()).toMillis();
                     time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
                 } else {

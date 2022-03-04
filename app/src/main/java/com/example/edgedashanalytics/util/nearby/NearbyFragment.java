@@ -295,11 +295,15 @@ public abstract class NearbyFragment extends Fragment {
 
     // https://stackoverflow.com/a/11944965/8031185
     protected void startDashDownload() {
+        // Only master (or offline device) should start downloads
+        master = true;
+
         Context context = getContext();
         if (context == null) {
             Log.e(TAG, "No context");
             return;
         }
+
         int defaultDelay = 1;
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         int delay = pref.getInt(getString(R.string.download_delay_key), defaultDelay);
@@ -488,10 +492,12 @@ public abstract class NearbyFragment extends Fragment {
             String parentName = String.format("%s.%s", baseName, FilenameUtils.getExtension(resultName));
             Result result = FileManager.mergeResults(parentName);
 
+            String videoName = FileManager.getVideoNameFromResultName(parentName);
             EventBus.getDefault().post(new AddResultEvent(result));
-            EventBus.getDefault().post(new RemoveByNameEvent(parentName, Type.RAW));
-            EventBus.getDefault().post(new RemoveByNameEvent(parentName, Type.PROCESSING));
+            EventBus.getDefault().post(new RemoveByNameEvent(videoName, Type.RAW));
+            EventBus.getDefault().post(new RemoveByNameEvent(videoName, Type.PROCESSING));
 
+            DashCam.printTurnaroundTime(videoName);
             PowerMonitor.printSummary();
         } else {
             Log.v(TAG, String.format("Received a segment of %s", baseName));
@@ -642,6 +648,10 @@ public abstract class NearbyFragment extends Fragment {
 
             if (!FfmpegTools.isSegment(result.getName())) {
                 EventBus.getDefault().post(new AddResultEvent(result));
+
+                if (master) {
+                    DashCam.printTurnaroundTime(video.getName());
+                }
             }
 
             if (returnResult) {
@@ -866,6 +876,8 @@ public abstract class NearbyFragment extends Fragment {
                     EventBus.getDefault().post(new AddResultEvent(result));
                     String videoName = FileManager.getVideoNameFromResultName(filename);
                     EventBus.getDefault().post(new RemoveByNameEvent(videoName, Type.PROCESSING));
+
+                    DashCam.printTurnaroundTime(videoName);
                 }
             }
         }
