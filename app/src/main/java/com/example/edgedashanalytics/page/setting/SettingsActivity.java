@@ -72,6 +72,8 @@ public class SettingsActivity extends AppCompatActivity {
         boolean local = pref.getBoolean(c.getString(R.string.local_process_key), false);
         boolean segmentationEnabled = pref.getBoolean(c.getString(R.string.enable_segment_key), false);
         int segNum = pref.getInt(c.getString(R.string.segment_number_key), -1);
+        int delay = pref.getInt(c.getString(R.string.download_delay_key), 1);
+        boolean dualDownload = pref.getBoolean(c.getString(R.string.dual_download_key), false);
 
         prefMessage.add(String.format("Master: %s", isMaster));
         prefMessage.add(String.format("Object detection model: %s", objectModel));
@@ -81,6 +83,8 @@ public class SettingsActivity extends AppCompatActivity {
         prefMessage.add(String.format("Auto download: %s", autoDownEnabled));
         prefMessage.add(String.format("Segmentation: %s", segmentationEnabled));
         prefMessage.add(String.format("Segment number: %s", segNum));
+        prefMessage.add(String.format("Download delay: %s", delay));
+        prefMessage.add(String.format("Dual download: %s", dualDownload));
         prefMessage.add(String.format("Wi-Fi: %s", getWifiName(c)));
 
         Log.i(I_TAG, prefMessage.toString());

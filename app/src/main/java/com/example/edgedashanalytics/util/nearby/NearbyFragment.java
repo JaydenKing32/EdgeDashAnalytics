@@ -305,7 +305,6 @@ public abstract class NearbyFragment extends Fragment {
         int delay = pref.getInt(getString(R.string.download_delay_key), defaultDelay);
 
         SettingsActivity.printPreferences(master, true, context);
-        Log.i(I_TAG, String.format("Download delay: %ds", delay));
         Log.w(I_TAG, "Started downloading from dash cam");
         PowerMonitor.startPowerMonitor(context);
 
