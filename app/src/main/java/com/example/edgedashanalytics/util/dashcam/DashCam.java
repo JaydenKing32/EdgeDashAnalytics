@@ -3,13 +3,16 @@ package com.example.edgedashanalytics.util.dashcam;
 import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.collection.SimpleArrayMap;
+import androidx.preference.PreferenceManager;
 
+import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.event.video.AddEvent;
 import com.example.edgedashanalytics.event.video.Type;
 import com.example.edgedashanalytics.model.Video;
@@ -70,6 +73,7 @@ public class DashCam {
     private static final long updateInterval = 10000;
     // bytes per second / 1000, aka MB/s
     public static long latestDownloadSpeed = 0;
+    private static boolean dualDownload = false;
 
     public static void setFetch(Context context) {
         if (fetch == null) {
@@ -78,6 +82,9 @@ public class DashCam {
 
             fetch = Fetch.Impl.getInstance(fetchConfiguration);
             clearDownloads();
+
+            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+            dualDownload = pref.getBoolean(context.getString(R.string.dual_download_key), dualDownload);
         }
     }
 
@@ -195,6 +202,7 @@ public class DashCam {
     private static void downloadVideo(String url) {
         String filename = FileManager.getFilenameFromPath(url);
         String filePath = String.format("%s/%s", FileManager.getRawDirPath(), filename);
+        downloads.add(filename);
 
         final Request request = new Request(url, filePath);
         request.setPriority(Priority.HIGH);
@@ -234,10 +242,11 @@ public class DashCam {
             newVideos.sort(DashCam::testVideoComparator);
 
             if (newVideos.size() != 0) {
-                String toDownload = newVideos.get(0);
+                downloadVideo(videoDirUrl + newVideos.get(0));
 
-                downloads.add(toDownload);
-                downloadVideo(videoDirUrl + toDownload);
+                if (dualDownload && newVideos.size() > 1) {
+                    downloadVideo(videoDirUrl + newVideos.get(1));
+                }
             } else {
                 Log.v(TAG, "All test videos queued for download");
             }

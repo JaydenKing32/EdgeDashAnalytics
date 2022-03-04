@@ -70,6 +70,12 @@
         android:title="@string/download_delay_title"
         app:showSeekBarValue="true" />
     <CheckBoxPreference
+        android:id="@+id/dual_download_preference"
+        android:defaultValue="false"
+        android:key="@string/dual_download_key"
+        android:summary="@string/dual_download_summary"
+        android:title="@string/dual_download_title" />
+    <CheckBoxPreference
         android:id="@+id/enable_download_simulation_preference"
         android:defaultValue="false"
         android:key="@string/enable_download_simulation_key"
