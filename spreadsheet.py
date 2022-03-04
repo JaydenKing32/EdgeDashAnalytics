@@ -21,12 +21,14 @@ algorithms = [
 
 class Video:
     def __init__(self, name: str, down_time: float = 0, transfer_time: float = 0, analysis_time: float = 0,
-                 return_time: float = 0, down_power: int = 0, transfer_power: int = 0, analysis_power: int = 0):
+                 return_time: float = 0, down_power: int = 0, transfer_power: int = 0, analysis_power: int = 0,
+                 turnaround_time: int = 0):
         self.name = name
         self.down_time = down_time
         self.transfer_time = transfer_time
         self.analysis_time = analysis_time
         self.return_time = return_time
+        self.turnaround_time = turnaround_time
         self.down_power = down_power
         self.transfer_power = transfer_power
         self.analysis_power = analysis_power
@@ -38,6 +40,7 @@ class Video:
             "{:.3f}".format(self.transfer_time) if self.transfer_time != 0 else "n/a",
             "{:.3f}".format(self.return_time) if self.return_time != 0 else "n/a",
             "{:.3f}".format(self.analysis_time),
+            "{:.3f}".format(self.turnaround_time),
             self.down_power + self.transfer_power,
             self.analysis_power
         ]
@@ -87,6 +90,7 @@ class Analysis:
         self.transfer_time = -1.0
         self.analysis_time = -1.0
         self.return_time = -1.0
+        self.turnaround_time = -1.0
         self.network_power = -1
         self.analysis_power = -1
         self.total_time = get_total_time(self.master_path)
@@ -95,6 +99,7 @@ class Analysis:
         self.avg_transfer_time = 0
         self.avg_return_time = 0
         self.avg_analysis_time = 0
+        self.avg_turnaround_time = 0
         self.avg_network_power = 0
         self.avg_analysis_power = 0
 
@@ -117,6 +122,7 @@ class Analysis:
             "{:.3f}".format(self.transfer_time) if self.transfer_time != 0 else "n/a",
             "{:.3f}".format(self.return_time) if self.transfer_time != 0 else "n/a",
             "{:.3f}".format(self.analysis_time),
+            "{:.3f}".format(self.turnaround_time),
             self.network_power,
             self.analysis_power
         ]
@@ -128,6 +134,7 @@ class Analysis:
         self.avg_transfer_time = self.transfer_time / video_count
         self.avg_return_time = self.return_time / video_count
         self.avg_analysis_time = self.analysis_time / video_count
+        self.avg_turnaround_time = self.turnaround_time / video_count
         self.avg_network_power = self.network_power / video_count
         self.avg_analysis_power = self.analysis_power / video_count
 
@@ -137,6 +144,7 @@ class Analysis:
             "{:.3f}".format(self.avg_transfer_time) if self.avg_transfer_time != 0 else "n/a",
             "{:.3f}".format(self.avg_return_time) if self.avg_return_time != 0 else "n/a",
             "{:.3f}".format(self.avg_analysis_time),
+            "{:.3f}".format(self.avg_turnaround_time),
             int(self.avg_network_power),
             int(self.avg_analysis_power)
         ]
@@ -179,6 +187,7 @@ class Analysis:
         self.transfer_time = sum(v.transfer_time for v in self.videos.values())
         self.return_time = sum(v.return_time for v in self.videos.values())
         self.analysis_time = sum(v.analysis_time for v in self.videos.values())
+        self.turnaround_time = sum(v.turnaround_time for v in self.videos.values())
         self.network_power = sum(v.down_power for v in self.videos.values())
         self.analysis_power = sum(v.analysis_power for v in self.videos.values())
 
@@ -227,24 +236,36 @@ models = {
 }
 
 timestamp = r"^(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s+\d+\s+\d+ "
-re_timestamp = re.compile(r"^(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{3})(?=\s+\d+\s+\d+).*(?:\s+)?$")
+trailing_whitespace = r"(?:\s+)?$"
+re_timestamp = re.compile(r"^(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{3})(?=\s+\d+\s+\d+).*" + trailing_whitespace)
 re_down = re.compile(
     timestamp +
     r"I Important: Successfully downloaded "
-    r"(.*)\.\w+ in (\d*\.?\d*)s, (\d+)nW consumed(?:\s+)?$")
+    r"(.*)\.\w+ in (\d*\.?\d*)s, (\d+)nW consumed" +
+    trailing_whitespace
+)
 re_transfer = re.compile(
     timestamp +
     r"I Important: Completed downloading "
-    r"(.*)\.\w+ from Endpoint{id=\S{4}, name=(.*) \[(\w+)]} in (\d*\.?\d*)s, (\d+)nW consumed(?:\s+)?$")
+    r"(.*)\.\w+ from Endpoint{id=\S{4}, name=(.*) \[(\w+)]} in (\d*\.?\d*)s, (\d+)nW consumed" +
+    trailing_whitespace
+)
 re_comp = re.compile(
     timestamp +
-    r"D Important: Completed analysis of (.*)\.mp4 in (\d*\.?\d*)s, (\d+)nW consumed(?:.*)?$"
+    r"D Important: Completed analysis of (.*)\.mp4 in (\d*\.?\d*)s, (\d+)nW consumed" +
+    trailing_whitespace
 )
-re_pref = re.compile(timestamp + r"I Important: Preferences:(?:\s+)?$")
-re_total_power = re.compile(timestamp + r"D PowerMonitor:\s+Total: -?(\d+)nW(?:\s+)?$")
-re_average_power = re.compile(timestamp + r"D PowerMonitor:\s+Average: -?(\d+)\.(\d+)nW(?:\s+)?$")
-re_master = re.compile(timestamp + r"I Important:\s+Master: (\w+)(?:\s+)?$")
-re_network = re.compile(timestamp + r"I Important:\s+Wi-Fi: (\w+)(?:\s+)?$")
+re_turnaround = re.compile(
+    timestamp +
+    r"I Important: Turnaround time of (.*)\.mp4: (\d*\.?\d*)s" +
+    trailing_whitespace
+)
+# I Important: Turnaround time of out_01.mp4: 59.694s
+re_pref = re.compile(timestamp + r"I Important: Preferences:" + trailing_whitespace)
+re_total_power = re.compile(timestamp + r"D PowerMonitor:\s+Total: -?(\d+)nW" + trailing_whitespace)
+re_average_power = re.compile(timestamp + r"D PowerMonitor:\s+Average: -?(\d+)\.(\d+)nW" + trailing_whitespace)
+re_master = re.compile(timestamp + r"I Important:\s+Master: (\w+)" + trailing_whitespace)
+re_network = re.compile(timestamp + r"I Important:\s+Wi-Fi: (\w+)" + trailing_whitespace)
 
 
 def is_master(log_path: str) -> bool:
@@ -367,6 +388,7 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
             down = re_down.match(line)
             transfer = re_transfer.match(line)
             comp = re_comp.match(line)
+            turn = re_turnaround.match(line)
             total_power = re_total_power.match(line)
             average_power = re_average_power.match(line)
 
@@ -392,6 +414,11 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
 
                 videos[video_name].analysis_time += analysis_time
                 videos[video_name].analysis_power += analysis_power
+            elif turn is not None:
+                video_name = get_video_name(turn.group(2))
+                turn_time = float(turn.group(3))
+
+                videos[video_name].turnaround_time = turn_time
             elif total_power is not None:
                 master.total_power = parse_power(total_power.group(2), master_name)
             elif average_power is not None:
@@ -414,6 +441,7 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
             for line in work_log:
                 transfer = re_transfer.match(line)
                 comp = re_comp.match(line)
+                turn = re_turnaround.match(line)
                 total_power = re_total_power.match(line)
                 average_power = re_average_power.match(line)
 
@@ -434,6 +462,11 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
 
                     videos[video_name].analysis_time += analysis_time
                     videos[video_name].analysis_power += analysis_power
+                elif turn is not None:
+                    video_name = get_video_name(turn.group(2))
+                    turn_time = float(turn.group(3))
+
+                    videos[video_name].turnaround_time = turn_time
                 elif total_power is not None:
                     worker.total_power = parse_power(total_power.group(2), device_name)
                 elif average_power is not None:
@@ -470,6 +503,7 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
                 for line in offline_log:
                     down = re_down.match(line)
                     comp = re_comp.match(line)
+                    turn = re_turnaround.match(line)
                     total_power = re_total_power.match(line)
                     average_power = re_average_power.match(line)
 
@@ -486,6 +520,11 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
 
                         videos[video_name].analysis_time = analysis_time
                         videos[video_name].analysis_power = analysis_power
+                    elif turn is not None:
+                        video_name = get_video_name(turn.group(2))
+                        turn_time = float(turn.group(3))
+
+                        videos[video_name].turnaround_time = turn_time
                     elif total_power is not None:
                         device.total_power = parse_power(total_power.group(2), device_name)
                     elif average_power is not None:
@@ -507,6 +546,7 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
                 "Filename",
                 "Download time (s)",
                 "Analysis time (s)",
+                "Turnaround time (s)",
                 "Network power (nW)",
                 "Analysis power (nW)"
             ])
@@ -516,17 +556,20 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
                     video.name,
                     video.down_time,
                     video.analysis_time,
+                    video.turnaround_time,
                     video.down_power,
                     video.analysis_power
                 ])
 
             total_down_time = sum(v.down_time for v in videos.values())
             total_analysis_time = sum(v.analysis_time for v in videos.values())
+            total_turnaround_time = sum(v.turnaround_time for v in videos.values())
             total_network_power = sum(v.down_power for v in videos.values())
             total_analysis_power = sum(v.analysis_power for v in videos.values())
 
             run.down_time = total_down_time
             run.analysis_time = total_analysis_time
+            run.turnaround_time = total_turnaround_time
             run.network_power = total_network_power
             run.analysis_power = total_analysis_power
             run.set_average_stats()
@@ -535,6 +578,7 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
                 "Total",
                 "{:.3f}".format(run.down_time),
                 "{:.3f}".format(run.analysis_time),
+                "{:.3f}".format(run.turnaround_time),
                 run.network_power,
                 run.analysis_power
             ])
@@ -542,6 +586,7 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
                 "Average",
                 "{:.3f}".format(run.avg_down_time),
                 "{:.3f}".format(run.avg_analysis_time),
+                "{:.3f}".format(run.avg_turnaround_time),
                 int(run.avg_network_power),
                 int(run.avg_analysis_power)
             ])
@@ -585,6 +630,7 @@ def make_spreadsheet(run: Analysis, writer):
             "Transfer time (s)",
             "Return time (s)",
             "Analysis time (s)",
+            "Turnaround time (s)",
             "Network power (nW)",
             "Analysis power (nW)",
         ])
@@ -615,6 +661,7 @@ def make_spreadsheet(run: Analysis, writer):
                 "Transfer time (s)",
                 "Return time (s)",
                 "Analysis time (s)",
+                "Turnaround time (s)",
                 "Network power (nW)",
                 "Analysis power (nW)",
                 "Actual total power", device.total_power
@@ -629,6 +676,7 @@ def make_spreadsheet(run: Analysis, writer):
                 total_transfer_time = sum(v.transfer_time for v in videos)
                 total_return_time = sum(v.return_time for v in videos)
                 total_analysis_time = sum(v.analysis_time for v in videos)
+                total_turnaround_time = sum(v.turnaround_time for v in videos)
                 total_network_power = sum(v.down_power + v.transfer_power for v in videos)
                 total_analysis_power = sum(v.analysis_power for v in videos)
 
@@ -638,6 +686,7 @@ def make_spreadsheet(run: Analysis, writer):
                     "{:.3f}".format(total_transfer_time) if total_transfer_time != 0 else "n/a",
                     "{:.3f}".format(total_return_time) if total_return_time != 0 else "n/a",
                     "{:.3f}".format(total_analysis_time),
+                    "{:.3f}".format(total_turnaround_time),
                     total_network_power,
                     total_analysis_power
                 ])
@@ -648,6 +697,7 @@ def make_spreadsheet(run: Analysis, writer):
                     "{:.3f}".format(total_transfer_time / video_count) if total_transfer_time != 0 else "n/a",
                     "{:.3f}".format(total_return_time / video_count) if total_return_time != 0 else "n/a",
                     "{:.3f}".format(total_analysis_time / video_count),
+                    "{:.3f}".format(total_turnaround_time / video_count),
                     "{:.3f}".format(total_network_power / video_count),
                     "{:.3f}".format(total_analysis_power / video_count)
                 ])
@@ -707,6 +757,7 @@ def spread(root: str, out: str):
             "Transfer time (s)",
             "Return time (s)",
             "Analysis time (s)",
+            "Turnaround time (s)",
             "Network power (nW)",
             "Analysis power (nW)",
             "Actual total power (nW)",
@@ -728,6 +779,7 @@ def spread(root: str, out: str):
                 "{:.3f}".format(run.transfer_time) if run.transfer_time > 0 else "n/a",
                 "{:.3f}".format(run.return_time) if run.transfer_time > 0 else "n/a",
                 "{:.3f}".format(run.analysis_time),
+                "{:.3f}".format(run.turnaround_time),
                 run.network_power,
                 run.analysis_power,
                 run.get_total_power(),
@@ -744,6 +796,7 @@ def spread(root: str, out: str):
             "{:.3f}".format(sum(run.transfer_time for run in runs)),
             "{:.3f}".format(sum(run.return_time for run in runs)),
             "{:.3f}".format(sum(run.analysis_time for run in runs)),
+            "{:.3f}".format(sum(run.turnaround_time for run in runs)),
             sum(run.network_power for run in runs),
             sum(run.analysis_power for run in runs),
             sum(run.get_total_power() for run in runs),
@@ -757,6 +810,7 @@ def spread(root: str, out: str):
             "{:.3f}".format(sum(run.avg_transfer_time for run in runs)),
             "{:.3f}".format(sum(run.avg_return_time for run in runs)),
             "{:.3f}".format(sum(run.avg_analysis_time for run in runs)),
+            "{:.3f}".format(sum(run.avg_turnaround_time for run in runs)),
             "{:.3f}".format(sum(run.avg_network_power for run in runs)),
             "{:.3f}".format(sum(run.avg_analysis_power for run in runs)),
             "{:.3f}".format(sum(run.get_total_power() / len(runs) for run in runs)),
@@ -770,6 +824,7 @@ def spread(root: str, out: str):
             "{:.3f}".format(sum(run.avg_transfer_time for run in runs) / len(runs)),
             "{:.3f}".format(sum(run.avg_return_time for run in runs) / len(runs)),
             "{:.3f}".format(sum(run.avg_analysis_time for run in runs) / len(runs)),
+            "{:.3f}".format(sum(run.avg_turnaround_time for run in runs) / len(runs)),
             "{:.3f}".format(sum(run.avg_network_power for run in runs) / len(runs)),
             "{:.3f}".format(sum(run.avg_analysis_power for run in runs) / len(runs)),
             "{:.3f}".format(sum(run.get_total_power() for run in runs) / len(runs)),
