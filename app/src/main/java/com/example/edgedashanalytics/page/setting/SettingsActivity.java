@@ -59,22 +59,24 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     public static void printPreferences(boolean isMaster, boolean autoDownEnabled, Context c) {
-        StringJoiner prefMessage = new StringJoiner("\n  ");
-        prefMessage.add("Preferences:");
+        final SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(c);
+        final boolean defaultBool = false;
+        final int defaultInt = 1;
 
-        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(c);
         String objectModel = pref.getString(c.getString(R.string.object_model_key),
                 c.getString(R.string.default_object_model_key));
         String poseModel = pref.getString(c.getString(R.string.pose_model_key),
                 c.getString(R.string.default_pose_model_key));
         String algorithmKey = c.getString(R.string.scheduling_algorithm_key);
         AlgorithmKey algorithm = AlgorithmKey.valueOf(pref.getString(algorithmKey, Algorithm.DEFAULT_ALGORITHM.name()));
-        boolean local = pref.getBoolean(c.getString(R.string.local_process_key), false);
-        boolean segmentationEnabled = pref.getBoolean(c.getString(R.string.enable_segment_key), false);
-        int segNum = pref.getInt(c.getString(R.string.segment_number_key), -1);
-        int delay = pref.getInt(c.getString(R.string.download_delay_key), 1);
-        boolean dualDownload = pref.getBoolean(c.getString(R.string.dual_download_key), false);
+        boolean local = pref.getBoolean(c.getString(R.string.local_process_key), defaultBool);
+        boolean segmentationEnabled = pref.getBoolean(c.getString(R.string.enable_segment_key), defaultBool);
+        int segNum = pref.getInt(c.getString(R.string.segment_number_key), defaultInt);
+        int delay = pref.getInt(c.getString(R.string.download_delay_key), defaultInt);
+        boolean dualDownload = pref.getBoolean(c.getString(R.string.dual_download_key), defaultBool);
 
+        StringJoiner prefMessage = new StringJoiner("\n  ");
+        prefMessage.add("Preferences:");
         prefMessage.add(String.format("Master: %s", isMaster));
         prefMessage.add(String.format("Object detection model: %s", objectModel));
         prefMessage.add(String.format("Pose estimation model: %s", poseModel));
