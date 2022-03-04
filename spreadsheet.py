@@ -707,7 +707,8 @@ def spread(root: str, out: str):
             "Actual time (s)",
             "Human-readable time",
             "Workers",
-            "Network"
+            "Network",
+            "Directory"
         ])
 
         for run in runs:
@@ -727,7 +728,8 @@ def spread(root: str, out: str):
                 run.total_time.total_seconds(),
                 excel_format("{:.11}".format(str(run.total_time))),
                 excel_format("-".join(workers)),
-                net
+                net,
+                run.log_dir
             ])
 
         time = timedelta(seconds=sum(run.total_time.total_seconds() for run in runs))
