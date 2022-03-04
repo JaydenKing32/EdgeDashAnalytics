@@ -81,6 +81,7 @@ class Analysis:
         self.object_model = ""
         self.pose_model = ""
         self.local = False
+        self.dual_download = False
 
         self.down_time = -1.0
         self.transfer_time = -1.0
@@ -150,7 +151,6 @@ class Analysis:
         with open(self.master_path, 'r') as master_log:
             for line in master_log:
                 pref = re_pref.match(line)
-                delay = re_down_delay.match(line)
 
                 if pref is not None:
                     master_log.readline()  # skip master line
@@ -160,16 +160,19 @@ class Analysis:
                     local = master_log.readline().split()[-1] == "true"
                     master_log.readline()  # skip auto-download line
                     seg = master_log.readline().split()[-1] == "true"
-                    seg_num = int(master_log.readline().split()[-1]) if seg else 1
+                    seg_num = int(master_log.readline().split()[-1])
+                    if not seg:
+                        seg_num = 1
+                    delay = int(master_log.readline().split()[-1])
+                    dual_download = master_log.readline().split()[-1] == "true"
 
                     self.algorithm = algo
                     self.seg_num = seg_num
                     self.object_model = models[object_model_filename]
                     self.pose_model = models[pose_model_filename]
                     self.local = local
-
-                if delay is not None:
-                    self.delay = int(delay.group(2))
+                    self.delay = delay
+                    self.dual_download = dual_download
                     break
 
         self.down_time = sum(v.down_time for v in self.videos.values())
@@ -238,7 +241,6 @@ re_comp = re.compile(
     r"D Important: Completed analysis of (.*)\.mp4 in (\d*\.?\d*)s, (\d+)nW consumed(?:.*)?$"
 )
 re_pref = re.compile(timestamp + r"I Important: Preferences:(?:\s+)?$")
-re_down_delay = re.compile(timestamp + r"I Important: Download delay: (\d*\.?\d*)s(?:\s+)?$")
 re_total_power = re.compile(timestamp + r"D PowerMonitor:\s+Total: -?(\d+)nW(?:\s+)?$")
 re_average_power = re.compile(timestamp + r"D PowerMonitor:\s+Average: -?(\d+)\.(\d+)nW(?:\s+)?$")
 re_master = re.compile(timestamp + r"I Important:\s+Master: (\w+)(?:\s+)?$")
@@ -495,8 +497,11 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
                 "Download Delay: {}".format(run.delay),
                 "Object Model: {}".format(run.object_model),
                 "Pose Model: {}".format(run.pose_model),
+                "Dual: {}".format(run.dual_download),
+                f"MISSING {missed}" if missed else "",
+                "",
+                "",
                 "Dir: {}".format(run.get_sub_log_dir()),
-                f"MISSING {missed}" if missed else ""
             ])
             writer.writerow([
                 "Filename",
@@ -562,9 +567,10 @@ def make_spreadsheet(run: Analysis, writer):
         "Download Delay: {}".format(run.delay),
         "Object Model: {}".format(run.object_model),
         "Pose Model: {}".format(run.pose_model),
+        "Dual: {}".format(run.dual_download),
+        f"MISSING {missed}" if missed else "",
         "",
-        "Dir: {}".format(run.get_sub_log_dir()),
-        f"MISSING {missed}" if missed else ""
+        "Dir: {}".format(run.get_sub_log_dir())
     ])
 
     # Cannot cleanly separate videos between devices when segmentation is used
