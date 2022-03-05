@@ -105,8 +105,6 @@ totals_header = [
     "Directory"
 ]
 
-excel = False
-
 
 class Video:
     def __init__(self, name: str, down_time: float = 0, transfer_time: float = 0, analysis_time: float = 0,
@@ -321,7 +319,7 @@ def get_basename_sans_ext(filename: str) -> str:
     return os.path.splitext(os.path.basename(filename))[0]
 
 
-def excel_format(string: str) -> str:
+def excel_format(string: str, excel: bool) -> str:
     # \t prevents excel cell type conversion
     return f"\t{string}" if excel and string else string
 
@@ -713,7 +711,7 @@ def make_spreadsheet(run: Analysis, writer):
     writer.writerow('')
 
 
-def spread(root: str, out: str, append: bool = False, sort: bool = False):
+def spread(root: str, out: str, append: bool = False, sort: bool = False, excel: bool = False):
     root = os.path.normpath(root)
     runs = []  # type: List[Analysis]
     write_mode = 'a' if append else 'w'
@@ -772,8 +770,8 @@ def spread(root: str, out: str, append: bool = False, sort: bool = False):
                 f"{run.analysis_power:.3f}",
                 f"{run.get_total_power():.3f}",
                 run.total_time.total_seconds(),
-                excel_format(f"{str(run.total_time):.11}"),
-                excel_format("-".join(workers)),
+                excel_format(f"{str(run.total_time):.11}", excel),
+                excel_format("-".join(workers), excel),
                 net,
                 run.log_dir
             ])
@@ -789,7 +787,7 @@ def spread(root: str, out: str, append: bool = False, sort: bool = False):
             f"{sum(run.analysis_power for run in runs):.3f}",
             f"{sum(run.get_total_power() for run in runs):.3f}",
             f"{sum(run.total_time.total_seconds() for run in runs):.3f}",
-            excel_format(f"{str(time):.11}")
+            excel_format(f"{str(time):.11}", excel)
         ])
 
         time = timedelta(seconds=sum(run.total_time.total_seconds() / len(runs) for run in runs))
@@ -803,7 +801,7 @@ def spread(root: str, out: str, append: bool = False, sort: bool = False):
             f"{sum(run.avg_analysis_power for run in runs):.3f}",
             f"{sum(run.get_total_power() / len(runs) for run in runs):.3f}",
             f"{sum(run.total_time.total_seconds() / len(runs) for run in runs):.3f}",
-            excel_format(f"{str(time):.11}")
+            excel_format(f"{str(time):.11}", excel)
         ])
 
         time = timedelta(seconds=sum(run.total_time.total_seconds() for run in runs) / len(runs))
@@ -817,7 +815,7 @@ def spread(root: str, out: str, append: bool = False, sort: bool = False):
             f"{sum(run.avg_analysis_power for run in runs) / len(runs):.3f}",
             f"{sum(run.get_total_power() for run in runs) / len(runs):.3f}",
             f"{sum(run.total_time.total_seconds() for run in runs) / len(runs):.3f}",
-            excel_format(f"{str(time):.11}")
+            excel_format(f"{str(time):.11}", excel)
         ])
         writer.writerow('')
 
@@ -831,6 +829,6 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--append", action="store_true", help="append to results file instead of overwriting it")
     parser.add_argument("-s", "--sort", action="store_true", help="sort totals summary based on log paths")
     parser.add_argument("-e", "--excel", action="store_true", help="use measures to prevent excel cell type conversion")
-
     args = parser.parse_args()
-    spread(args.dir, args.output, args.append, args.sort)
+
+    spread(args.dir, args.output, args.append, args.sort, args.excel)
