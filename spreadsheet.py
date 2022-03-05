@@ -313,6 +313,8 @@ def get_master(log_dir: str) -> str:
     for file in [os.path.join(log_dir, filename) for filename in os.listdir(log_dir)]:
         if os.path.isfile(file) and is_master(file):
             return file
+    print("Could not find master log")
+    return ""
 
 
 def get_basename_sans_ext(filename: str) -> str:
@@ -723,7 +725,11 @@ def spread(root: str, out: str, append: bool = False, sort: bool = False):
 
         for (path, dirs, files) in sorted(
                 [(path, dirs, files) for (path, dirs, files) in os.walk(root) if len(files) > 2]):
-            master_sn = get_basename_sans_ext(get_master(path))
+            master = get_master(path)
+            if not master:
+                continue
+
+            master_sn = get_basename_sans_ext(master)
             logs = [log for log in os.listdir(path) if is_log(log)]
             devices = {device[-8:-4]: Device(device[-8:-4]) for device in logs}  # Initialise device dictionary
 
