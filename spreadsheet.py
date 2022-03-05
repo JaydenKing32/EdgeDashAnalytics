@@ -291,7 +291,7 @@ class Analysis:
 def is_master(log_path: str) -> bool:
     with open(log_path, 'r', encoding="utf-8") as log:
         # Check first 10 lines for preferences message
-        for i in range(10):
+        for _ in range(10):
             pref = re_pref.match(log.readline())
 
             if pref is not None:
@@ -500,8 +500,8 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
     writer.writerow(["Offline"])
 
     # Offline directories should only contain two files, normal log and verbose log
-    for (path, dirs, files) in sorted(
-            [(path, dirs, files) for (path, dirs, files) in os.walk(log_dir) if len(files) == 2],
+    for (path, _, files) in sorted(
+            [(path, _, files) for (path, _, files) in os.walk(log_dir) if len(files) == 2],
             key=lambda pdf: compare_offline_files(pdf[2])
     ):
         for log in files:
@@ -721,8 +721,8 @@ def spread(root: str, out: str, append: bool = False, sort: bool = False, excel:
 
         make_offline_spreadsheet(root, runs, writer)
 
-        for (path, dirs, files) in sorted(
-                [(path, dirs, files) for (path, dirs, files) in os.walk(root) if len(files) > 2]):
+        for (path, _, files) in sorted(
+                [(path, _, files) for (path, _, files) in os.walk(root) if len(files) > 2]):
             master = get_master(path)
             if not master:
                 continue
