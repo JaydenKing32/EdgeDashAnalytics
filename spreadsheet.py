@@ -269,30 +269,30 @@ re_network = re.compile(timestamp + r"I Important:\s+Wi-Fi: (\w+)" + trailing_wh
 offline_header = [
     "Filename",
     "Down time (s)",
-    "Analysis time (s)",
+    "Proc time (s)",
     "Turn time (s)",
     "Net power (mW)",
-    "Analysis power (mW)"
+    "Proc power (mW)"
 ]
 online_header = [
     "Filename",
     "Down time (s)",
     "Tran time (s)",
     "Ret time (s)",
-    "Analysis time (s)",
+    "Proc time (s)",
     "Turn time (s)",
     "Net power (mW)",
-    "Analysis power (mW)",
+    "Proc power (mW)",
 ]
 totals_header = [
     "Run",
     "Down time (s)",
     "Tran time (s)",
     "Ret time (s)",
-    "Analysis time (s)",
+    "Proc time (s)",
     "Turn time (s)",
     "Net power (mW)",
-    "Analysis power (mW)",
+    "Proc power (mW)",
     "Actual power (mW)",
     "Actual time (s)",
     "Human time",
