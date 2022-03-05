@@ -70,15 +70,21 @@ public class DashCam {
     private static final SimpleArrayMap<String, Long> downloadPowers = new SimpleArrayMap<>();
 
     private static Fetch fetch = null;
-    private static final long updateInterval = 10000;
     // bytes per second / 1000, aka MB/s
     public static long latestDownloadSpeed = 0;
     private static boolean dualDownload = false;
 
     public static void setFetch(Context context) {
         if (fetch == null) {
+            final int concurrentDownloads = 1;
+            final long updateInterval = 10000;
+            final int retryAttempts = 5;
+
             FetchConfiguration fetchConfiguration = new FetchConfiguration.Builder(context)
-                    .setDownloadConcurrentLimit(1).setProgressReportingInterval(updateInterval).build();
+                    .setDownloadConcurrentLimit(concurrentDownloads)
+                    .setProgressReportingInterval(updateInterval)
+                    .setAutoRetryMaxAttempts(retryAttempts)
+                    .build();
 
             fetch = Fetch.Impl.getInstance(fetchConfiguration);
             clearDownloads();
@@ -384,8 +390,8 @@ public class DashCam {
                 Downloader.Response response = error.getHttpResponse();
                 String responseString = response != null ? response.getErrorResponse() : "No response";
 
-                Log.e(TAG, String.format("Error downloading %s:\n%s\n%s",
-                        FileManager.getFilenameFromPath(d.getUrl()), error, responseString));
+                Log.e(I_TAG, String.format("Error downloading %s (attempt %s):\n%s\n%s",
+                        FileManager.getFilenameFromPath(d.getUrl()), d.getAutoRetryAttempts(), error, responseString));
             }
 
             // @formatter:off
