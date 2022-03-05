@@ -3,6 +3,7 @@ package com.example.edgedashanalytics.page.setting;
 import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -10,6 +11,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
@@ -25,6 +27,8 @@ import com.example.edgedashanalytics.util.video.analysis.OuterAnalysis;
 import java.util.StringJoiner;
 
 public class SettingsActivity extends AppCompatActivity {
+    private static final String TAG = SettingsActivity.class.getSimpleName();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -104,8 +108,25 @@ public class SettingsActivity extends AppCompatActivity {
 
             Preference clearLogsButton = findPreference(getString(R.string.clear_logs_key));
             if (clearLogsButton != null) {
-                clearLogsButton.setOnPreferenceClickListener(preference -> FileManager.clearLogs());
+                clearLogsButton.setOnPreferenceClickListener(preference -> clearLogsPrompt());
             }
+        }
+
+        private boolean clearLogsPrompt() {
+            Context context = getContext();
+            if (context == null) {
+                Log.w(TAG, "No context");
+                return false;
+            }
+
+            new AlertDialog.Builder(context)
+                    .setTitle("Clear logs?")
+                    .setPositiveButton(android.R.string.yes,
+                            (DialogInterface dialog, int which) -> FileManager.clearLogs())
+                    .setNegativeButton(android.R.string.no,
+                            (DialogInterface dialog, int which) -> Log.v(TAG, "Canceled log clearing"))
+                    .show();
+            return true;
         }
     }
 }
