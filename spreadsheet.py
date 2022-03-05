@@ -225,14 +225,14 @@ serial_numbers = {
 }
 milliamp_devices = ["2802", "X9BT", "43e2"]
 models = {
-    "lite-model_ssd_mobilenet_v1_1_metadata_2.tflite": "MobileNetV1",
-    "lite-model_efficientdet_lite0_detection_metadata_1.tflite": "EfficientDet-Lite0",
-    "lite-model_efficientdet_lite1_detection_metadata_1.tflite": "EfficientDet-Lite1",
-    "lite-model_efficientdet_lite2_detection_metadata_1.tflite": "EfficientDet-Lite2",
-    "lite-model_efficientdet_lite3_detection_metadata_1.tflite": "EfficientDet-Lite3",
-    "lite-model_efficientdet_lite4_detection_metadata_2.tflite": "EfficientDet-Lite4",
-    "lite-model_movenet_singlepose_lightning_tflite_float16_4.tflite": "MoveNet Lightning",
-    "lite-model_movenet_singlepose_thunder_tflite_float16_4.tflite": "MoveNet Thunder"
+    "lite-model_ssd_mobilenet_v1_1_metadata_2.tflite": "MNV1",  # MobileNetV1
+    "lite-model_efficientdet_lite0_detection_metadata_1.tflite": "EDL0",  # EfficientDet-Lite0
+    "lite-model_efficientdet_lite1_detection_metadata_1.tflite": "EDL1",  # EfficientDet-Lite1
+    "lite-model_efficientdet_lite2_detection_metadata_1.tflite": "EDL2",  # EfficientDet-Lite2
+    "lite-model_efficientdet_lite3_detection_metadata_1.tflite": "EDL3",  # EfficientDet-Lite3
+    "lite-model_efficientdet_lite4_detection_metadata_2.tflite": "EDL4",  # EfficientDet-Lite4
+    "lite-model_movenet_singlepose_lightning_tflite_float16_4.tflite": "MvNL",  # MoveNet Lightning
+    "lite-model_movenet_singlepose_thunder_tflite_float16_4.tflite": "MvNT"  # MoveNet Thunder
 }
 
 timestamp = r"^(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s+\d+\s+\d+ "
@@ -260,12 +260,46 @@ re_turnaround = re.compile(
     r"I Important: Turnaround time of (.*)\.mp4: (\d*\.?\d*)s" +
     trailing_whitespace
 )
-# I Important: Turnaround time of out_01.mp4: 59.694s
 re_pref = re.compile(timestamp + r"I Important: Preferences:" + trailing_whitespace)
 re_total_power = re.compile(timestamp + r"D PowerMonitor:\s+Total: -?(\d+)nW" + trailing_whitespace)
 re_average_power = re.compile(timestamp + r"D PowerMonitor:\s+Average: -?(\d+)\.(\d+)nW" + trailing_whitespace)
 re_master = re.compile(timestamp + r"I Important:\s+Master: (\w+)" + trailing_whitespace)
 re_network = re.compile(timestamp + r"I Important:\s+Wi-Fi: (\w+)" + trailing_whitespace)
+
+offline_header = [
+    "Filename",
+    "Down time (s)",
+    "Analysis time (s)",
+    "Turn time (s)",
+    "Net power (mW)",
+    "Analysis power (mW)"
+]
+online_header = [
+    "Filename",
+    "Down time (s)",
+    "Tran time (s)",
+    "Ret time (s)",
+    "Analysis time (s)",
+    "Turn time (s)",
+    "Net power (mW)",
+    "Analysis power (mW)",
+]
+totals_header = [
+    "Run",
+    "Down time (s)",
+    "Tran time (s)",
+    "Ret time (s)",
+    "Analysis time (s)",
+    "Turn time (s)",
+    "Net power (mW)",
+    "Analysis power (mW)",
+    "Actual power (mW)",
+    "Actual time (s)",
+    "Human time",
+    "Workers",
+    "Network",
+    "Directory"
+]
 
 
 def is_master(log_path: str) -> bool:
@@ -543,14 +577,7 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
                 "",
                 "Dir: {}".format(run.get_sub_log_dir()),
             ])
-            writer.writerow([
-                "Filename",
-                "Download time (s)",
-                "Analysis time (s)",
-                "Turnaround time (s)",
-                "Network power (mW)",
-                "Analysis power (mW)"
-            ])
+            writer.writerow(offline_header)
 
             for video in videos.values():
                 writer.writerow([
@@ -625,16 +652,7 @@ def make_spreadsheet(run: Analysis, writer):
         for device_name, device in run.devices.items():
             writer.writerow([device_name, device.total_power, device.network])
 
-        writer.writerow([
-            "Filename",
-            "Download time (s)",
-            "Transfer time (s)",
-            "Return time (s)",
-            "Analysis time (s)",
-            "Turnaround time (s)",
-            "Network power (mW)",
-            "Analysis power (mW)",
-        ])
+        writer.writerow(online_header)
 
         for video in run.videos.values():
             writer.writerow(video.get_stats())
@@ -656,17 +674,7 @@ def make_spreadsheet(run: Analysis, writer):
                 writer.writerow(["Did not analyse any videos"])
                 continue
 
-            writer.writerow([
-                "Filename",
-                "Download time (s)",
-                "Transfer time (s)",
-                "Return time (s)",
-                "Analysis time (s)",
-                "Turnaround time (s)",
-                "Network power (mW)",
-                "Analysis power (mW)",
-                "Actual total power", device.total_power
-            ])
+            writer.writerow(online_header + ["Actual total power", device.total_power])
 
             for video in videos:
                 writer.writerow(video.get_stats())
@@ -752,22 +760,7 @@ def spread(root: str, out: str):
             ))
 
         writer.writerow(["Summary of totals"])
-        writer.writerow([
-            "Run",
-            "Download time (s)",
-            "Transfer time (s)",
-            "Return time (s)",
-            "Analysis time (s)",
-            "Turnaround time (s)",
-            "Network power (mW)",
-            "Analysis power (mW)",
-            "Actual total power (mW)",
-            "Actual time (s)",
-            "Human-readable time",
-            "Workers",
-            "Network",
-            "Directory"
-        ])
+        writer.writerow(totals_header)
 
         for run in runs:
             workers = sorted([d.name for d in run.devices.values() if d.name != run.get_master_short_name()],
