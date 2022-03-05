@@ -9,6 +9,8 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Button;
+import android.widget.LinearLayout;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
@@ -102,6 +104,8 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     public static class SettingsFragment extends PreferenceFragmentCompat {
+        AlertDialog clearDialog = null;
+
         @Override
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
             setPreferencesFromResource(R.xml.root_preferences, rootKey);
@@ -110,23 +114,44 @@ public class SettingsActivity extends AppCompatActivity {
             if (clearLogsButton != null) {
                 clearLogsButton.setOnPreferenceClickListener(preference -> clearLogsPrompt());
             }
-        }
 
-        private boolean clearLogsPrompt() {
             Context context = getContext();
             if (context == null) {
-                Log.w(TAG, "No context");
-                return false;
+                Log.w(TAG, "Null context");
+                return;
             }
 
-            new AlertDialog.Builder(context)
+            clearDialog = new AlertDialog.Builder(context)
                     .setTitle("Clear logs?")
                     .setPositiveButton(android.R.string.yes,
                             (DialogInterface dialog, int which) -> FileManager.clearLogs())
                     .setNegativeButton(android.R.string.no,
                             (DialogInterface dialog, int which) -> Log.v(TAG, "Canceled log clearing"))
-                    .show();
-            return true;
+                    .create();
+
+            // https://stackoverflow.com/a/34556215
+            clearDialog.setOnShowListener(dialog -> {
+                Button posButton = clearDialog.getButton(DialogInterface.BUTTON_POSITIVE);
+                Button negButton = clearDialog.getButton(DialogInterface.BUTTON_NEGATIVE);
+
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT, 2f);
+                negButton.setLayoutParams(params);
+                posButton.setLayoutParams(params);
+
+                negButton.invalidate();
+                posButton.invalidate();
+            });
+        }
+
+        private boolean clearLogsPrompt() {
+            if (clearDialog == null) {
+                Log.w(TAG, "Null dialog");
+                return false;
+            } else {
+                clearDialog.show();
+                return true;
+            }
         }
     }
 }
