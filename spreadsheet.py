@@ -17,6 +17,94 @@ algorithms = [
     "most_storage",
     "highest_battery"
 ]
+serial_numbers = {
+    "X9BT": "R52R901X9BT",  # Samsung Galaxy Tab S7 FE/SM-T733
+    "01BK": "18121FDF6001BK",  # Pixel 6
+    "JRQY": "8A1X0JRQY",  # Pixel 3
+    "43e2": "105a43e2",  # OPPO Find X2 Pro/CPH2025
+    "dd83": "4885dd83",  # OnePlus 8/IN2013
+    "2802": "ce12171c8a14c72802",  # Samsung Galaxy S8/SM-G950F
+    "34d8": "00a6a4630f4e34d8",  # Nexus 5X
+    "9c8f": "00b7a59265959c8f",  # Nexus 5X
+    "1825": "0b3b6fd50c371825"  # Nexus 5
+}
+milliamp_devices = ["2802", "X9BT", "43e2"]
+models = {
+    "lite-model_ssd_mobilenet_v1_1_metadata_2.tflite": "MNV1",  # MobileNetV1
+    "lite-model_efficientdet_lite0_detection_metadata_1.tflite": "EDL0",  # EfficientDet-Lite0
+    "lite-model_efficientdet_lite1_detection_metadata_1.tflite": "EDL1",  # EfficientDet-Lite1
+    "lite-model_efficientdet_lite2_detection_metadata_1.tflite": "EDL2",  # EfficientDet-Lite2
+    "lite-model_efficientdet_lite3_detection_metadata_1.tflite": "EDL3",  # EfficientDet-Lite3
+    "lite-model_efficientdet_lite4_detection_metadata_2.tflite": "EDL4",  # EfficientDet-Lite4
+    "lite-model_movenet_singlepose_lightning_tflite_float16_4.tflite": "MvNL",  # MoveNet Lightning
+    "lite-model_movenet_singlepose_thunder_tflite_float16_4.tflite": "MvNT"  # MoveNet Thunder
+}
+
+timestamp = r"^(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s+\d+\s+\d+ "
+trailing_whitespace = r"(?:\s+)?$"
+re_timestamp = re.compile(r"^(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{3})(?=\s+\d+\s+\d+).*" + trailing_whitespace)
+re_down = re.compile(
+    timestamp +
+    r"I Important: Successfully downloaded "
+    r"(.*)\.\w+ in (\d*\.?\d*)s, (\d+)nW consumed" +
+    trailing_whitespace
+)
+re_transfer = re.compile(
+    timestamp +
+    r"I Important: Completed downloading "
+    r"(.*)\.\w+ from Endpoint{id=\S{4}, name=(.*) \[(\w+)]} in (\d*\.?\d*)s, (\d+)nW consumed" +
+    trailing_whitespace
+)
+re_comp = re.compile(
+    timestamp +
+    r"D Important: Completed analysis of (.*)\.mp4 in (\d*\.?\d*)s, (\d+)nW consumed" +
+    trailing_whitespace
+)
+re_turnaround = re.compile(
+    timestamp +
+    r"I Important: Turnaround time of (.*)\.mp4: (\d*\.?\d*)s" +
+    trailing_whitespace
+)
+re_pref = re.compile(timestamp + r"I Important: Preferences:" + trailing_whitespace)
+re_total_power = re.compile(timestamp + r"D PowerMonitor:\s+Total: -?(\d+)nW" + trailing_whitespace)
+re_average_power = re.compile(timestamp + r"D PowerMonitor:\s+Average: -?(\d+)\.(\d+)nW" + trailing_whitespace)
+re_master = re.compile(timestamp + r"I Important:\s+Master: (\w+)" + trailing_whitespace)
+re_network = re.compile(timestamp + r"I Important:\s+Wi-Fi: (\w+)" + trailing_whitespace)
+
+offline_header = [
+    "Filename",
+    "Down time (s)",
+    "Proc time (s)",
+    "Turn time (s)",
+    "Net power (mW)",
+    "Proc power (mW)"
+]
+online_header = [
+    "Filename",
+    "Down time (s)",
+    "Tran time (s)",
+    "Ret time (s)",
+    "Proc time (s)",
+    "Turn time (s)",
+    "Net power (mW)",
+    "Proc power (mW)",
+]
+totals_header = [
+    "Run",
+    "Down time (s)",
+    "Tran time (s)",
+    "Ret time (s)",
+    "Proc time (s)",
+    "Turn time (s)",
+    "Net power (mW)",
+    "Proc power (mW)",
+    "Actual power (mW)",
+    "Actual time (s)",
+    "Human time",
+    "Workers",
+    "Network",
+    "Directory"
+]
 
 
 class Video:
@@ -211,95 +299,6 @@ parser.add_argument("-a", "--append", action="store_true", help="append to the r
 parser.add_argument("-s", "--sort", action="store_true", help="sort totals summary based on log directory structure")
 parser.add_argument("-e", "--excel", action="store_true", help="use measures to prevent excel cell type conversion")
 args = parser.parse_args()
-
-serial_numbers = {
-    "X9BT": "R52R901X9BT",  # Samsung Galaxy Tab S7 FE/SM-T733
-    "01BK": "18121FDF6001BK",  # Pixel 6
-    "JRQY": "8A1X0JRQY",  # Pixel 3
-    "43e2": "105a43e2",  # OPPO Find X2 Pro/CPH2025
-    "dd83": "4885dd83",  # OnePlus 8/IN2013
-    "2802": "ce12171c8a14c72802",  # Samsung Galaxy S8/SM-G950F
-    "34d8": "00a6a4630f4e34d8",  # Nexus 5X
-    "9c8f": "00b7a59265959c8f",  # Nexus 5X
-    "1825": "0b3b6fd50c371825"  # Nexus 5
-}
-milliamp_devices = ["2802", "X9BT", "43e2"]
-models = {
-    "lite-model_ssd_mobilenet_v1_1_metadata_2.tflite": "MNV1",  # MobileNetV1
-    "lite-model_efficientdet_lite0_detection_metadata_1.tflite": "EDL0",  # EfficientDet-Lite0
-    "lite-model_efficientdet_lite1_detection_metadata_1.tflite": "EDL1",  # EfficientDet-Lite1
-    "lite-model_efficientdet_lite2_detection_metadata_1.tflite": "EDL2",  # EfficientDet-Lite2
-    "lite-model_efficientdet_lite3_detection_metadata_1.tflite": "EDL3",  # EfficientDet-Lite3
-    "lite-model_efficientdet_lite4_detection_metadata_2.tflite": "EDL4",  # EfficientDet-Lite4
-    "lite-model_movenet_singlepose_lightning_tflite_float16_4.tflite": "MvNL",  # MoveNet Lightning
-    "lite-model_movenet_singlepose_thunder_tflite_float16_4.tflite": "MvNT"  # MoveNet Thunder
-}
-
-timestamp = r"^(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s+\d+\s+\d+ "
-trailing_whitespace = r"(?:\s+)?$"
-re_timestamp = re.compile(r"^(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{3})(?=\s+\d+\s+\d+).*" + trailing_whitespace)
-re_down = re.compile(
-    timestamp +
-    r"I Important: Successfully downloaded "
-    r"(.*)\.\w+ in (\d*\.?\d*)s, (\d+)nW consumed" +
-    trailing_whitespace
-)
-re_transfer = re.compile(
-    timestamp +
-    r"I Important: Completed downloading "
-    r"(.*)\.\w+ from Endpoint{id=\S{4}, name=(.*) \[(\w+)]} in (\d*\.?\d*)s, (\d+)nW consumed" +
-    trailing_whitespace
-)
-re_comp = re.compile(
-    timestamp +
-    r"D Important: Completed analysis of (.*)\.mp4 in (\d*\.?\d*)s, (\d+)nW consumed" +
-    trailing_whitespace
-)
-re_turnaround = re.compile(
-    timestamp +
-    r"I Important: Turnaround time of (.*)\.mp4: (\d*\.?\d*)s" +
-    trailing_whitespace
-)
-re_pref = re.compile(timestamp + r"I Important: Preferences:" + trailing_whitespace)
-re_total_power = re.compile(timestamp + r"D PowerMonitor:\s+Total: -?(\d+)nW" + trailing_whitespace)
-re_average_power = re.compile(timestamp + r"D PowerMonitor:\s+Average: -?(\d+)\.(\d+)nW" + trailing_whitespace)
-re_master = re.compile(timestamp + r"I Important:\s+Master: (\w+)" + trailing_whitespace)
-re_network = re.compile(timestamp + r"I Important:\s+Wi-Fi: (\w+)" + trailing_whitespace)
-
-offline_header = [
-    "Filename",
-    "Down time (s)",
-    "Proc time (s)",
-    "Turn time (s)",
-    "Net power (mW)",
-    "Proc power (mW)"
-]
-online_header = [
-    "Filename",
-    "Down time (s)",
-    "Tran time (s)",
-    "Ret time (s)",
-    "Proc time (s)",
-    "Turn time (s)",
-    "Net power (mW)",
-    "Proc power (mW)",
-]
-totals_header = [
-    "Run",
-    "Down time (s)",
-    "Tran time (s)",
-    "Ret time (s)",
-    "Proc time (s)",
-    "Turn time (s)",
-    "Net power (mW)",
-    "Proc power (mW)",
-    "Actual power (mW)",
-    "Actual time (s)",
-    "Human time",
-    "Workers",
-    "Network",
-    "Directory"
-]
 
 
 def is_master(log_path: str) -> bool:
