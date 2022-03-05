@@ -144,7 +144,7 @@ class Device:
         self.network = ""
 
     def set_network(self, log_path: str):
-        with open(log_path, 'r') as log:
+        with open(log_path, 'r', encoding="utf-8") as log:
             for line in log:
                 network_match = re_network.match(line)
 
@@ -244,7 +244,7 @@ class Analysis:
         return sum(d.average_power for d in self.devices.values())
 
     def parse_preferences(self):
-        with open(self.master_path, 'r') as master_log:
+        with open(self.master_path, 'r', encoding="utf-8") as master_log:
             for line in master_log:
                 pref = re_pref.match(line)
 
@@ -291,7 +291,7 @@ class Analysis:
 
 
 def is_master(log_path: str) -> bool:
-    with open(log_path, 'r') as log:
+    with open(log_path, 'r', encoding="utf-8") as log:
         # Check first 10 lines for preferences message
         for i in range(10):
             pref = re_pref.match(log.readline())
@@ -381,7 +381,7 @@ def get_total_time(master_log_file: str) -> timedelta:
     start = None
     end = None
 
-    with open(master_log_file, 'r') as master_log:
+    with open(master_log_file, 'r', encoding="utf-8") as master_log:
         for line in master_log:
             if start is None:
                 pref = re_pref.match(line)
@@ -402,7 +402,7 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
     videos = {}  # type: Dict[str, Video]
     log_path = os.path.join(log_dir, master_filename)
 
-    with open(log_path, 'r') as master_log:
+    with open(log_path, 'r', encoding="utf-8") as master_log:
         master_name = master_filename[-8:-4]
         master = devices[master_name]
         master.set_network(log_path)
@@ -456,7 +456,7 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
     for log in worker_logs:
         log_path = os.path.join(log_dir, log)
 
-        with open(log_path, 'r') as work_log:
+        with open(log_path, 'r', encoding="utf-8") as work_log:
             device_name = log[-8:-4]
             worker = devices[device_name]
             worker.set_network(log_path)
@@ -511,7 +511,7 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
 
             log_path = os.path.join(path, log)
 
-            with open(log_path, 'r') as offline_log:
+            with open(log_path, 'r', encoding="utf-8") as offline_log:
                 device_sn = log[:-4]
                 device_name = device_sn[-4:]
                 videos = {}  # type: Dict[str, Video]
@@ -716,7 +716,7 @@ def spread(root: str, out: str, append: bool = False, sort: bool = False):
     runs = []  # type: List[Analysis]
     write_mode = 'a' if append else 'w'
 
-    with open(out, write_mode, newline='') as csv_f:
+    with open(out, write_mode, newline='', encoding="utf-8") as csv_f:
         writer = csv.writer(csv_f)
 
         make_offline_spreadsheet(root, runs, writer)
