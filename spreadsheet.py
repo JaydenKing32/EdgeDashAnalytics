@@ -2,7 +2,6 @@
 import csv
 import os
 import re
-from argparse import ArgumentParser
 from datetime import datetime, timedelta
 from typing import Dict, List
 
@@ -105,6 +104,8 @@ totals_header = [
     "Network",
     "Directory"
 ]
+
+excel = False
 
 
 class Video:
@@ -292,15 +293,6 @@ class Analysis:
         )
 
 
-parser = ArgumentParser(description="Generates spreadsheets from logs")
-parser.add_argument("-d", "--dir", default="out", help="directory of logs")
-parser.add_argument("-o", "--output", default="results.csv", help="name of output file")
-parser.add_argument("-a", "--append", action="store_true", help="append to the results file instead of overwriting it")
-parser.add_argument("-s", "--sort", action="store_true", help="sort totals summary based on log directory structure")
-parser.add_argument("-e", "--excel", action="store_true", help="use measures to prevent excel cell type conversion")
-args = parser.parse_args()
-
-
 def is_master(log_path: str) -> bool:
     with open(log_path, 'r') as log:
         # Check first 10 lines for preferences message
@@ -332,7 +324,7 @@ def get_basename_sans_ext(filename: str) -> str:
 
 def excel_format(string: str) -> str:
     # \t prevents excel cell type conversion
-    return "\t{}".format(string) if args.excel and string else string
+    return "\t{}".format(string) if excel and string else string
 
 
 def check_video_count(videos: List[Video], log_dir: str) -> int:
@@ -722,10 +714,10 @@ def make_spreadsheet(run: Analysis, writer):
     writer.writerow('')
 
 
-def spread(root: str, out: str):
+def spread(root: str, out: str, append: bool = False, sort: bool = False):
     root = os.path.normpath(root)
     runs = []  # type: List[Analysis]
-    write_mode = 'a' if args.append else 'w'
+    write_mode = 'a' if append else 'w'
 
     with open(out, write_mode, newline='') as csv_f:
         writer = csv.writer(csv_f)
@@ -745,7 +737,7 @@ def spread(root: str, out: str):
             make_spreadsheet(run, writer)
             runs.append(run)
 
-        if args.sort:
+        if sort:
             runs.sort(key=lambda r: r.log_dir)
         else:
             runs.sort(key=lambda r: (
@@ -827,4 +819,15 @@ def spread(root: str, out: str):
         writer.writerow('')
 
 
-spread(args.dir, args.output)
+if __name__ == "__main__":
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser(description="Generates spreadsheets from logs")
+    parser.add_argument("-d", "--dir", default="out", help="directory of logs")
+    parser.add_argument("-o", "--output", default="results.csv", help="name of output file")
+    parser.add_argument("-a", "--append", action="store_true", help="append to results file instead of overwriting it")
+    parser.add_argument("-s", "--sort", action="store_true", help="sort totals summary based on log paths")
+    parser.add_argument("-e", "--excel", action="store_true", help="use measures to prevent excel cell type conversion")
+
+    args = parser.parse_args()
+    spread(args.dir, args.output, args.append, args.sort)
