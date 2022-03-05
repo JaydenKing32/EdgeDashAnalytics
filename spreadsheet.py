@@ -132,6 +132,16 @@ class Video:
             f"{self.analysis_power:.3f}"
         ]
 
+    def get_offline_stats(self) -> List[str]:
+        return [
+            self.name,
+            f"{self.down_time:.3f}",
+            f"{self.analysis_time:.3f}",
+            f"{self.turnaround_time:.3f}",
+            f"{self.down_power + self.transfer_power:.3f}",
+            f"{self.analysis_power:.3f}"
+        ]
+
 
 class Device:
     def __init__(self, name: str):
@@ -568,14 +578,7 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
             writer.writerow(offline_header)
 
             for video in videos.values():
-                writer.writerow([
-                    video.name,
-                    video.down_time,
-                    video.analysis_time,
-                    video.turnaround_time,
-                    video.down_power,
-                    video.analysis_power
-                ])
+                writer.writerow(video.get_offline_stats())
 
             total_down_time = sum(v.down_time for v in videos.values())
             total_analysis_time = sum(v.analysis_time for v in videos.values())
