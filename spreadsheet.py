@@ -253,6 +253,9 @@ class Analysis:
     def get_total_average_power(self) -> float:
         return sum(d.average_power for d in self.devices.values())
 
+    def get_network(self) -> str:
+        return next(iter(self.devices.values())).network if all(d.network for d in self.devices.values()) else "Direct"
+
     def parse_preferences(self):
         with open(self.master_path, 'r', encoding="utf-8") as master_log:
             for line in master_log:
@@ -723,7 +726,6 @@ def spread_totals(runs: List[Analysis], writer):
     for run in runs:
         workers = sorted([d.name for d in run.devices.values() if d.name != run.get_master_short_name()],
                          key=lambda d: list(serial_numbers.keys()).index(d))
-        net = next(iter(run.devices.values())).network if all(d.network for d in run.devices.values()) else "Direct"
 
         writer.writerow([
             str(run),
@@ -738,7 +740,7 @@ def spread_totals(runs: List[Analysis], writer):
             run.total_time.total_seconds(),
             excel_format(f"{str(run.total_time):.11}"),
             excel_format("-".join(workers)),
-            net,
+            run.get_network(),
             run.log_dir
         ])
 
@@ -765,7 +767,6 @@ def spread_averages(runs: List[Analysis], writer):
     for run in runs:
         workers = sorted([d.name for d in run.devices.values() if d.name != run.get_master_short_name()],
                          key=lambda d: list(serial_numbers.keys()).index(d))
-        net = next(iter(run.devices.values())).network if all(d.network for d in run.devices.values()) else "Direct"
 
         writer.writerow([
             str(run),
@@ -780,7 +781,7 @@ def spread_averages(runs: List[Analysis], writer):
             run.total_time.total_seconds(),
             excel_format(f"{str(run.total_time):.11}"),
             excel_format("-".join(workers)),
-            net,
+            run.get_network(),
             run.log_dir
         ])
 
