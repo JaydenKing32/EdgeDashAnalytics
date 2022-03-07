@@ -716,6 +716,76 @@ def make_spreadsheet(run: Analysis, writer):
     writer.writerow('')
 
 
+def spread_totals(runs: List[Analysis], writer):
+    writer.writerow(["Summary of totals"])
+    writer.writerow(totals_header)
+
+    for run in runs:
+        workers = sorted([d.name for d in run.devices.values() if d.name != run.get_master_short_name()],
+                         key=lambda d: list(serial_numbers.keys()).index(d))
+        net = next(iter(run.devices.values())).network if all(d.network for d in run.devices.values()) else "Direct"
+
+        writer.writerow([
+            str(run),
+            f"{run.down_time:.3f}",
+            f"{run.transfer_time:.3f}" if run.transfer_time > 0 else "n/a",
+            f"{run.return_time:.3f}" if run.transfer_time > 0 else "n/a",
+            f"{run.analysis_time:.3f}",
+            f"{run.turnaround_time:.3f}",
+            f"{run.network_power:.3f}",
+            f"{run.analysis_power:.3f}",
+            f"{run.get_total_power():.3f}",
+            run.total_time.total_seconds(),
+            excel_format(f"{str(run.total_time):.11}"),
+            excel_format("-".join(workers)),
+            net,
+            run.log_dir
+        ])
+
+    time = timedelta(seconds=sum(run.total_time.total_seconds() for run in runs))
+    writer.writerow(["Total"] + [
+        f"{sum(run.down_time for run in runs):.3f}",
+        f"{sum(run.transfer_time for run in runs):.3f}",
+        f"{sum(run.return_time for run in runs):.3f}",
+        f"{sum(run.analysis_time for run in runs):.3f}",
+        f"{sum(run.turnaround_time for run in runs):.3f}",
+        f"{sum(run.network_power for run in runs):.3f}",
+        f"{sum(run.analysis_power for run in runs):.3f}",
+        f"{sum(run.get_total_power() for run in runs):.3f}",
+        f"{sum(run.total_time.total_seconds() for run in runs):.3f}",
+        excel_format(f"{str(time):.11}")
+    ])
+
+    time = timedelta(seconds=sum(run.total_time.total_seconds() / len(runs) for run in runs))
+    writer.writerow(["Total Average"] + [
+        f"{sum(run.avg_down_time for run in runs):.3f}",
+        f"{sum(run.avg_transfer_time for run in runs):.3f}",
+        f"{sum(run.avg_return_time for run in runs):.3f}",
+        f"{sum(run.avg_analysis_time for run in runs):.3f}",
+        f"{sum(run.avg_turnaround_time for run in runs):.3f}",
+        f"{sum(run.avg_network_power for run in runs):.3f}",
+        f"{sum(run.avg_analysis_power for run in runs):.3f}",
+        f"{sum(run.get_total_power() / len(runs) for run in runs):.3f}",
+        f"{sum(run.total_time.total_seconds() / len(runs) for run in runs):.3f}",
+        excel_format(f"{str(time):.11}")
+    ])
+
+    time = timedelta(seconds=sum(run.total_time.total_seconds() for run in runs) / len(runs))
+    writer.writerow(["True Average"] + [
+        f"{sum(run.avg_down_time for run in runs) / len(runs):.3f}",
+        f"{sum(run.avg_transfer_time for run in runs) / len(runs):.3f}",
+        f"{sum(run.avg_return_time for run in runs) / len(runs):.3f}",
+        f"{sum(run.avg_analysis_time for run in runs) / len(runs):.3f}",
+        f"{sum(run.avg_turnaround_time for run in runs) / len(runs):.3f}",
+        f"{sum(run.avg_network_power for run in runs) / len(runs):.3f}",
+        f"{sum(run.avg_analysis_power for run in runs) / len(runs):.3f}",
+        f"{sum(run.get_total_power() for run in runs) / len(runs):.3f}",
+        f"{sum(run.total_time.total_seconds() for run in runs) / len(runs):.3f}",
+        excel_format(f"{str(time):.11}")
+    ])
+    writer.writerow('')
+
+
 def spread(root: str, out: str, append: bool = False, sort: bool = False):
     root = os.path.normpath(root)
     runs = []  # type: List[Analysis]
@@ -756,73 +826,7 @@ def spread(root: str, out: str, append: bool = False, sort: bool = False):
                 r.get_sub_log_dir()
             ))
 
-        writer.writerow(["Summary of totals"])
-        writer.writerow(totals_header)
-
-        for run in runs:
-            workers = sorted([d.name for d in run.devices.values() if d.name != run.get_master_short_name()],
-                             key=lambda d: list(serial_numbers.keys()).index(d))
-            net = next(iter(run.devices.values())).network if all(d.network for d in run.devices.values()) else "Direct"
-
-            writer.writerow([
-                str(run),
-                f"{run.down_time:.3f}",
-                f"{run.transfer_time:.3f}" if run.transfer_time > 0 else "n/a",
-                f"{run.return_time:.3f}" if run.transfer_time > 0 else "n/a",
-                f"{run.analysis_time:.3f}",
-                f"{run.turnaround_time:.3f}",
-                f"{run.network_power:.3f}",
-                f"{run.analysis_power:.3f}",
-                f"{run.get_total_power():.3f}",
-                run.total_time.total_seconds(),
-                excel_format(f"{str(run.total_time):.11}"),
-                excel_format("-".join(workers)),
-                net,
-                run.log_dir
-            ])
-
-        time = timedelta(seconds=sum(run.total_time.total_seconds() for run in runs))
-        writer.writerow(["Total"] + [
-            f"{sum(run.down_time for run in runs):.3f}",
-            f"{sum(run.transfer_time for run in runs):.3f}",
-            f"{sum(run.return_time for run in runs):.3f}",
-            f"{sum(run.analysis_time for run in runs):.3f}",
-            f"{sum(run.turnaround_time for run in runs):.3f}",
-            f"{sum(run.network_power for run in runs):.3f}",
-            f"{sum(run.analysis_power for run in runs):.3f}",
-            f"{sum(run.get_total_power() for run in runs):.3f}",
-            f"{sum(run.total_time.total_seconds() for run in runs):.3f}",
-            excel_format(f"{str(time):.11}")
-        ])
-
-        time = timedelta(seconds=sum(run.total_time.total_seconds() / len(runs) for run in runs))
-        writer.writerow(["Total Average"] + [
-            f"{sum(run.avg_down_time for run in runs):.3f}",
-            f"{sum(run.avg_transfer_time for run in runs):.3f}",
-            f"{sum(run.avg_return_time for run in runs):.3f}",
-            f"{sum(run.avg_analysis_time for run in runs):.3f}",
-            f"{sum(run.avg_turnaround_time for run in runs):.3f}",
-            f"{sum(run.avg_network_power for run in runs):.3f}",
-            f"{sum(run.avg_analysis_power for run in runs):.3f}",
-            f"{sum(run.get_total_power() / len(runs) for run in runs):.3f}",
-            f"{sum(run.total_time.total_seconds() / len(runs) for run in runs):.3f}",
-            excel_format(f"{str(time):.11}")
-        ])
-
-        time = timedelta(seconds=sum(run.total_time.total_seconds() for run in runs) / len(runs))
-        writer.writerow(["True Average"] + [
-            f"{sum(run.avg_down_time for run in runs) / len(runs):.3f}",
-            f"{sum(run.avg_transfer_time for run in runs) / len(runs):.3f}",
-            f"{sum(run.avg_return_time for run in runs) / len(runs):.3f}",
-            f"{sum(run.avg_analysis_time for run in runs) / len(runs):.3f}",
-            f"{sum(run.avg_turnaround_time for run in runs) / len(runs):.3f}",
-            f"{sum(run.avg_network_power for run in runs) / len(runs):.3f}",
-            f"{sum(run.avg_analysis_power for run in runs) / len(runs):.3f}",
-            f"{sum(run.get_total_power() for run in runs) / len(runs):.3f}",
-            f"{sum(run.total_time.total_seconds() for run in runs) / len(runs):.3f}",
-            excel_format(f"{str(time):.11}")
-        ])
-        writer.writerow('')
+        spread_totals(runs, writer)
 
 
 if __name__ == "__main__":
