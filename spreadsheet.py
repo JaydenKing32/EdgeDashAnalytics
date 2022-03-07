@@ -829,8 +829,6 @@ def spread(root: str, out: str, append: bool = False, sort: bool = False):
             runs.append(run)
 
         if sort:
-            runs.sort(key=lambda r: r.log_dir)
-        else:
             runs.sort(key=lambda r: (
                 r.nodes,
                 r.seg_num,
@@ -840,6 +838,8 @@ def spread(root: str, out: str, append: bool = False, sort: bool = False):
                 algorithms.index(r.algorithm),
                 r.get_sub_log_dir()
             ))
+        else:
+            runs.sort(key=lambda r: r.log_dir)
 
         spread_totals(runs, writer)
         spread_averages(runs, writer)
@@ -852,7 +852,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--dir", default="out", help="directory of logs")
     parser.add_argument("-o", "--output", default="results.csv", help="name of output file")
     parser.add_argument("-a", "--append", action="store_true", help="append to results file instead of overwriting it")
-    parser.add_argument("-s", "--sort", action="store_true", help="sort totals summary based on log paths")
+    parser.add_argument("-s", "--sort", action="store_true", help="sort summaries based on config instead of log paths")
     parser.add_argument("-e", "--excel", action="store_true", help="use measures to prevent excel cell type conversion")
     args = parser.parse_args()
 
