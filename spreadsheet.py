@@ -88,7 +88,7 @@ online_header = [
     "Net power (mW)",
     "Proc power (mW)",
 ]
-totals_header = [
+summary_header = [
     "Run",
     "Down time (s)",
     "Tran time (s)",
@@ -718,7 +718,7 @@ def make_spreadsheet(run: Analysis, writer):
 
 def spread_totals(runs: List[Analysis], writer):
     writer.writerow(["Summary of totals"])
-    writer.writerow(totals_header)
+    writer.writerow(summary_header)
 
     for run in runs:
         workers = sorted([d.name for d in run.devices.values() if d.name != run.get_master_short_name()],
@@ -755,23 +755,37 @@ def spread_totals(runs: List[Analysis], writer):
         f"{sum(run.total_time.total_seconds() for run in runs):.3f}",
         excel_format(f"{str(time):.11}")
     ])
+    writer.writerow('')
 
-    time = timedelta(seconds=sum(run.total_time.total_seconds() / len(runs) for run in runs))
-    writer.writerow(["Total Average"] + [
-        f"{sum(run.avg_down_time for run in runs):.3f}",
-        f"{sum(run.avg_transfer_time for run in runs):.3f}",
-        f"{sum(run.avg_return_time for run in runs):.3f}",
-        f"{sum(run.avg_analysis_time for run in runs):.3f}",
-        f"{sum(run.avg_turnaround_time for run in runs):.3f}",
-        f"{sum(run.avg_network_power for run in runs):.3f}",
-        f"{sum(run.avg_analysis_power for run in runs):.3f}",
-        f"{sum(run.get_total_power() / len(runs) for run in runs):.3f}",
-        f"{sum(run.total_time.total_seconds() / len(runs) for run in runs):.3f}",
-        excel_format(f"{str(time):.11}")
-    ])
+
+def spread_averages(runs: List[Analysis], writer):
+    writer.writerow(["Summary of averages"])
+    writer.writerow(summary_header)
+
+    for run in runs:
+        workers = sorted([d.name for d in run.devices.values() if d.name != run.get_master_short_name()],
+                         key=lambda d: list(serial_numbers.keys()).index(d))
+        net = next(iter(run.devices.values())).network if all(d.network for d in run.devices.values()) else "Direct"
+
+        writer.writerow([
+            str(run),
+            f"{run.avg_down_time:.3f}",
+            f"{run.avg_transfer_time:.3f}" if run.avg_transfer_time > 0 else "n/a",
+            f"{run.avg_return_time:.3f}" if run.avg_transfer_time > 0 else "n/a",
+            f"{run.avg_analysis_time:.3f}",
+            f"{run.avg_turnaround_time:.3f}",
+            f"{run.avg_network_power:.3f}",
+            f"{run.avg_analysis_power:.3f}",
+            f"{run.get_total_power() / len(runs):.3f}",
+            run.total_time.total_seconds(),
+            excel_format(f"{str(run.total_time):.11}"),
+            excel_format("-".join(workers)),
+            net,
+            run.log_dir
+        ])
 
     time = timedelta(seconds=sum(run.total_time.total_seconds() for run in runs) / len(runs))
-    writer.writerow(["True Average"] + [
+    writer.writerow(["Average"] + [
         f"{sum(run.avg_down_time for run in runs) / len(runs):.3f}",
         f"{sum(run.avg_transfer_time for run in runs) / len(runs):.3f}",
         f"{sum(run.avg_return_time for run in runs) / len(runs):.3f}",
@@ -827,6 +841,7 @@ def spread(root: str, out: str, append: bool = False, sort: bool = False):
             ))
 
         spread_totals(runs, writer)
+        spread_averages(runs, writer)
 
 
 if __name__ == "__main__":
