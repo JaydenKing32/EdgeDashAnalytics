@@ -668,7 +668,7 @@ def make_spreadsheet(run: Analysis, writer):
     if run.seg_num > 1:
         writer.writerow(["Device", "Actual Power (mW)", "Network"])
         for device_name, device in run.devices.items():
-            writer.writerow([get_device_name(device_name), device.total_power, device.network])
+            writer.writerow([get_device_name(device_name), f"{device.total_power:.3f}", device.network])
 
         writer.writerow(online_header)
 
@@ -692,7 +692,7 @@ def make_spreadsheet(run: Analysis, writer):
                 writer.writerow(["Did not analyse any videos"])
                 continue
 
-            writer.writerow(online_header + ["Actual total power", device.total_power])
+            writer.writerow(online_header + ["Actual total power", f"{device.total_power:.3f}"])
 
             for video in videos:
                 writer.writerow(video.get_stats())
