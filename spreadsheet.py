@@ -27,6 +27,17 @@ serial_numbers = {
     "9c8f": "00b7a59265959c8f",  # Nexus 5X
     "1825": "0b3b6fd50c371825"  # Nexus 5
 }
+device_names = {
+    "X9BT": "Tab S7 FE",
+    "01BK": "Pixel 6",
+    "JRQY": "Pixel 3",
+    "43e2": "Find X2 Pro",
+    "dd83": "OnePlus 8",
+    "2802": "Galaxy S8",
+    "34d8": "Nexus 5X",
+    "9c8f": "Nexus 5X",
+    "1825": "Nexus 5"
+}
 milliamp_devices = ["2802", "X9BT", "43e2"]
 models = {
     "lite-model_ssd_mobilenet_v1_1_metadata_2.tflite": "MNV1",  # MobileNetV1
@@ -106,6 +117,7 @@ summary_header = [
 ]
 
 excel = False
+full_name = False
 
 
 class Video:
@@ -256,6 +268,12 @@ class Analysis:
     def get_network(self) -> str:
         return next(iter(self.devices.values())).network if all(d.network for d in self.devices.values()) else "Direct"
 
+    def get_worker_string(self) -> str:
+        return "-".join(get_device_name(name) for name in sorted(
+            [device.name for device in self.devices.values() if device.name != self.get_master_short_name()],
+            key=lambda d: list(serial_numbers.keys()).index(d)
+        ))
+
     def parse_preferences(self):
         with open(self.master_path, 'r', encoding="utf-8") as master_log:
             for line in master_log:
@@ -293,7 +311,7 @@ class Analysis:
         self.analysis_power = sum(v.analysis_power for v in self.videos.values())
 
     def __str__(self) -> str:
-        master = self.get_master_short_name()
+        master = get_device_name(self.get_master_short_name())
         local = self.local
         seg = abs(self.seg_num)
         delay = abs(self.delay)
@@ -337,6 +355,10 @@ def get_basename_sans_ext(filename: str) -> str:
 def excel_format(string: str) -> str:
     # \t prevents excel cell type conversion
     return f"\t{string}" if excel and string else string
+
+
+def get_device_name(short_serial: str) -> str:
+    return device_names[short_serial] if full_name and short_serial else short_serial
 
 
 def check_video_count(videos: List[Video], log_dir: str) -> int:
@@ -569,7 +591,7 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
                         device.average_power = parse_power(average_power.group(2), device_name)
 
             missed = check_video_count(list(videos.values()), path)
-            writer.writerow([f"Device: {run.get_master_short_name()}"])
+            writer.writerow([f"Device: {get_device_name(run.get_master_short_name())}"])
             writer.writerow([
                 f"Download Delay: {run.delay}",
                 f"Object Model: {run.object_model}",
@@ -626,7 +648,7 @@ def make_spreadsheet(run: Analysis, writer):
     missed = check_video_count(list(run.videos.values()), run.log_dir)
 
     writer.writerow([
-        f"Master: {run.get_master_short_name()}",
+        f"Master: {get_device_name(run.get_master_short_name())}",
         f"Segments: {run.seg_num}",
         f"Nodes: {run.nodes}",
         f"Algorithm: {run.algorithm}"
@@ -646,7 +668,7 @@ def make_spreadsheet(run: Analysis, writer):
     if run.seg_num > 1:
         writer.writerow(["Device", "Actual Power (mW)", "Network"])
         for device_name, device in run.devices.items():
-            writer.writerow([device_name, device.total_power, device.network])
+            writer.writerow([get_device_name(device_name), device.total_power, device.network])
 
         writer.writerow(online_header)
 
@@ -659,7 +681,7 @@ def make_spreadsheet(run: Analysis, writer):
 
     else:
         for device_name, device in run.devices.items():
-            writer.writerow([f"Device: {device_name}", f"Network: {device.network}"])
+            writer.writerow([f"Device: {get_device_name(device_name)}", f"Network: {device.network}"])
 
             # Master videos list should only contain videos that haven't been transferred
             videos = [v for v in device.videos.values() if v.transfer_time == 0] \
@@ -724,9 +746,6 @@ def spread_totals(runs: List[Analysis], writer):
     writer.writerow(summary_header)
 
     for run in runs:
-        workers = sorted([d.name for d in run.devices.values() if d.name != run.get_master_short_name()],
-                         key=lambda d: list(serial_numbers.keys()).index(d))
-
         writer.writerow([
             str(run),
             f"{run.down_time:.3f}",
@@ -739,7 +758,7 @@ def spread_totals(runs: List[Analysis], writer):
             f"{run.get_total_power():.3f}",
             run.total_time.total_seconds(),
             excel_format(f"{str(run.total_time):.11}"),
-            excel_format("-".join(workers)),
+            excel_format(run.get_worker_string()),
             run.get_network(),
             run.log_dir
         ])
@@ -765,9 +784,6 @@ def spread_averages(runs: List[Analysis], writer):
     writer.writerow(summary_header)
 
     for run in runs:
-        workers = sorted([d.name for d in run.devices.values() if d.name != run.get_master_short_name()],
-                         key=lambda d: list(serial_numbers.keys()).index(d))
-
         writer.writerow([
             str(run),
             f"{run.avg_down_time:.3f}",
@@ -780,7 +796,7 @@ def spread_averages(runs: List[Analysis], writer):
             f"{run.get_total_power() / len(runs):.3f}",
             run.total_time.total_seconds(),
             excel_format(f"{str(run.total_time):.11}"),
-            excel_format("-".join(workers)),
+            excel_format(run.get_worker_string()),
             run.get_network(),
             run.log_dir
         ])
@@ -854,7 +870,9 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--append", action="store_true", help="append to results file instead of overwriting it")
     parser.add_argument("-s", "--sort", action="store_true", help="sort summaries based on config instead of log paths")
     parser.add_argument("-e", "--excel", action="store_true", help="use measures to prevent excel cell type conversion")
+    parser.add_argument("-f", "--full-name", action="store_true", help="Use a devices full name instead of serial ID")
     args = parser.parse_args()
 
     excel = args.excel
+    full_name = args.full_name
     spread(args.dir, args.output, args.append, args.sort)
