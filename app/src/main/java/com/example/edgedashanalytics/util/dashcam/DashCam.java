@@ -52,6 +52,8 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -263,6 +265,18 @@ public class DashCam {
         };
     }
 
+    private static boolean popTestDownload() {
+        if (!testVideos.isEmpty()) {
+            String filename = testVideos.remove(0);
+            downloads.add(filename);
+            downloadVideo(videoDirUrl + filename);
+
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     public static void downloadTestVideosLoop(Context context) {
         fetch.addListener(getFetchListener(context, v -> {
             if (v != null) {
@@ -270,10 +284,26 @@ public class DashCam {
             }
         }));
 
-        for (String filename : testVideos) {
-            downloads.add(filename);
-            downloadVideo(videoDirUrl + filename);
-        }
+        Instant start = Instant.now();
+        ScheduledExecutorService downloadExecutor = Executors.newSingleThreadScheduledExecutor();
+
+        Runnable downloadRunnable = () -> {
+            if (!popTestDownload()) {
+                downloadExecutor.shutdown();
+                long duration = Duration.between(start, Instant.now()).toMillis();
+                String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
+                Log.i(TAG, String.format("All test videos scheduled for download in %ss", time));
+            }
+            if (dualDownload) {
+                popTestDownload();
+            }
+        };
+
+        int defaultDelay = 1;
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        int delay = pref.getInt(context.getString(R.string.download_delay_key), defaultDelay);
+
+        downloadExecutor.scheduleWithFixedDelay(downloadRunnable, 0, delay, TimeUnit.SECONDS);
     }
 
     private static int testVideoComparator(String videoA, String videoB) {
