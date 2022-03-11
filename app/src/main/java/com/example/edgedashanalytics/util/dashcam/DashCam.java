@@ -33,6 +33,7 @@ import com.tonyodev.fetch2core.Downloader;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.greenrobot.eventbus.EventBus;
 import org.jsoup.Jsoup;
@@ -278,8 +279,8 @@ public class DashCam {
     private static int testVideoComparator(String videoA, String videoB) {
         String prefixA = videoA.substring(0, 3);
         String prefixB = videoB.substring(0, 3);
-        int suffixA = Integer.parseInt(videoA.substring(4, 6));
-        int suffixB = Integer.parseInt(videoB.substring(4, 6));
+        int suffixA = Integer.parseInt(StringUtils.substringBetween(videoA, "_", "."));
+        int suffixB = Integer.parseInt(StringUtils.substringBetween(videoB, "_", "."));
 
         if (suffixA != suffixB) {
             return suffixA - suffixB;
@@ -315,6 +316,7 @@ public class DashCam {
     private static final List<String> testVideos = IntStream.rangeClosed(1, testSubsetCount)
             .mapToObj(i -> String.format(Locale.ENGLISH, "%04d", i))
             .flatMap(num -> Stream.of(String.format("inn_%s.mp4", num), String.format("out_%s.mp4", num)))
+            .sorted(DashCam::testVideoComparator)
             .collect(Collectors.toList());
 
     private static FetchListener getFetchListener(Context context, Consumer<Video> downloadCallback) {
