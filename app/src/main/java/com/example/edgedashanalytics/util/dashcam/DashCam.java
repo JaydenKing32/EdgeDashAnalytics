@@ -44,16 +44,19 @@ import java.net.URL;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 // TODO: convert to singleton
 public class DashCam {
@@ -307,28 +310,12 @@ public class DashCam {
     //     return retriever.getFrameAtTime();
     // }
 
-    private static final ArrayList<String> testVideos = new ArrayList<>(Arrays.asList(
-            "out_01.mp4", "inn_01.mp4",
-            "out_02.mp4", "inn_02.mp4",
-            "out_03.mp4", "inn_03.mp4",
-            "out_04.mp4", "inn_04.mp4",
-            "out_05.mp4", "inn_05.mp4",
-            "out_06.mp4", "inn_06.mp4",
-            "out_07.mp4", "inn_07.mp4",
-            "out_08.mp4", "inn_08.mp4",
-            "out_09.mp4", "inn_09.mp4",
-            "out_10.mp4", "inn_10.mp4",
-            "out_11.mp4", "inn_11.mp4",
-            "out_12.mp4", "inn_12.mp4",
-            "out_13.mp4", "inn_13.mp4",
-            "out_14.mp4", "inn_14.mp4",
-            "out_15.mp4", "inn_15.mp4",
-            "out_16.mp4", "inn_16.mp4",
-            "out_17.mp4", "inn_17.mp4",
-            "out_18.mp4", "inn_18.mp4",
-            "out_19.mp4", "inn_19.mp4",
-            "out_20.mp4", "inn_20.mp4"
-    ));
+    // Two subsets of videos, each comprised of 800 segments, every video is exactly one second in length
+    private static final int testSubsetCount = 800;
+    private static final List<String> testVideos = IntStream.rangeClosed(1, testSubsetCount)
+            .mapToObj(i -> String.format(Locale.ENGLISH, "%04d", i))
+            .flatMap(num -> Stream.of(String.format("inn_%s.mp4", num), String.format("out_%s.mp4", num)))
+            .collect(Collectors.toList());
 
     private static FetchListener getFetchListener(Context context, Consumer<Video> downloadCallback) {
         return new FetchListener() {
