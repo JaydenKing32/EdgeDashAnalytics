@@ -17,7 +17,7 @@ frame_glob = f"{frame_dir}/%04d.png"
 ffmpeg = ["ffmpeg", "-v", "warning", "-threads", "1"]
 
 fps = 30
-seconds_per_vid = 1
+seconds_per_vid = 2
 frames_per_vid = fps * seconds_per_vid
 video_count = 1
 verbose = False

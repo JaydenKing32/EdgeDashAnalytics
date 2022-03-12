@@ -82,7 +82,7 @@ public class DashCam {
 
     public static void setFetch(Context context) {
         if (fetch == null) {
-            final int concurrentDownloads = 1;
+            final int concurrentDownloads = 2;
             final long updateInterval = 10000;
             final int retryAttempts = 5;
 
@@ -341,8 +341,8 @@ public class DashCam {
     //     return retriever.getFrameAtTime();
     // }
 
-    // Two subsets of videos, each comprised of 800 segments, every video is exactly one second in length
-    private static final int testSubsetCount = 800;
+    // Two subsets of videos, each comprised of 600 segments, every video is exactly two seconds in length
+    private static final int testSubsetCount = 600;
     private static final List<String> testVideos = IntStream.rangeClosed(1, testSubsetCount)
             .mapToObj(i -> String.format(Locale.ENGLISH, "%04d", i))
             .flatMap(num -> Stream.of(String.format("inn_%s.mp4", num), String.format("out_%s.mp4", num)))
