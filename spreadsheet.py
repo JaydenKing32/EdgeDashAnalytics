@@ -5,17 +5,17 @@ import re
 from datetime import datetime, timedelta
 from typing import Dict, List
 
-algorithms = [
-    "offline",
-    "round_robin",
-    "fastest",
-    "least_busy",
-    "fastest_cpu",
-    "most_cpu_cores",
-    "most_ram",
-    "most_storage",
-    "highest_battery"
-]
+algorithms = {
+    "offline": "Offline",
+    "round_robin": "Round-robin",
+    "fastest": "Fastest",
+    "least_busy": "Least-busy",
+    "fastest_cpu": "Fastest-CPU",
+    "most_cpu_cores": "Most-CPU-cores",
+    "most_ram": "Most-RAM",
+    "most_storage": "Most-storage",
+    "highest_battery": "Highest-battery"
+}
 serial_numbers = {
     "X9BT": "R52R901X9BT",  # Samsung Galaxy Tab S7 FE/SM-T733
     "01BK": "18121FDF6001BK",  # Pixel 6
@@ -235,6 +235,9 @@ class Analysis:
     def get_master_full_name(self) -> str:
         return get_device_name(self.get_master_short_name())
 
+    def get_algorithm_name(self) -> str:
+        return algorithms[self.algorithm]
+
     def get_time_string(self) -> str:
         return f"{self.total_time.total_seconds()} ({str(self.total_time):.11})"
 
@@ -336,7 +339,7 @@ class Analysis:
         seg = abs(self.seg_num)
         delay = abs(self.delay)
         nodes = self.nodes
-        algo = 'duo' if len(self.devices) == 2 else self.algorithm
+        algo = 'Duo' if len(self.devices) == 2 else algorithms[self.algorithm]
 
         return f"{master}-{local}-{seg}-{delay}-{nodes}-{algo}"
 
@@ -693,7 +696,7 @@ def make_spreadsheet(run: Analysis, writer):
         f"Master: {run.get_master_full_name()}",
         f"Segments: {run.seg_num}",
         f"Nodes: {run.nodes}",
-        f"Algorithm: {run.algorithm}"
+        f"Algorithm: {algorithms[run.algorithm]}"
     ])
     writer.writerow([
         f"Local Processing: {run.local}",
@@ -900,7 +903,7 @@ def spread(root: str, out: str, append: bool = False, sort: bool = False):
                 r.delay,
                 r.local,
                 r.get_master_short_name(),
-                algorithms.index(r.algorithm),
+                list(algorithms.keys()).index(r.algorithm),
                 r.get_sub_log_dir()
             ))
         else:
