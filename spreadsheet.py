@@ -232,6 +232,9 @@ class Analysis:
     def get_master_short_name(self) -> str:
         return self.master[-4:]
 
+    def get_master_full_name(self) -> str:
+        return get_device_name(self.get_master_short_name())
+
     def get_time_string(self) -> str:
         return f"{self.total_time.total_seconds()} ({str(self.total_time):.11})"
 
@@ -328,7 +331,7 @@ class Analysis:
         self.analysis_power = sum(v.analysis_power for v in self.videos.values())
 
     def __str__(self) -> str:
-        master = get_device_name(self.get_master_short_name())
+        master = self.get_master_full_name()
         local = self.local
         seg = abs(self.seg_num)
         delay = abs(self.delay)
@@ -626,7 +629,7 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
                         device.average_power = parse_power(average_power.group(2), device_name)
 
             missed = check_video_count(list(videos.values()), path)
-            writer.writerow([f"Device: {get_device_name(run.get_master_short_name())}"])
+            writer.writerow([f"Device: {run.get_master_full_name()}"])
             writer.writerow([
                 f"Download Delay: {run.delay}",
                 f"Object Model: {run.object_model}",
@@ -687,7 +690,7 @@ def make_spreadsheet(run: Analysis, writer):
     missed = check_video_count(list(run.videos.values()), run.log_dir)
 
     writer.writerow([
-        f"Master: {get_device_name(run.get_master_short_name())}",
+        f"Master: {run.get_master_full_name()}",
         f"Segments: {run.seg_num}",
         f"Nodes: {run.nodes}",
         f"Algorithm: {run.algorithm}"
