@@ -369,6 +369,7 @@ cython_debug/
 /.idea/csv-plugin.xml
 /app/src/main/assets/*.tflite
 /logs
+/.vscode
 *.mp4
 *.csv
 *.xlsx
