@@ -80,12 +80,12 @@ public class DashCam {
     public static long latestDownloadSpeed = 0;
     private static boolean dualDownload = false;
 
+    public static final int concurrentDownloads = 2;
+    private static final long updateInterval = 10000;
+    private static final int retryAttempts = 5;
+
     public static void setFetch(Context context) {
         if (fetch == null) {
-            final int concurrentDownloads = 2;
-            final long updateInterval = 10000;
-            final int retryAttempts = 5;
-
             FetchConfiguration fetchConfiguration = new FetchConfiguration.Builder(context)
                     .setDownloadConcurrentLimit(concurrentDownloads)
                     .setProgressReportingInterval(updateInterval)

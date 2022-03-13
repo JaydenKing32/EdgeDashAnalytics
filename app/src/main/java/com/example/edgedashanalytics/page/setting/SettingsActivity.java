@@ -20,6 +20,7 @@ import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 
 import com.example.edgedashanalytics.R;
+import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.nearby.Algorithm;
 import com.example.edgedashanalytics.util.nearby.Algorithm.AlgorithmKey;
@@ -94,6 +95,7 @@ public class SettingsActivity extends AppCompatActivity {
         prefMessage.add(String.format("Download delay: %s", delay));
         prefMessage.add(String.format("Dual download: %s", dualDownload));
         prefMessage.add(String.format("Wi-Fi: %s", getWifiName(c)));
+        prefMessage.add(String.format("Concurrent downloads: %s", DashCam.concurrentDownloads));
 
         Log.i(I_TAG, prefMessage.toString());
 
