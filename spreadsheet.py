@@ -387,7 +387,7 @@ def get_device_name(short_serial: str) -> str:
 
 def check_video_count(videos: List[Video], log_dir: str) -> int:
     # There are 40 test videos, if the logs do not specify 40 videos, then something went wrong during a test run
-    expected_video_count = 40
+    expected_video_count = 1200
     video_count = len(videos)
 
     if video_count != expected_video_count:
