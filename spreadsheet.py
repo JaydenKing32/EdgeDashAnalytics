@@ -70,6 +70,11 @@ re_comp = re.compile(
     r"D Important: Completed analysis of (.*)\.mp4 in (\d*\.?\d*)s, (\d+)nW consumed" +
     trailing_whitespace
 )
+re_wait = re.compile(
+    timestamp +
+    r"I Important: Wait time of (.*)\.mp4: (\d*\.?\d*)s" +
+    trailing_whitespace
+)
 re_turnaround = re.compile(
     timestamp +
     r"I Important: Turnaround time of (.*)\.mp4: (\d*\.?\d*)s" +
@@ -85,6 +90,7 @@ offline_header = [
     "Filename",
     "Down time (s)",
     "Proc time (s)",
+    "Wait time (s)",
     "Turn time (s)",
     "Net power (mW)",
     "Proc power (mW)"
@@ -95,6 +101,7 @@ online_header = [
     "Tran time (s)",
     "Ret time (s)",
     "Proc time (s)",
+    "Wait time (s)",
     "Turn time (s)",
     "Net power (mW)",
     "Proc power (mW)",
@@ -105,6 +112,7 @@ summary_header = [
     "Tran time (s)",
     "Ret time (s)",
     "Proc time (s)",
+    "Wait time (s)",
     "Turn time (s)",
     "Net power (mW)",
     "Proc power (mW)",
@@ -122,13 +130,14 @@ full_name = False
 
 class Video:
     def __init__(self, name: str, down_time: float = 0, transfer_time: float = 0, analysis_time: float = 0,
-                 return_time: float = 0, down_power: float = 0, transfer_power: float = 0, analysis_power: float = 0,
-                 turnaround_time: float = 0):
+                 wait_time: float = 0, return_time: float = 0, down_power: float = 0, transfer_power: float = 0,
+                 analysis_power: float = 0, turnaround_time: float = 0):
         self.name = name
         self.down_time = down_time
         self.transfer_time = transfer_time
         self.analysis_time = analysis_time
         self.return_time = return_time
+        self.wait_time = wait_time
         self.turnaround_time = turnaround_time
         self.down_power = down_power
         self.transfer_power = transfer_power
@@ -141,6 +150,7 @@ class Video:
             f"{self.transfer_time:.3f}" if self.transfer_time != 0 else "n/a",
             f"{self.return_time:.3f}" if self.return_time != 0 else "n/a",
             f"{self.analysis_time:.3f}",
+            f"{self.wait_time:.3f}",
             f"{self.turnaround_time:.3f}",
             f"{self.down_power + self.transfer_power:.3f}",
             f"{self.analysis_power:.3f}"
@@ -151,6 +161,7 @@ class Video:
             self.name,
             f"{self.down_time:.3f}",
             f"{self.analysis_time:.3f}",
+            f"{self.wait_time:.3f}",
             f"{self.turnaround_time:.3f}",
             f"{self.down_power + self.transfer_power:.3f}",
             f"{self.analysis_power:.3f}"
@@ -199,8 +210,9 @@ class Analysis:
 
         self.down_time = -1.0
         self.transfer_time = -1.0
-        self.analysis_time = -1.0
         self.return_time = -1.0
+        self.analysis_time = -1.0
+        self.wait_time = -1.0
         self.turnaround_time = -1.0
         self.network_power = -1.0
         self.analysis_power = -1.0
@@ -210,6 +222,7 @@ class Analysis:
         self.avg_transfer_time = 0.0
         self.avg_return_time = 0.0
         self.avg_analysis_time = 0.0
+        self.avg_wait_time = 0.0
         self.avg_turnaround_time = 0.0
         self.avg_network_power = 0.0
         self.avg_analysis_power = 0.0
@@ -232,6 +245,7 @@ class Analysis:
             f"{self.transfer_time:.3f}" if self.transfer_time != 0 else "n/a",
             f"{self.return_time:.3f}" if self.transfer_time != 0 else "n/a",
             f"{self.analysis_time:.3f}",
+            f"{self.wait_time:.3f}",
             f"{self.turnaround_time:.3f}",
             f"{self.network_power:.3f}",
             f"{self.analysis_power:.3f}"
@@ -244,6 +258,7 @@ class Analysis:
         self.avg_transfer_time = self.transfer_time / video_count
         self.avg_return_time = self.return_time / video_count
         self.avg_analysis_time = self.analysis_time / video_count
+        self.avg_wait_time = self.wait_time / video_count
         self.avg_turnaround_time = self.turnaround_time / video_count
         self.avg_network_power = self.network_power / video_count
         self.avg_analysis_power = self.analysis_power / video_count
@@ -254,6 +269,7 @@ class Analysis:
             f"{self.avg_transfer_time:.3f}" if self.avg_transfer_time != 0 else "n/a",
             f"{self.avg_return_time:.3f}" if self.avg_return_time != 0 else "n/a",
             f"{self.avg_analysis_time:.3f}",
+            f"{self.avg_wait_time:.3f}",
             f"{self.avg_turnaround_time:.3f}",
             f"{self.avg_network_power:.3f}",
             f"{self.avg_analysis_power:.3f}"
@@ -306,6 +322,7 @@ class Analysis:
         self.transfer_time = sum(v.transfer_time for v in self.videos.values())
         self.return_time = sum(v.return_time for v in self.videos.values())
         self.analysis_time = sum(v.analysis_time for v in self.videos.values())
+        self.wait_time = sum(v.wait_time for v in self.videos.values())
         self.turnaround_time = sum(v.turnaround_time for v in self.videos.values())
         self.network_power = sum(v.down_power for v in self.videos.values())
         self.analysis_power = sum(v.analysis_power for v in self.videos.values())
@@ -448,6 +465,7 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
             down = re_down.match(line)
             transfer = re_transfer.match(line)
             comp = re_comp.match(line)
+            wait = re_wait.match(line)
             turn = re_turnaround.match(line)
             total_power = re_total_power.match(line)
             average_power = re_average_power.match(line)
@@ -474,6 +492,11 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
 
                 videos[video_name].analysis_time += analysis_time
                 videos[video_name].analysis_power += analysis_power
+            elif wait is not None:
+                video_name = get_video_name(wait.group(2))
+                wait_time = float(wait.group(3))
+
+                videos[video_name].wait_time = wait_time
             elif turn is not None:
                 video_name = get_video_name(turn.group(2))
                 turn_time = float(turn.group(3))
@@ -501,6 +524,7 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
             for line in work_log:
                 transfer = re_transfer.match(line)
                 comp = re_comp.match(line)
+                wait = re_wait.match(line)
                 turn = re_turnaround.match(line)
                 total_power = re_total_power.match(line)
                 average_power = re_average_power.match(line)
@@ -522,6 +546,11 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
 
                     videos[video_name].analysis_time += analysis_time
                     videos[video_name].analysis_power += analysis_power
+                elif wait is not None:
+                    video_name = get_video_name(wait.group(2))
+                    wait_time = float(wait.group(3))
+
+                    videos[video_name].wait_time = wait_time
                 elif turn is not None:
                     video_name = get_video_name(turn.group(2))
                     turn_time = float(turn.group(3))
@@ -563,6 +592,7 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
                 for line in offline_log:
                     down = re_down.match(line)
                     comp = re_comp.match(line)
+                    wait = re_wait.match(line)
                     turn = re_turnaround.match(line)
                     total_power = re_total_power.match(line)
                     average_power = re_average_power.match(line)
@@ -580,6 +610,11 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
 
                         videos[video_name].analysis_time = analysis_time
                         videos[video_name].analysis_power = analysis_power
+                    elif wait is not None:
+                        video_name = get_video_name(wait.group(2))
+                        wait_time = float(wait.group(3))
+
+                        videos[video_name].wait_time = wait_time
                     elif turn is not None:
                         video_name = get_video_name(turn.group(2))
                         turn_time = float(turn.group(3))
@@ -609,12 +644,14 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
 
             total_down_time = sum(v.down_time for v in videos.values())
             total_analysis_time = sum(v.analysis_time for v in videos.values())
+            total_wait_time = sum(v.wait_time for v in videos.values())
             total_turnaround_time = sum(v.turnaround_time for v in videos.values())
             total_network_power = sum(v.down_power for v in videos.values())
             total_analysis_power = sum(v.analysis_power for v in videos.values())
 
             run.down_time = total_down_time
             run.analysis_time = total_analysis_time
+            run.wait_time = total_wait_time
             run.turnaround_time = total_turnaround_time
             run.network_power = total_network_power
             run.analysis_power = total_analysis_power
@@ -624,6 +661,7 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
                 "Total",
                 f"{run.down_time:.3f}",
                 f"{run.analysis_time:.3f}",
+                f"{run.wait_time:.3f}",
                 f"{run.turnaround_time:.3f}",
                 f"{run.network_power:.3f}",
                 f"{run.analysis_power:.3f}"
@@ -632,6 +670,7 @@ def make_offline_spreadsheet(log_dir: str, runs: List[Analysis], writer):
                 "Average",
                 f"{run.avg_down_time:.3f}",
                 f"{run.avg_analysis_time:.3f}",
+                f"{run.avg_wait_time:.3f}",
                 f"{run.avg_turnaround_time:.3f}",
                 f"{run.avg_network_power:.3f}",
                 f"{run.avg_analysis_power:.3f}"
@@ -703,6 +742,7 @@ def make_spreadsheet(run: Analysis, writer):
                 total_transfer_time = sum(v.transfer_time for v in videos)
                 total_return_time = sum(v.return_time for v in videos)
                 total_analysis_time = sum(v.analysis_time for v in videos)
+                total_wait_time = sum(v.wait_time for v in videos)
                 total_turnaround_time = sum(v.turnaround_time for v in videos)
                 total_network_power = sum(v.down_power + v.transfer_power for v in videos)
                 total_analysis_power = sum(v.analysis_power for v in videos)
@@ -713,6 +753,7 @@ def make_spreadsheet(run: Analysis, writer):
                     f"{total_transfer_time:.3f}" if total_transfer_time != 0 else "n/a",
                     f"{total_return_time:.3f}" if total_return_time != 0 else "n/a",
                     f"{total_analysis_time:.3f}",
+                    f"{total_wait_time:.3f}",
                     f"{total_turnaround_time:.3f}",
                     f"{total_network_power:.3f}",
                     f"{total_analysis_power:.3f}"
@@ -724,6 +765,7 @@ def make_spreadsheet(run: Analysis, writer):
                     f"{total_transfer_time / video_count:.3f}" if total_transfer_time != 0 else "n/a",
                     f"{total_return_time / video_count:.3f}" if total_return_time != 0 else "n/a",
                     f"{total_analysis_time / video_count:.3f}",
+                    f"{total_wait_time / video_count:.3f}",
                     f"{total_turnaround_time / video_count:.3f}",
                     f"{total_network_power / video_count:.3f}",
                     f"{total_analysis_power / video_count:.3f}"
@@ -752,6 +794,7 @@ def spread_totals(runs: List[Analysis], writer):
             f"{run.transfer_time:.3f}" if run.transfer_time > 0 else "n/a",
             f"{run.return_time:.3f}" if run.transfer_time > 0 else "n/a",
             f"{run.analysis_time:.3f}",
+            f"{run.wait_time:.3f}",
             f"{run.turnaround_time:.3f}",
             f"{run.network_power:.3f}",
             f"{run.analysis_power:.3f}",
@@ -769,6 +812,7 @@ def spread_totals(runs: List[Analysis], writer):
         f"{sum(run.transfer_time for run in runs):.3f}",
         f"{sum(run.return_time for run in runs):.3f}",
         f"{sum(run.analysis_time for run in runs):.3f}",
+        f"{sum(run.wait_time for run in runs):.3f}",
         f"{sum(run.turnaround_time for run in runs):.3f}",
         f"{sum(run.network_power for run in runs):.3f}",
         f"{sum(run.analysis_power for run in runs):.3f}",
@@ -790,6 +834,7 @@ def spread_averages(runs: List[Analysis], writer):
             f"{run.avg_transfer_time:.3f}" if run.avg_transfer_time > 0 else "n/a",
             f"{run.avg_return_time:.3f}" if run.avg_transfer_time > 0 else "n/a",
             f"{run.avg_analysis_time:.3f}",
+            f"{run.avg_wait_time:.3f}",
             f"{run.avg_turnaround_time:.3f}",
             f"{run.avg_network_power:.3f}",
             f"{run.avg_analysis_power:.3f}",
@@ -807,6 +852,7 @@ def spread_averages(runs: List[Analysis], writer):
         f"{sum(run.avg_transfer_time for run in runs) / len(runs):.3f}",
         f"{sum(run.avg_return_time for run in runs) / len(runs):.3f}",
         f"{sum(run.avg_analysis_time for run in runs) / len(runs):.3f}",
+        f"{sum(run.avg_wait_time for run in runs) / len(runs):.3f}",
         f"{sum(run.avg_turnaround_time for run in runs) / len(runs):.3f}",
         f"{sum(run.avg_network_power for run in runs) / len(runs):.3f}",
         f"{sum(run.avg_analysis_power for run in runs) / len(runs):.3f}",
