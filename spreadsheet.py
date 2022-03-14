@@ -340,7 +340,7 @@ class Analysis:
         seg = abs(self.seg_num)
         delay = abs(self.delay)
         nodes = self.nodes
-        algo = 'Duo' if len(self.devices) == 2 else algorithms[self.algorithm]
+        algo = "Duo" if len(self.devices) == 2 else algorithms[self.algorithm]
 
         return f"{master}-{local}-{seg}-{delay}-{nodes}-{algo}"
 
@@ -798,7 +798,7 @@ def spread_totals(runs: List[Analysis], writer):
         writer.writerow([
             run.get_master_full_name(),
             excel_format(run.get_worker_string()),
-            algorithms[run.algorithm],
+            "Duo" if len(run.devices) == 2 else algorithms[run.algorithm],
             f"{run.down_time:.3f}",
             f"{run.transfer_time:.3f}" if run.transfer_time > 0 else "n/a",
             f"{run.return_time:.3f}" if run.transfer_time > 0 else "n/a",
@@ -839,7 +839,7 @@ def spread_averages(runs: List[Analysis], writer):
         writer.writerow([
             run.get_master_full_name(),
             excel_format(run.get_worker_string()),
-            algorithms[run.algorithm],
+            "Duo" if len(run.devices) == 2 else algorithms[run.algorithm],
             f"{run.avg_down_time:.3f}",
             f"{run.avg_transfer_time:.3f}" if run.avg_transfer_time > 0 else "n/a",
             f"{run.avg_return_time:.3f}" if run.avg_transfer_time > 0 else "n/a",
