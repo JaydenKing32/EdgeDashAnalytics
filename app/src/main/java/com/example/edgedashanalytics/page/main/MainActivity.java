@@ -81,6 +81,8 @@ public class MainActivity extends AppCompatActivity implements
             } else if (itemId == R.id.navigation_completed) {
                 Log.v(TAG, "Navigation completed button clicked");
                 showNewFragmentAndHideOldFragment(resultsFragment);
+                Toast.makeText(MainActivity.this, String.format("Result count: %s", resultsFragment.getItemCount()),
+                        Toast.LENGTH_SHORT).show();
                 return true;
             }
             return false;
@@ -269,7 +271,7 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         processingFragment.cleanRepository(this);
-        resultsFragment.cleanRepository(this);
+        resultsFragment.cleanRepository();
         FileManager.cleanDirectories(this);
     }
 

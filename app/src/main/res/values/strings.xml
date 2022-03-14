@@ -58,6 +58,9 @@
     <string name="download_simulation_delay_key">download_simulation_delay</string>
     <string name="download_delay_title">Download delay</string>
     <string name="download_delay_key">download_delay</string>
+    <string name="dual_download_title">Dual download</string>
+    <string name="dual_download_key">dual_download</string>
+    <string name="dual_download_summary">Initiate two video downloads at a time, instead of just one</string>
     <string name="verbose_output_title">Verbose output</string>
     <string name="verbose_output_key">verbose_output</string>
     <string name="clear_logs_title">Clear logs</string>

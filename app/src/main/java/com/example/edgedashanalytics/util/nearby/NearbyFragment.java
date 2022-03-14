@@ -59,7 +59,6 @@ import com.google.gson.Gson;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.greenrobot.eventbus.EventBus;
 
 import java.io.File;
@@ -96,6 +95,7 @@ public abstract class NearbyFragment extends Fragment {
     private final ExecutorService analysisExecutor = Executors.newSingleThreadExecutor();
     private final List<Future<?>> analysisFutures = new ArrayList<>();
     private final ScheduledExecutorService downloadTaskExecutor = Executors.newSingleThreadScheduledExecutor();
+    private final LinkedHashMap<String, Instant> waitTimes = new LinkedHashMap<>();
     private final Gson gson = new Gson();
 
     private ConnectionsClient connectionsClient;
@@ -273,7 +273,7 @@ public abstract class NearbyFragment extends Fragment {
 
     protected void startDiscovery(Context context) {
         PowerMonitor.startPowerMonitor(context);
-        SettingsActivity.printPreferences(master,false, context);
+        SettingsActivity.printPreferences(master, false, context);
 
         DiscoveryOptions discoveryOptions = new DiscoveryOptions.Builder().setStrategy(STRATEGY).build();
         connectionsClient.startDiscovery(SERVICE_ID, endpointDiscoveryCallback, discoveryOptions)
@@ -295,17 +295,20 @@ public abstract class NearbyFragment extends Fragment {
 
     // https://stackoverflow.com/a/11944965/8031185
     protected void startDashDownload() {
+        // Only master (or offline device) should start downloads
+        master = true;
+
         Context context = getContext();
         if (context == null) {
             Log.e(TAG, "No context");
             return;
         }
+
         int defaultDelay = 1;
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         int delay = pref.getInt(getString(R.string.download_delay_key), defaultDelay);
 
-        SettingsActivity.printPreferences(master,true, context);
-        Log.i(I_TAG, String.format("Download delay: %ds", delay));
+        SettingsActivity.printPreferences(master, true, context);
         Log.w(I_TAG, "Started downloading from dash cam");
         PowerMonitor.startPowerMonitor(context);
 
@@ -314,8 +317,12 @@ public abstract class NearbyFragment extends Fragment {
     }
 
     protected void stopDashDownload() {
-        Log.w(I_TAG, "Stopped downloading from dash cam");
-        downloadTaskExecutor.shutdown();
+        if (!downloadTaskExecutor.isShutdown()) {
+            Log.w(I_TAG, "Stopped downloading from dash cam");
+            downloadTaskExecutor.shutdown();
+        } else {
+            Log.w(TAG, "Dash cam downloads have already stopped");
+        }
     }
 
     private void downloadCallback(Video video) {
@@ -485,10 +492,12 @@ public abstract class NearbyFragment extends Fragment {
             String parentName = String.format("%s.%s", baseName, FilenameUtils.getExtension(resultName));
             Result result = FileManager.mergeResults(parentName);
 
+            String videoName = FileManager.getVideoNameFromResultName(parentName);
             EventBus.getDefault().post(new AddResultEvent(result));
-            EventBus.getDefault().post(new RemoveByNameEvent(parentName, Type.RAW));
-            EventBus.getDefault().post(new RemoveByNameEvent(parentName, Type.PROCESSING));
+            EventBus.getDefault().post(new RemoveByNameEvent(videoName, Type.RAW));
+            EventBus.getDefault().post(new RemoveByNameEvent(videoName, Type.PROCESSING));
 
+            DashCam.printTurnaroundTime(videoName);
             PowerMonitor.printSummary();
         } else {
             Log.v(TAG, String.format("Received a segment of %s", baseName));
@@ -613,6 +622,10 @@ public abstract class NearbyFragment extends Fragment {
             return;
         }
 
+        if (master) {
+            waitTimes.put(video.getName(), Instant.now());
+        }
+
         Context context = getContext();
         if (context == null) {
             Log.e(TAG, "No context");
@@ -631,8 +644,18 @@ public abstract class NearbyFragment extends Fragment {
 
     private Runnable analysisRunnable(Video video, String outPath, Context context, boolean returnResult) {
         return () -> {
-            boolean sleep = payloadCallback.getIncomingPayloadsCount() > 2;
+            String videoName = video.getName();
 
+            if (waitTimes.containsKey(videoName)) {
+                Instant start = waitTimes.remove(videoName);
+                String time = FileManager.getDurationString(start, false);
+
+                Log.i(I_TAG, String.format("Wait time of %s: %ss", videoName, time));
+            } else {
+                Log.e(TAG, String.format("Could not record wait time of %s", videoName));
+            }
+
+            boolean sleep = payloadCallback.getIncomingPayloadsCount() > 2;
             VideoAnalysis<?> videoAnalysis = video.isInner() ?
                     new InnerAnalysis(context, sleep) : new OuterAnalysis(context, sleep);
             videoAnalysis.analyse(video.getData(), outPath);
@@ -642,6 +665,10 @@ public abstract class NearbyFragment extends Fragment {
 
             if (!FfmpegTools.isSegment(result.getName())) {
                 EventBus.getDefault().post(new AddResultEvent(result));
+
+                if (master) {
+                    DashCam.printTurnaroundTime(videoName);
+                }
             }
 
             if (returnResult) {
@@ -803,9 +830,23 @@ public abstract class NearbyFragment extends Fragment {
             Command command = filePayloadCommands.get(payloadId);
 
             if (filePayload != null && filename != null && command != null) {
-                long duration = Duration.between(startTimes.remove(payloadId), Instant.now()).toMillis();
-                String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
-                long power = PowerMonitor.getPowerConsumption(startPowers.remove(payloadId));
+                String time;
+                long power;
+
+                if (startTimes.containsKey(payloadId)) {
+                    Instant start = startTimes.remove(payloadId);
+                    time = FileManager.getDurationString(start);
+                } else {
+                    Log.e(TAG, String.format("Could not record transfer time of %s", filename));
+                    time = "0.000";
+                }
+
+                if (startPowers.containsKey(payloadId)) {
+                    power = PowerMonitor.getPowerConsumption(startPowers.remove(payloadId));
+                } else {
+                    Log.e(TAG, String.format("Could not record transfer power consumption of %s", filename));
+                    power = 0;
+                }
 
                 Log.i(I_TAG, String.format("Completed downloading %s from %s in %ss, %dnW consumed",
                         filename, discoveredEndpoints.get(fromEndpointId), time, power));
@@ -833,6 +874,7 @@ public abstract class NearbyFragment extends Fragment {
                 }
 
                 if (Message.isAnalyse(command)) {
+                    waitTimes.put(filename, Instant.now());
                     File videoDest = new File(FileManager.getRawDirPath(), filename);
 
                     try {
@@ -866,6 +908,8 @@ public abstract class NearbyFragment extends Fragment {
                     EventBus.getDefault().post(new AddResultEvent(result));
                     String videoName = FileManager.getVideoNameFromResultName(filename);
                     EventBus.getDefault().post(new RemoveByNameEvent(videoName, Type.PROCESSING));
+
+                    DashCam.printTurnaroundTime(videoName);
                 }
             }
         }

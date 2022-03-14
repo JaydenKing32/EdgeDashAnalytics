@@ -2,7 +2,6 @@ package com.example.edgedashanalytics.page.main;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -115,7 +114,7 @@ public class ResultsFragment extends Fragment {
         if (context instanceof Listener) {
             listener = (Listener) context;
         } else {
-            throw new RuntimeException(context.toString() + " must implement ResultsFragment.Listener");
+            throw new RuntimeException(context + " must implement ResultsFragment.Listener");
         }
     }
 
@@ -130,20 +129,21 @@ public class ResultsFragment extends Fragment {
         this.repository = repository;
     }
 
-    void cleanRepository(Context context) {
+    void cleanRepository() {
         List<Result> results = repository.getResults().getValue();
 
         if (results != null) {
             int resultsCount = results.size();
 
             for (int i = 0; i < resultsCount; i++) {
-                Result result = results.get(0);
-                context.getContentResolver().delete(MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                        MediaStore.MediaColumns.DATA + "=?", new String[]{result.getData()});
                 repository.delete(0);
             }
         }
         adapter.setResults(new ArrayList<>());
+    }
+
+    int getItemCount() {
+        return adapter.getItemCount();
     }
 
     /**

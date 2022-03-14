@@ -208,7 +208,7 @@ public class VideoFragment extends Fragment {
         if (context instanceof Listener) {
             listener = (Listener) context;
         } else {
-            throw new RuntimeException(context.toString() + " must implement VideoFragment.Listener");
+            throw new RuntimeException(context + " must implement VideoFragment.Listener");
         }
     }
 

@@ -3,13 +3,16 @@ package com.example.edgedashanalytics.util.dashcam;
 import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.collection.SimpleArrayMap;
+import androidx.preference.PreferenceManager;
 
+import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.event.video.AddEvent;
 import com.example.edgedashanalytics.event.video.Type;
 import com.example.edgedashanalytics.model.Video;
@@ -26,10 +29,11 @@ import com.tonyodev.fetch2.NetworkType;
 import com.tonyodev.fetch2.Priority;
 import com.tonyodev.fetch2.Request;
 import com.tonyodev.fetch2core.DownloadBlock;
+import com.tonyodev.fetch2core.Downloader;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.time.DurationFormatUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.greenrobot.eventbus.EventBus;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -37,19 +41,23 @@ import org.jsoup.nodes.Document;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 // TODO: convert to singleton
 public class DashCam {
@@ -66,17 +74,27 @@ public class DashCam {
     private static final SimpleArrayMap<String, Long> downloadPowers = new SimpleArrayMap<>();
 
     private static Fetch fetch = null;
-    private static final long updateInterval = 10000;
     // bytes per second / 1000, aka MB/s
     public static long latestDownloadSpeed = 0;
+    private static boolean dualDownload = false;
+
+    public static final int concurrentDownloads = 2;
+    private static final long updateInterval = 10000;
+    private static final int retryAttempts = 5;
 
     public static void setFetch(Context context) {
         if (fetch == null) {
             FetchConfiguration fetchConfiguration = new FetchConfiguration.Builder(context)
-                    .setDownloadConcurrentLimit(1).setProgressReportingInterval(updateInterval).build();
+                    .setDownloadConcurrentLimit(concurrentDownloads)
+                    .setProgressReportingInterval(updateInterval)
+                    .setAutoRetryMaxAttempts(retryAttempts)
+                    .build();
 
             fetch = Fetch.Impl.getInstance(fetchConfiguration);
             clearDownloads();
+
+            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+            dualDownload = pref.getBoolean(context.getString(R.string.dual_download_key), dualDownload);
         }
     }
 
@@ -185,8 +203,7 @@ public class DashCam {
         }
         downloads.add(filename);
 
-        long duration = Duration.between(start, Instant.now()).toMillis();
-        String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
+        String time = FileManager.getDurationString(start);
         Log.i(I_TAG, String.format("Successfully downloaded %s in %ss", filename, time));
         downloadCallback.accept(video);
     }
@@ -194,6 +211,7 @@ public class DashCam {
     private static void downloadVideo(String url) {
         String filename = FileManager.getFilenameFromPath(url);
         String filePath = String.format("%s/%s", FileManager.getRawDirPath(), filename);
+        downloads.add(filename);
 
         final Request request = new Request(url, filePath);
         request.setPriority(Priority.HIGH);
@@ -233,14 +251,27 @@ public class DashCam {
             newVideos.sort(DashCam::testVideoComparator);
 
             if (newVideos.size() != 0) {
-                String toDownload = newVideos.get(0);
+                downloadVideo(videoDirUrl + newVideos.get(0));
 
-                downloads.add(toDownload);
-                downloadVideo(videoDirUrl + toDownload);
+                if (dualDownload && newVideos.size() > 1) {
+                    downloadVideo(videoDirUrl + newVideos.get(1));
+                }
             } else {
                 Log.v(TAG, "All test videos queued for download");
             }
         };
+    }
+
+    private static boolean popTestDownload() {
+        if (!testVideos.isEmpty()) {
+            String filename = testVideos.remove(0);
+            downloads.add(filename);
+            downloadVideo(videoDirUrl + filename);
+
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public static void downloadTestVideosLoop(Context context) {
@@ -250,17 +281,32 @@ public class DashCam {
             }
         }));
 
-        for (String filename : testVideos) {
-            downloads.add(filename);
-            downloadVideo(videoDirUrl + filename);
-        }
+        Instant start = Instant.now();
+        ScheduledExecutorService downloadExecutor = Executors.newSingleThreadScheduledExecutor();
+
+        Runnable downloadRunnable = () -> {
+            if (!popTestDownload()) {
+                downloadExecutor.shutdown();
+                String time = FileManager.getDurationString(start);
+                Log.i(TAG, String.format("All test videos scheduled for download in %ss", time));
+            }
+            if (dualDownload) {
+                popTestDownload();
+            }
+        };
+
+        int defaultDelay = 1;
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        int delay = pref.getInt(context.getString(R.string.download_delay_key), defaultDelay);
+
+        downloadExecutor.scheduleWithFixedDelay(downloadRunnable, 0, delay, TimeUnit.SECONDS);
     }
 
     private static int testVideoComparator(String videoA, String videoB) {
         String prefixA = videoA.substring(0, 3);
         String prefixB = videoB.substring(0, 3);
-        int suffixA = Integer.parseInt(videoA.substring(4, 6));
-        int suffixB = Integer.parseInt(videoB.substring(4, 6));
+        int suffixA = Integer.parseInt(StringUtils.substringBetween(videoA, "_", "."));
+        int suffixB = Integer.parseInt(StringUtils.substringBetween(videoB, "_", "."));
 
         if (suffixA != suffixB) {
             return suffixA - suffixB;
@@ -272,6 +318,17 @@ public class DashCam {
         fetch.addListener(getFetchListener(context, downloadCallback));
     }
 
+    public static void printTurnaroundTime(String filename) {
+        Instant start = downloadStarts.remove(filename);
+
+        if (start == null) {
+            Log.w(TAG, String.format("Could not calculate the turnaround time of %s", filename));
+        } else {
+            String time = FileManager.getDurationString(start);
+            Log.i(I_TAG, String.format("Turnaround time of %s: %ss", filename, time));
+        }
+    }
+
     // public static Bitmap getLiveBitmap() {
     //     FFmpegMediaMetadataRetriever retriever = new FFmpegMediaMetadataRetriever();
     //     retriever.setDataSource("rtsp://192.168.1.254");
@@ -279,28 +336,13 @@ public class DashCam {
     //     return retriever.getFrameAtTime();
     // }
 
-    private static final ArrayList<String> testVideos = new ArrayList<>(Arrays.asList(
-            "out_01.mp4", "inn_01.mp4",
-            "out_02.mp4", "inn_02.mp4",
-            "out_03.mp4", "inn_03.mp4",
-            "out_04.mp4", "inn_04.mp4",
-            "out_05.mp4", "inn_05.mp4",
-            "out_06.mp4", "inn_06.mp4",
-            "out_07.mp4", "inn_07.mp4",
-            "out_08.mp4", "inn_08.mp4",
-            "out_09.mp4", "inn_09.mp4",
-            "out_10.mp4", "inn_10.mp4",
-            "out_11.mp4", "inn_11.mp4",
-            "out_12.mp4", "inn_12.mp4",
-            "out_13.mp4", "inn_13.mp4",
-            "out_14.mp4", "inn_14.mp4",
-            "out_15.mp4", "inn_15.mp4",
-            "out_16.mp4", "inn_16.mp4",
-            "out_17.mp4", "inn_17.mp4",
-            "out_18.mp4", "inn_18.mp4",
-            "out_19.mp4", "inn_19.mp4",
-            "out_20.mp4", "inn_20.mp4"
-    ));
+    // Two subsets of videos, each comprised of 600 segments, every video is exactly two seconds in length
+    private static final int testSubsetCount = 600;
+    private static final List<String> testVideos = IntStream.rangeClosed(1, testSubsetCount)
+            .mapToObj(i -> String.format(Locale.ENGLISH, "%04d", i))
+            .flatMap(num -> Stream.of(String.format("inn_%s.mp4", num), String.format("out_%s.mp4", num)))
+            .sorted(DashCam::testVideoComparator)
+            .collect(Collectors.toList());
 
     private static FetchListener getFetchListener(Context context, Consumer<Video> downloadCallback) {
         return new FetchListener() {
@@ -321,9 +363,8 @@ public class DashCam {
                 long power;
 
                 if (downloadStarts.containsKey(videoName)) {
-                    Instant start = downloadStarts.remove(videoName);
-                    long duration = Duration.between(start, Instant.now()).toMillis();
-                    time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
+                    Instant start = downloadStarts.get(videoName);
+                    time = FileManager.getDurationString(start);
                 } else {
                     Log.e(TAG, String.format("Could not record download time of %s", videoName));
                     time = "0.000";
@@ -358,10 +399,17 @@ public class DashCam {
                 }
             }
 
+            public void onError(@NonNull Download d, @NonNull Error error, @Nullable Throwable throwable) {
+                Downloader.Response response = error.getHttpResponse();
+                String responseString = response != null ? response.getErrorResponse() : "No response";
+
+                Log.e(I_TAG, String.format("Error downloading %s (attempt %s):\n%s\n%s",
+                        FileManager.getFilenameFromPath(d.getUrl()), d.getAutoRetryAttempts(), error, responseString));
+            }
+
             // @formatter:off
             public void onQueued(@NonNull Download d, boolean b) {}
             public void onWaitingNetwork(@NonNull Download d) {}
-            public void onError(@NonNull Download d, @NonNull Error error, @Nullable Throwable throwable) {}
             public void onDownloadBlockUpdated(@NonNull Download d, @NonNull DownloadBlock dBlock, int i) {}
             public void onPaused(@NonNull Download d) {}
             public void onResumed(@NonNull Download d) {}
