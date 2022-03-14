@@ -271,7 +271,7 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         processingFragment.cleanRepository(this);
-        resultsFragment.cleanRepository(this);
+        resultsFragment.cleanRepository();
         FileManager.cleanDirectories(this);
     }
 
