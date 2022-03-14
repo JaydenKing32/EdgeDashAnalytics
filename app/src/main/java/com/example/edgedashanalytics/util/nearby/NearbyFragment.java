@@ -59,7 +59,6 @@ import com.google.gson.Gson;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.greenrobot.eventbus.EventBus;
 
 import java.io.File;
@@ -649,8 +648,7 @@ public abstract class NearbyFragment extends Fragment {
 
             if (waitTimes.containsKey(videoName)) {
                 Instant start = waitTimes.remove(videoName);
-                long duration = Duration.between(start, Instant.now()).toMillis();
-                String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
+                String time = FileManager.getDurationString(start, false);
 
                 Log.i(I_TAG, String.format("Wait time of %s: %ss", videoName, time));
             } else {
@@ -835,8 +833,7 @@ public abstract class NearbyFragment extends Fragment {
 
                 if (startTimes.containsKey(payloadId)) {
                     Instant start = startTimes.remove(payloadId);
-                    long duration = Duration.between(start, Instant.now()).toMillis();
-                    time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
+                    time = FileManager.getDurationString(start);
                 } else {
                     Log.e(TAG, String.format("Could not record transfer time of %s", filename));
                     time = "0.000";

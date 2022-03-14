@@ -288,8 +288,7 @@ public class FileManager {
             writer.flush();
             writer.close();
 
-            long duration = Duration.between(start, Instant.now()).toMillis();
-            String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
+            String time = getDurationString(start);
             Log.d(I_TAG, String.format("Merged results of %s in %ss", baseName, time));
 
             return new Result(outPath);
@@ -297,5 +296,21 @@ public class FileManager {
             Log.e(TAG, String.format("Results merge error: \n%s", e.getMessage()));
         }
         return null;
+    }
+
+    // Not file-related, should be in a different file
+    public static String getDurationString(Instant start) {
+        return getDurationString(start, true);
+    }
+
+    public static String getDurationString(Instant start, boolean roundUp) {
+        long duration = Duration.between(start, Instant.now()).toMillis();
+        String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
+
+        if (roundUp && time.equals("00.000")) {
+            // Time value is less than one millisecond, round up to one millisecond
+            return "00.001";
+        }
+        return time;
     }
 }

@@ -34,7 +34,6 @@ import com.tonyodev.fetch2core.Downloader;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.greenrobot.eventbus.EventBus;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -42,7 +41,6 @@ import org.jsoup.nodes.Document;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -205,8 +203,7 @@ public class DashCam {
         }
         downloads.add(filename);
 
-        long duration = Duration.between(start, Instant.now()).toMillis();
-        String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
+        String time = FileManager.getDurationString(start);
         Log.i(I_TAG, String.format("Successfully downloaded %s in %ss", filename, time));
         downloadCallback.accept(video);
     }
@@ -290,8 +287,7 @@ public class DashCam {
         Runnable downloadRunnable = () -> {
             if (!popTestDownload()) {
                 downloadExecutor.shutdown();
-                long duration = Duration.between(start, Instant.now()).toMillis();
-                String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
+                String time = FileManager.getDurationString(start);
                 Log.i(TAG, String.format("All test videos scheduled for download in %ss", time));
             }
             if (dualDownload) {
@@ -328,8 +324,7 @@ public class DashCam {
         if (start == null) {
             Log.w(TAG, String.format("Could not calculate the turnaround time of %s", filename));
         } else {
-            long duration = Duration.between(start, Instant.now()).toMillis();
-            String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
+            String time = FileManager.getDurationString(start);
             Log.i(I_TAG, String.format("Turnaround time of %s: %ss", filename, time));
         }
     }
@@ -369,8 +364,7 @@ public class DashCam {
 
                 if (downloadStarts.containsKey(videoName)) {
                     Instant start = downloadStarts.get(videoName);
-                    long duration = Duration.between(start, Instant.now()).toMillis();
-                    time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
+                    time = FileManager.getDurationString(start);
                 } else {
                     Log.e(TAG, String.format("Could not record download time of %s", videoName));
                     time = "0.000";
