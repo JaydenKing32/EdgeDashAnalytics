@@ -127,6 +127,7 @@ summary_header = [
 
 excel = False
 full_name = False
+just_summaries = False
 
 
 class Video:
@@ -721,7 +722,6 @@ def make_spreadsheet(run: Analysis, writer):
         for video in run.videos.values():
             writer.writerow(video.get_stats())
 
-        run.set_average_stats()
         writer.writerow(["Total"] + run.get_total_stats())
         writer.writerow(["Average"] + run.get_average_stats())
 
@@ -779,7 +779,6 @@ def make_spreadsheet(run: Analysis, writer):
                 ])
 
         if sum(1 for device in run.devices.values() if device) > 1:
-            run.set_average_stats()
             writer.writerow(["Combined total"] + run.get_total_stats())
             writer.writerow(["Combined average"] + run.get_average_stats())
 
@@ -791,8 +790,7 @@ def make_spreadsheet(run: Analysis, writer):
 
 
 def spread_totals(runs: List[Analysis], writer):
-    writer.writerow(["Summary of totals"])
-    writer.writerow(summary_header)
+    writer.writerow(summary_header + ["Summary of totals"])
 
     for run in runs:
         writer.writerow([
@@ -832,8 +830,7 @@ def spread_totals(runs: List[Analysis], writer):
 
 
 def spread_averages(runs: List[Analysis], writer):
-    writer.writerow(["Summary of averages"])
-    writer.writerow(summary_header)
+    writer.writerow(summary_header + ["Summary of averages"])
 
     for run in runs:
         writer.writerow([
@@ -880,7 +877,8 @@ def spread(root: str, out: str, append: bool = False, sort: bool = False):
     with open(out, write_mode, newline='', encoding="utf-8") as csv_f:
         writer = csv.writer(csv_f)
 
-        make_offline_spreadsheet(root, runs, writer)
+        if not just_summaries:
+            make_offline_spreadsheet(root, runs, writer)
 
         for (path, _, files) in sorted(
                 [(path, _, files) for (path, _, files) in os.walk(root) if len(files) > 2]):
@@ -896,8 +894,11 @@ def spread(root: str, out: str, append: bool = False, sort: bool = False):
             parse_worker_logs(devices, videos, path, master_sn)
 
             run = Analysis(path, master_sn, devices, videos)
-            make_spreadsheet(run, writer)
+            run.set_average_stats()
             runs.append(run)
+
+            if not just_summaries:
+                make_spreadsheet(run, writer)
 
         if sort:
             runs.sort(key=lambda r: (
@@ -925,9 +926,11 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--append", action="store_true", help="append to results file instead of overwriting it")
     parser.add_argument("-s", "--sort", action="store_true", help="sort summaries based on config instead of log paths")
     parser.add_argument("-e", "--excel", action="store_true", help="use measures to prevent excel cell type conversion")
-    parser.add_argument("-f", "--full-name", action="store_true", help="Use a devices full name instead of serial ID")
+    parser.add_argument("-f", "--full-name", action="store_true", help="use a device's full name instead of serial ID")
+    parser.add_argument("-j", "--just-summaries", action="store_true", help="only create summary tables")
     args = parser.parse_args()
 
     excel = args.excel
     full_name = args.full_name
+    just_summaries = args.just_summaries
     spread(args.dir, args.output, args.append, args.sort)
