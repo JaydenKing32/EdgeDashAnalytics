@@ -36,6 +36,7 @@ import org.greenrobot.eventbus.EventBus;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 
 /**
@@ -233,12 +234,14 @@ public class VideoFragment extends Fragment {
         if (videos != null) {
             int videoCount = videos.size();
 
-            for (int i = 0; i < videoCount; i++) {
-                Video video = videos.get(0);
-                context.getContentResolver().delete(MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                        MediaStore.MediaColumns.DATA + "=?", new String[]{video.getData()});
-                repository.delete(0);
-            }
+            Executors.newSingleThreadExecutor().execute(() -> {
+                for (int i = 0; i < videoCount; i++) {
+                    Video video = videos.get(0);
+                    context.getContentResolver().delete(MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                            MediaStore.MediaColumns.DATA + "=?", new String[]{video.getData()});
+                    repository.delete(0);
+                }
+            });
         }
         adapter.setVideos(new ArrayList<>());
     }
