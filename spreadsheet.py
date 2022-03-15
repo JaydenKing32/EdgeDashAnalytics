@@ -346,7 +346,7 @@ class Analysis:
         seg = abs(self.seg_num)
         delay = abs(self.delay)
         nodes = self.nodes
-        algo = "Duo" if len(self.devices) == 2 else algorithms[self.algorithm]
+        algo = "Duo" if len(self.devices) == 2 else self.get_algorithm_name()
 
         return f"{master}-{local}-{seg}-{delay}-{nodes}-{algo}"
 
@@ -725,7 +725,7 @@ def write_online_run(run: Analysis, writer):
         f"Master: {run.get_master_full_name()}",
         f"Segments: {run.seg_num}",
         f"Nodes: {run.nodes}",
-        f"Algorithm: {algorithms[run.algorithm]}"
+        f"Algorithm: {run.get_algorithm_name()}"
     ])
     writer.writerow([
         f"Local Processing: {run.local}",
@@ -823,7 +823,7 @@ def write_spread_totals(runs: List[Analysis], writer):
         writer.writerow([
             run.get_master_full_name(),
             excel_format(run.get_worker_string()),
-            "Duo" if len(run.devices) == 2 else algorithms[run.algorithm],
+            "Duo" if len(run.devices) == 2 else run.get_algorithm_name(),
             f"{run.down_time:.3f}",
             f"{run.transfer_time:.3f}" if run.transfer_time > 0 else "n/a",
             f"{run.return_time:.3f}" if run.transfer_time > 0 else "n/a",
@@ -863,7 +863,7 @@ def write_spread_averages(runs: List[Analysis], writer):
         writer.writerow([
             run.get_master_full_name(),
             excel_format(run.get_worker_string()),
-            "Duo" if len(run.devices) == 2 else algorithms[run.algorithm],
+            "Duo" if len(run.devices) == 2 else run.get_algorithm_name(),
             f"{run.avg_down_time:.3f}",
             f"{run.avg_transfer_time:.3f}" if run.avg_transfer_time > 0 else "n/a",
             f"{run.avg_return_time:.3f}" if run.avg_transfer_time > 0 else "n/a",
