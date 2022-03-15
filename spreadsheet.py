@@ -288,7 +288,7 @@ class Analysis:
             f"{self.avg_analysis_power:.3f}"
         ]
 
-    def get_total_power(self) -> int:
+    def get_total_power(self) -> float:
         return sum(d.total_power for d in self.devices.values())
 
     def get_total_average_power(self) -> float:
@@ -893,7 +893,120 @@ def write_spread_averages(runs: List[Analysis], writer):
     writer.writerow('')
 
 
-def make_spreadsheet(root: str, out: str, append: bool = False, sort: bool = False, just_summaries: bool = False):
+def write_tables(runs: List[Analysis], writer):
+    writer.writerow(["Offline tests"])
+    writer.writerow([
+        "Device",
+        "Download time (s)",
+        "Processing time (s)",
+        "Wait time (s)",
+        "Turnaround time (s)",
+        "Network power (mW)",
+        "Processing power (mW)",
+        "Actual power (mW)",
+        "Actual time (s)"
+    ])
+
+    for run in [r for r in runs if r.algorithm == "offline"]:
+        writer.writerow([
+            run.get_master_full_name(),
+            f"{run.avg_down_time:.3f}",
+            f"{run.avg_analysis_time:.3f}",
+            f"{run.avg_wait_time:.3f}",
+            f"{run.avg_turnaround_time:.3f}",
+            f"{run.avg_network_power:.3f}",
+            f"{run.avg_analysis_power:.3f}",
+            f"{run.get_total_power():.3f}",
+            run.get_time_seconds_string()
+        ])
+    writer.writerow('')
+
+    writer.writerow(["Two-node tests"])
+    writer.writerow([
+        "Worker",
+        "Transfer time (s)",
+        "Return time (s)",
+        "Processing time (s)",
+        "Wait time (s)",
+        "Turnaround time (s)",
+        "Network power (mW)",
+        "Processing power (mW)",
+        "Actual power (mW)",
+        "Actual time (s)"
+    ])
+    prev_master = ""
+
+    for run in [r for r in runs if len(r.devices) == 2]:
+        if run.get_master_full_name() != prev_master:
+            prev_master = run.get_master_full_name()
+            down_times = [
+                r.avg_down_time for r in runs if r.get_master_full_name() == prev_master and len(r.devices) == 2]
+            avg_down_time = sum(t for t in down_times) / len(down_times)
+            writer.writerow([
+                "Master:", prev_master,
+                "Download time (s):", f"{avg_down_time:.3f}"
+            ])
+
+        writer.writerow([
+            run.get_worker_string(),
+            f"{run.avg_transfer_time:.3f}",
+            f"{run.avg_return_time:.3f}",
+            f"{run.avg_analysis_time:.3f}",
+            f"{run.avg_wait_time:.3f}",
+            f"{run.avg_turnaround_time:.3f}",
+            f"{run.avg_network_power:.3f}",
+            f"{run.avg_analysis_power:.3f}",
+            f"{run.get_total_power():.3f}",
+            run.get_time_seconds_string()
+        ])
+    writer.writerow('')
+
+    writer.writerow(["Three-node tests"])
+    writer.writerow([
+        "Algorithm",
+        "Transfer time (s)",
+        "Return time (s)",
+        "Processing time (s)",
+        "Wait time (s)",
+        "Turnaround time (s)",
+        "Network power (mW)",
+        "Processing power (mW)",
+        "Actual power (mW)",
+        "Actual time (s)"
+    ])
+    prev_master = ""
+    prev_workers = ""
+
+    for run in [r for r in runs if len(r.devices) == 3]:
+        if run.get_master_full_name() != prev_master or run.get_worker_string() != prev_workers:
+            prev_master = run.get_master_full_name()
+            prev_workers = run.get_worker_string()
+
+            down_times = [
+                r.avg_down_time for r in runs if
+                r.get_master_full_name() == prev_master and r.get_worker_string() == prev_workers]
+            avg_down_time = sum(t for t in down_times) / len(down_times)
+            writer.writerow([
+                "Master:", prev_master,
+                "Workers:", prev_workers,
+                "Download time (s):", f"{avg_down_time:.3f}"
+            ])
+
+        writer.writerow([
+            run.get_algorithm_name(),
+            f"{run.avg_transfer_time:.3f}",
+            f"{run.avg_return_time:.3f}",
+            f"{run.avg_analysis_time:.3f}",
+            f"{run.avg_wait_time:.3f}",
+            f"{run.avg_turnaround_time:.3f}",
+            f"{run.avg_network_power:.3f}",
+            f"{run.avg_analysis_power:.3f}",
+            f"{run.get_total_power():.3f}",
+            run.get_time_seconds_string()
+        ])
+
+
+def make_spreadsheet(root: str, out: str, append: bool, sort: bool, just_summaries: bool, table: bool):
     root = os.path.normpath(root)
     runs = []  # type: List[Analysis]
     write_mode = 'a' if append else 'w'
@@ -902,7 +1015,7 @@ def make_spreadsheet(root: str, out: str, append: bool = False, sort: bool = Fal
         writer = csv.writer(csv_f)
 
         parse_offline_logs(root, runs)
-        if not just_summaries:
+        if not table and not just_summaries:
             write_offline_runs(runs, writer)
 
         for (path, _, files) in sorted(
@@ -922,7 +1035,7 @@ def make_spreadsheet(root: str, out: str, append: bool = False, sort: bool = Fal
             run.set_average_stats()
             runs.append(run)
 
-            if not just_summaries:
+            if not table and not just_summaries:
                 write_online_run(run, writer)
 
         if sort:
@@ -938,8 +1051,11 @@ def make_spreadsheet(root: str, out: str, append: bool = False, sort: bool = Fal
         else:
             runs.sort(key=lambda r: r.log_dir)
 
-        write_spread_totals(runs, writer)
-        write_spread_averages(runs, writer)
+        if table:
+            write_tables(runs, writer)
+        else:
+            write_spread_totals(runs, writer)
+            write_spread_averages(runs, writer)
 
 
 if __name__ == "__main__":
@@ -952,9 +1068,10 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--sort", action="store_true", help="sort summaries based on config instead of log paths")
     parser.add_argument("-e", "--excel", action="store_true", help="use measures to prevent excel cell type conversion")
     parser.add_argument("-f", "--full-name", action="store_true", help="use a device's full name instead of serial ID")
-    parser.add_argument("-j", "--just-summaries", action="store_true", help="only create summary tables")
+    parser.add_argument("-j", "--just-summaries", action="store_true", help="only create summaries")
+    parser.add_argument("-t", "--table", action="store_true", help="structure results in summary tables")
     args = parser.parse_args()
 
     excel = args.excel
-    full_name = args.full_name
-    make_spreadsheet(args.dir, args.output, args.append, args.sort, args.just_summaries)
+    full_name = args.full_name or args.table
+    make_spreadsheet(args.dir, args.output, args.append, args.sort, args.just_summaries, args.table)
