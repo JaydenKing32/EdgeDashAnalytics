@@ -118,8 +118,8 @@ summary_header = [
     "Turn time (s)",
     "Net power (mW)",
     "Proc power (mW)",
-    "Actual power (mW)",
-    "Actual time (s)",
+    "Total power (mW)",
+    "Total time (s)",
     "Human time",
     "Network",
     "Directory"
@@ -714,8 +714,8 @@ def write_offline_runs(runs: List[Analysis], writer):
             f"{run.avg_analysis_power:.3f}"
         ])
         writer.writerow([
-            "Actual total time", run.get_time_string(),
-            "Actual total power", f"{run.get_total_power():.3f}"
+            "Total total time", run.get_time_string(),
+            "Total total power", f"{run.get_total_power():.3f}"
         ])
     writer.writerow('')
 
@@ -742,7 +742,7 @@ def write_online_run(run: Analysis, writer):
 
     # Cannot cleanly separate videos between devices when segmentation is used
     if run.seg_num > 1:
-        writer.writerow(["Device", "Actual Power (mW)", "Network"])
+        writer.writerow(["Device", "Total Power (mW)", "Network"])
         for device_name, device in run.devices.items():
             writer.writerow([get_device_name(device_name), f"{device.total_power:.3f}", device.network])
 
@@ -767,7 +767,7 @@ def write_online_run(run: Analysis, writer):
                 writer.writerow(["Did not analyse any videos"])
                 continue
 
-            writer.writerow(online_header + ["Actual total power", f"{device.total_power:.3f}"])
+            writer.writerow(online_header + ["Total total power", f"{device.total_power:.3f}"])
 
             for video in videos:
                 writer.writerow(video.get_stats())
@@ -812,8 +812,8 @@ def write_online_run(run: Analysis, writer):
             writer.writerow(["Combined average"] + run.get_average_stats())
 
     writer.writerow([
-        "Actual total time", run.get_time_string(),
-        "Actual total power", f"{run.get_total_power():.3f}"
+        "Total total time", run.get_time_string(),
+        "Total total power", f"{run.get_total_power():.3f}"
     ])
     writer.writerow('')
 
@@ -908,8 +908,8 @@ def write_tables(runs: List[Analysis], writer):
         "Turnaround time (s)",
         "Network power (mW)",
         "Processing power (mW)",
-        "Actual power (mW)",
-        "Actual time (s)"
+        "Total power (mW)",
+        "Total time (s)"
     ])
 
     for run in [r for r in runs if r.algorithm == "offline"]:
@@ -936,8 +936,8 @@ def write_tables(runs: List[Analysis], writer):
         "Turnaround time (s)",
         "Network power (mW)",
         "Processing power (mW)",
-        "Actual power (mW)",
-        "Actual time (s)"
+        "Total power (mW)",
+        "Total time (s)"
     ])
     prev_master = ""
 
@@ -976,8 +976,8 @@ def write_tables(runs: List[Analysis], writer):
         "Turnaround time (s)",
         "Network power (mW)",
         "Processing power (mW)",
-        "Actual power (mW)",
-        "Actual time (s)"
+        "Total power (mW)",
+        "Total time (s)"
     ])
     prev_master = ""
     prev_workers = ""
