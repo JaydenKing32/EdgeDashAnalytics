@@ -921,7 +921,7 @@ def write_tables(runs: List[Analysis], writer):
             f"{run.avg_turnaround_time:.3f}",
             f"{run.avg_network_power:.3f}",
             f"{run.avg_analysis_power:.3f}",
-            f"{run.get_total_power():.3f}",
+            f"{run.avg_total_power:.3f}",
             run.get_time_seconds_string()
         ])
     writer.writerow('')
@@ -961,7 +961,7 @@ def write_tables(runs: List[Analysis], writer):
             f"{run.avg_turnaround_time:.3f}",
             f"{run.avg_network_power:.3f}",
             f"{run.avg_analysis_power:.3f}",
-            f"{run.get_total_power():.3f}",
+            f"{run.avg_total_power:.3f}",
             run.get_time_seconds_string()
         ])
     writer.writerow('')
@@ -1006,7 +1006,7 @@ def write_tables(runs: List[Analysis], writer):
             f"{run.avg_turnaround_time:.3f}",
             f"{run.avg_network_power:.3f}",
             f"{run.avg_analysis_power:.3f}",
-            f"{run.get_total_power():.3f}",
+            f"{run.avg_total_power:.3f}",
             run.get_time_seconds_string()
         ])
 
