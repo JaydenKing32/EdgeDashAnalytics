@@ -127,7 +127,6 @@ summary_header = [
 
 excel = False
 full_name = False
-just_summaries = False
 
 
 class Video:
@@ -894,7 +893,7 @@ def write_spread_averages(runs: List[Analysis], writer):
     writer.writerow('')
 
 
-def make_spreadsheet(root: str, out: str, append: bool = False, sort: bool = False):
+def make_spreadsheet(root: str, out: str, append: bool = False, sort: bool = False, just_summaries: bool = False):
     root = os.path.normpath(root)
     runs = []  # type: List[Analysis]
     write_mode = 'a' if append else 'w'
@@ -958,5 +957,4 @@ if __name__ == "__main__":
 
     excel = args.excel
     full_name = args.full_name
-    just_summaries = args.just_summaries
-    make_spreadsheet(args.dir, args.output, args.append, args.sort)
+    make_spreadsheet(args.dir, args.output, args.append, args.sort, args.just_summaries)
