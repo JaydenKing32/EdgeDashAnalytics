@@ -126,7 +126,7 @@ summary_header = [
 ]
 
 excel = False
-full_name = False
+proper_name = False
 
 
 class Video:
@@ -391,7 +391,7 @@ def excel_format(string: str) -> str:
 
 
 def get_device_name(short_serial: str) -> str:
-    return device_names[short_serial] if full_name and short_serial else short_serial
+    return device_names[short_serial] if proper_name and short_serial else short_serial
 
 
 def check_video_count(videos: List[Video], log_dir: str, print_message: bool) -> int:
@@ -1009,7 +1009,7 @@ def write_tables(runs: List[Analysis], writer):
         ])
 
 
-def make_spreadsheet(root: str, out: str, append: bool, sort: bool, just_summaries: bool, table: bool):
+def make_spreadsheet(root: str, out: str, append: bool, sort: bool, full_results: bool, table: bool):
     root = os.path.normpath(root)
     runs = []  # type: List[Analysis]
     write_mode = 'a' if append else 'w'
@@ -1018,7 +1018,7 @@ def make_spreadsheet(root: str, out: str, append: bool, sort: bool, just_summari
         writer = csv.writer(csv_f)
 
         parse_offline_logs(root, runs)
-        if not table and not just_summaries:
+        if not table and full_results:
             write_offline_runs(runs, writer)
 
         for (path, _, files) in sorted(
@@ -1038,7 +1038,7 @@ def make_spreadsheet(root: str, out: str, append: bool, sort: bool, just_summari
             run.set_average_stats()
             runs.append(run)
 
-            if not table and not just_summaries:
+            if not table and full_results:
                 write_online_run(run, writer)
 
         if sort:
@@ -1070,11 +1070,11 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--append", action="store_true", help="append to results file instead of overwriting it")
     parser.add_argument("-s", "--sort", action="store_true", help="sort summaries based on config instead of log paths")
     parser.add_argument("-e", "--excel", action="store_true", help="use measures to prevent excel cell type conversion")
-    parser.add_argument("-f", "--full-name", action="store_true", help="use a device's full name instead of serial ID")
-    parser.add_argument("-j", "--just-summaries", action="store_true", help="only create summaries")
+    parser.add_argument("-p", "--proper-name", action="store_true", help="use device model names instead of serial ID")
+    parser.add_argument("-f", "--full-results", action="store_true", help="full results instead of just summaries")
     parser.add_argument("-t", "--table", action="store_true", help="structure results in summary tables")
     args = parser.parse_args()
 
     excel = args.excel
-    full_name = args.full_name or args.table
-    make_spreadsheet(args.dir, args.output, args.append, args.sort, args.just_summaries, args.table)
+    proper_name = args.proper_name or args.table
+    make_spreadsheet(args.dir, args.output, args.append, args.sort, args.full_results, args.table)
