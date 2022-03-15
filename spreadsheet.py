@@ -227,6 +227,7 @@ class Analysis:
         self.avg_turnaround_time = 0.0
         self.avg_network_power = 0.0
         self.avg_analysis_power = 0.0
+        self.avg_total_power = 0.0
 
         self.parse_preferences()
 
@@ -275,6 +276,7 @@ class Analysis:
         self.avg_turnaround_time = self.turnaround_time / video_count
         self.avg_network_power = self.network_power / video_count
         self.avg_analysis_power = self.analysis_power / video_count
+        self.avg_total_power = self.get_total_power() / video_count
 
     def get_average_stats(self) -> List[str]:
         return [
@@ -872,7 +874,7 @@ def write_spread_averages(runs: List[Analysis], writer):
             f"{run.avg_turnaround_time:.3f}",
             f"{run.avg_network_power:.3f}",
             f"{run.avg_analysis_power:.3f}",
-            f"{run.get_total_power() / len(runs):.3f}",
+            f"{run.avg_total_power:.3f}",
             run.get_time_seconds_string(),
             excel_format(run.get_time_human_string()),
             run.get_network(),
