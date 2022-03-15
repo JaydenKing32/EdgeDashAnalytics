@@ -655,7 +655,7 @@ def parse_offline_logs(log_dir: str, runs: List[Analysis]):
             runs.append(run)
 
 
-def make_offline_spreadsheet(runs: List[Analysis], writer):
+def write_offline_runs(runs: List[Analysis], writer):
     writer.writerow(["Offline"])
 
     for run in [r for r in runs if r.algorithm == "offline"]:
@@ -703,7 +703,7 @@ def make_offline_spreadsheet(runs: List[Analysis], writer):
     writer.writerow('')
 
 
-def make_spreadsheet(run: Analysis, writer):
+def write_online_run(run: Analysis, writer):
     missed = check_video_count(list(run.videos.values()), run.log_dir, True)
 
     writer.writerow([
@@ -801,7 +801,7 @@ def make_spreadsheet(run: Analysis, writer):
     writer.writerow('')
 
 
-def spread_totals(runs: List[Analysis], writer):
+def write_spread_totals(runs: List[Analysis], writer):
     writer.writerow(summary_header + ["Summary of totals"])
 
     for run in runs:
@@ -841,7 +841,7 @@ def spread_totals(runs: List[Analysis], writer):
     writer.writerow('')
 
 
-def spread_averages(runs: List[Analysis], writer):
+def write_spread_averages(runs: List[Analysis], writer):
     writer.writerow(summary_header + ["Summary of averages"])
 
     for run in runs:
@@ -881,7 +881,7 @@ def spread_averages(runs: List[Analysis], writer):
     writer.writerow('')
 
 
-def spread(root: str, out: str, append: bool = False, sort: bool = False):
+def make_spreadsheet(root: str, out: str, append: bool = False, sort: bool = False):
     root = os.path.normpath(root)
     runs = []  # type: List[Analysis]
     write_mode = 'a' if append else 'w'
@@ -891,7 +891,7 @@ def spread(root: str, out: str, append: bool = False, sort: bool = False):
 
         parse_offline_logs(root, runs)
         if not just_summaries:
-            make_offline_spreadsheet(runs, writer)
+            write_offline_runs(runs, writer)
 
         for (path, _, files) in sorted(
                 [(path, _, files) for (path, _, files) in os.walk(root) if len(files) > 2]):
@@ -911,7 +911,7 @@ def spread(root: str, out: str, append: bool = False, sort: bool = False):
             runs.append(run)
 
             if not just_summaries:
-                make_spreadsheet(run, writer)
+                write_online_run(run, writer)
 
         if sort:
             runs.sort(key=lambda r: (
@@ -926,8 +926,8 @@ def spread(root: str, out: str, append: bool = False, sort: bool = False):
         else:
             runs.sort(key=lambda r: r.log_dir)
 
-        spread_totals(runs, writer)
-        spread_averages(runs, writer)
+        write_spread_totals(runs, writer)
+        write_spread_averages(runs, writer)
 
 
 if __name__ == "__main__":
@@ -946,4 +946,4 @@ if __name__ == "__main__":
     excel = args.excel
     full_name = args.full_name
     just_summaries = args.just_summaries
-    spread(args.dir, args.output, args.append, args.sort)
+    make_spreadsheet(args.dir, args.output, args.append, args.sort)
