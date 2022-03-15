@@ -240,8 +240,14 @@ class Analysis:
     def get_algorithm_name(self) -> str:
         return algorithms[self.algorithm]
 
+    def get_time_seconds_string(self) -> str:
+        return f"{self.total_time.total_seconds():.3f}"
+
+    def get_time_human_string(self) -> str:
+        return f"{str(self.total_time):.11}"
+
     def get_time_string(self) -> str:
-        return f"{self.total_time.total_seconds()} ({str(self.total_time):.11})"
+        return f"{self.get_time_seconds_string()} ({self.get_time_human_string()})"
 
     def get_sub_log_dir(self) -> str:
         i = self.log_dir.index(os.path.sep) + 1
@@ -818,8 +824,8 @@ def write_spread_totals(runs: List[Analysis], writer):
             f"{run.network_power:.3f}",
             f"{run.analysis_power:.3f}",
             f"{run.get_total_power():.3f}",
-            run.total_time.total_seconds(),
-            excel_format(f"{str(run.total_time):.11}"),
+            run.get_time_seconds_string(),
+            excel_format(run.get_time_human_string()),
             run.get_network(),
             run.log_dir
         ])
@@ -858,8 +864,8 @@ def write_spread_averages(runs: List[Analysis], writer):
             f"{run.avg_network_power:.3f}",
             f"{run.avg_analysis_power:.3f}",
             f"{run.get_total_power() / len(runs):.3f}",
-            run.total_time.total_seconds(),
-            excel_format(f"{str(run.total_time):.11}"),
+            run.get_time_seconds_string(),
+            excel_format(run.get_time_human_string()),
             run.get_network(),
             run.log_dir
         ])
