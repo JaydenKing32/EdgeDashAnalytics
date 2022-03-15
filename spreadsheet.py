@@ -386,12 +386,12 @@ def get_device_name(short_serial: str) -> str:
     return device_names[short_serial] if full_name and short_serial else short_serial
 
 
-def check_video_count(videos: List[Video], log_dir: str) -> int:
+def check_video_count(videos: List[Video], log_dir: str, print_message: bool) -> int:
     # There are 40 test videos, if the logs do not specify 40 videos, then something went wrong during a test run
     expected_video_count = 1200
     video_count = len(videos)
 
-    if video_count != expected_video_count:
+    if print_message and video_count != expected_video_count:
         print(f"Unexpected video count: {video_count} in {os.path.basename(log_dir)}")
     return expected_video_count - video_count
 
@@ -635,7 +635,7 @@ def parse_offline_logs(log_dir: str, runs: List[Analysis]):
 
             log_path = os.path.join(path, log)
             run = parse_offline_log(log_path)
-            check_video_count(list(run.videos.values()), path)
+            check_video_count(list(run.videos.values()), path, True)
 
             total_down_time = sum(v.down_time for v in run.videos.values())
             total_analysis_time = sum(v.analysis_time for v in run.videos.values())
@@ -661,7 +661,7 @@ def make_offline_spreadsheet(runs: List[Analysis], writer):
     for run in [r for r in runs if r.algorithm == "offline"]:
         videos = run.videos
 
-        missed = check_video_count(list(videos.values()), run.log_dir)
+        missed = check_video_count(list(videos.values()), run.log_dir, False)
         writer.writerow([f"Device: {run.get_master_full_name()}"])
         writer.writerow([
             f"Download Delay: {run.delay}",
@@ -704,7 +704,7 @@ def make_offline_spreadsheet(runs: List[Analysis], writer):
 
 
 def make_spreadsheet(run: Analysis, writer):
-    missed = check_video_count(list(run.videos.values()), run.log_dir)
+    missed = check_video_count(list(run.videos.values()), run.log_dir, True)
 
     writer.writerow([
         f"Master: {run.get_master_full_name()}",
