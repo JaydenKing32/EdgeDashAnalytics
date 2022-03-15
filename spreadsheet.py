@@ -244,7 +244,7 @@ class Analysis:
         return f"{self.total_time.total_seconds():.3f}"
 
     def get_time_human_string(self) -> str:
-        return f"{str(self.total_time):.11}"
+        return format_timedelta(self.total_time)
 
     def get_time_string(self) -> str:
         return f"{self.get_time_seconds_string()} ({self.get_time_human_string()})"
@@ -443,6 +443,13 @@ def timestamp_to_datetime(line: str) -> datetime:
     microsecond = int(int(match.group(6)) * 1000)
 
     return datetime(year, month, day, hour, minute, second, microsecond)
+
+
+def format_timedelta(time: timedelta) -> str:
+    hours, rem = divmod(time.total_seconds(), 3600)
+    minutes, seconds = divmod(rem, 60)
+
+    return f"{hours:.0f}:{minutes:02.0f}:{seconds:06.3f}"
 
 
 def get_total_time(master_log_file: str) -> timedelta:
@@ -842,7 +849,7 @@ def write_spread_totals(runs: List[Analysis], writer):
         f"{sum(run.analysis_power for run in runs):.3f}",
         f"{sum(run.get_total_power() for run in runs):.3f}",
         f"{sum(run.total_time.total_seconds() for run in runs):.3f}",
-        excel_format(f"{str(time):.11}")
+        excel_format(format_timedelta(time))
     ])
     writer.writerow('')
 
@@ -882,7 +889,7 @@ def write_spread_averages(runs: List[Analysis], writer):
         f"{sum(run.avg_analysis_power for run in runs) / len(runs):.3f}",
         f"{sum(run.get_total_power() for run in runs) / len(runs):.3f}",
         f"{sum(run.total_time.total_seconds() for run in runs) / len(runs):.3f}",
-        excel_format(f"{str(time):.11}")
+        excel_format(format_timedelta(time))
     ])
     writer.writerow('')
 
