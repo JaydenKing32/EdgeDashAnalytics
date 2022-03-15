@@ -352,6 +352,9 @@ class Analysis:
 
 
 def is_master(log_path: str) -> bool:
+    if not is_log(log_path):
+        return False
+
     with open(log_path, 'r', encoding="utf-8") as log:
         # Check first 10 lines for preferences message
         for _ in range(10):
