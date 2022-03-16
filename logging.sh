@@ -18,6 +18,7 @@ function join() {
 }
 
 serials=""
+prune=false
 
 while :; do
     case $1 in
@@ -29,6 +30,11 @@ while :; do
             read -ra serials <<<"${2}"
             shift 2
         fi
+        ;;
+    -p)
+        prune=true
+        shift 1
+        break
         ;;
     "")
         break
@@ -53,6 +59,17 @@ fi
 if [[ -z "${serials[*]}" ]]; then
     printf "No devices are connected, exiting\n"
     exit 1
+fi
+
+if [[ $prune == true ]]; then
+    for serial in "${serials[@]}"; do
+        # Get UID of app, strip '\r' if it exists
+        uid="$(adb.exe -s "${serial}" shell dumpsys package com.example.edgedashanalytics | awk -F= '/userId=/ {print $2}' | sed -r 's/\r$//')"
+        # Whitelist the app's UID in logcat's prune list
+        # https://developer.android.com/studio/command-line/logcat#options
+        adb.exe -s "${serial}" logcat -P "\"${uid}\""
+        exit 0
+    done
 fi
 
 serial_string=$(join ", " "${serials[@]}")
