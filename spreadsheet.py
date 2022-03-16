@@ -406,6 +406,13 @@ def check_video_count(videos: List[Video], log_dir: str, print_message: bool) ->
     return expected_video_count - video_count
 
 
+def check_videos(videos: List[Video], log_dir: str):
+    for video in videos:
+        if ((video.transfer_time > 0 and video.return_time == 0) or
+                (video.transfer_time == 0 and video.return_time > 0)):
+            print(f"Error found with {video.name} in {log_dir}")
+
+
 def get_video_name(name: str) -> str:
     sep = '!'
     if sep in name:
@@ -1090,6 +1097,9 @@ def make_spreadsheet(root: str, out: str, append: bool, sort: bool, full_results
             ))
         else:
             runs.sort(key=lambda r: r.log_dir)
+
+        for run in runs:
+            check_videos(list(run.videos.values()), run.log_dir)
 
         if table:
             write_tables(runs, writer)
