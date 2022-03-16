@@ -61,6 +61,13 @@ if [[ -z "${serials[*]}" ]]; then
     exit 1
 fi
 
+common_tags="system_server JobScheduler.Temperature OplusNetworkStackService alarmtest dbsw
+DeviceInfoHidlClient ANDR-PERF-LM OplusNecManagerHelper OppoBaseWatchdog PlayCommon BatteryLed
+DeviceStatisticsService OppoBaseBatteryService System.err ORMS_CORE MmTelFeatureConnection
+OppoThermalStats WeatherS_WeatherServiceVersionUtils AudioFlinger Parcel t_app_installe
+OplusExSystemServiceHelper AuthPII SingleClockView OppoRpmSubsystemManager OppoDevicePowerStats
+OplusDexOptimizeManager ColorHansManager sensors-hal Finsky Mdaci ORMS_HAL ORMS_Platform"
+
 if [[ $prune == true ]]; then
     for serial in "${serials[@]}"; do
         # Get UID of app, strip '\r' if it exists
@@ -68,8 +75,12 @@ if [[ $prune == true ]]; then
         # Whitelist the app's UID in logcat's prune list
         # https://developer.android.com/studio/command-line/logcat#options
         adb.exe -s "${serial}" logcat -P "\"${uid}\""
-        exit 0
+
+        for tag in $common_tags; do
+            adb.exe shell setprop "log.tag.${tag}" ASSERT
+        done
     done
+    exit 0
 fi
 
 serial_string=$(join ", " "${serials[@]}")
