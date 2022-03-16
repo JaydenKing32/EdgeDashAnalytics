@@ -477,6 +477,10 @@ def get_total_time(master_log_file: str) -> timedelta:
     return timestamp_to_datetime(end) - timestamp_to_datetime(start)
 
 
+def get_average_row(averages_list: List[List[float]]) -> List[str]:
+    return ["Average"] + [f"{a:.3f}" for a in [sum(col) / len(col) for col in zip(*averages_list)]]
+
+
 def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: str) -> Dict[str, Video]:
     videos = {}  # type: Dict[str, Video]
     log_path = os.path.join(log_dir, master_filename)
@@ -931,8 +935,7 @@ def write_tables(runs: List[Analysis], writer):
             [f"{a:.3f}" for a in averages[:-1]] +
             [run.get_time_seconds_string()]
         )
-    average_values = [sum(col) / len(col) for col in zip(*averages_list)]
-    writer.writerow(["Average"] + [f"{a:.3f}" for a in average_values])
+    writer.writerow(get_average_row(averages_list))
     writer.writerow('')
 
     writer.writerow(["Two-node tests"])
@@ -954,8 +957,7 @@ def write_tables(runs: List[Analysis], writer):
     for run in [r for r in runs if len(r.devices) == 2]:
         if run.get_master_full_name() != prev_master:
             if averages_list:
-                average_values = [sum(col) / len(col) for col in zip(*averages_list)]
-                writer.writerow(["Average"] + [f"{a:.3f}" for a in average_values])
+                writer.writerow(get_average_row(averages_list))
                 averages_list = []
             prev_master = run.get_master_full_name()
 
@@ -985,8 +987,7 @@ def write_tables(runs: List[Analysis], writer):
             [f"{a:.3f}" for a in averages[:-1]] +
             [run.get_time_seconds_string()]
         )
-    average_values = [sum(col) / len(col) for col in zip(*averages_list)]
-    writer.writerow(["Average"] + [f"{a:.3f}" for a in average_values])
+    writer.writerow(get_average_row(averages_list))
     writer.writerow('')
 
     writer.writerow(["Three-node tests"])
@@ -1009,8 +1010,7 @@ def write_tables(runs: List[Analysis], writer):
     for run in [r for r in runs if len(r.devices) == 3]:
         if run.get_master_full_name() != prev_master or run.get_worker_string() != prev_workers:
             if averages_list:
-                average_values = [sum(col) / len(col) for col in zip(*averages_list)]
-                writer.writerow(["Average"] + [f"{a:.3f}" for a in average_values])
+                writer.writerow(get_average_row(averages_list))
                 averages_list = []
             prev_master = run.get_master_full_name()
             prev_workers = run.get_worker_string()
@@ -1043,8 +1043,7 @@ def write_tables(runs: List[Analysis], writer):
             [f"{a:.3f}" for a in averages[:-1]] +
             [run.get_time_seconds_string()]
         )
-    average_values = [sum(col) / len(col) for col in zip(*averages_list)]
-    writer.writerow(["Average"] + [f"{a:.3f}" for a in average_values])
+    writer.writerow(get_average_row(averages_list))
 
 
 def make_spreadsheet(root: str, out: str, append: bool, sort: bool, full_results: bool, table: bool):
