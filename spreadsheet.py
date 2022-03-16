@@ -396,21 +396,28 @@ def get_device_name(short_serial: str) -> str:
     return device_names[short_serial] if proper_name and short_serial else short_serial
 
 
-def check_video_count(videos: List[Video], log_dir: str, print_message: bool) -> int:
+def check_video_count(videos: List[Video]) -> int:
     # There are 40 test videos, if the logs do not specify 40 videos, then something went wrong during a test run
     expected_video_count = 1200
     video_count = len(videos)
 
-    if print_message and video_count != expected_video_count:
-        print(f"Unexpected video count: {video_count} in {os.path.basename(log_dir)}")
     return expected_video_count - video_count
 
 
-def check_videos(videos: List[Video], log_dir: str):
-    for video in videos:
-        if ((video.transfer_time > 0 and video.return_time == 0) or
-                (video.transfer_time == 0 and video.return_time > 0)):
-            print(f"Error found with {video.name} in {log_dir}")
+def check_videos(videos: List[Video]):
+    return [video.name for video in videos if ((video.transfer_time > 0 and video.return_time == 0) or
+                                               (video.transfer_time == 0 and video.return_time > 0))]
+
+
+def check_errors(runs: List[Analysis]):
+    for run in runs:
+        missed = check_video_count(list(run.videos.values()))
+        if missed:
+            print(f"Unexpected video count: {missed} missing in {os.path.basename(run.log_dir)}")
+
+        videos_with_errors = check_videos(list(run.videos.values()))
+        if videos_with_errors:
+            print(f"Error found in {run.log_dir} with: {','.join(videos_with_errors)}")
 
 
 def get_video_name(name: str) -> str:
@@ -663,7 +670,6 @@ def parse_offline_logs(log_dir: str, runs: List[Analysis]):
 
             log_path = os.path.join(path, log)
             run = parse_offline_log(log_path)
-            check_video_count(list(run.videos.values()), path, True)
 
             total_down_time = sum(v.down_time for v in run.videos.values())
             total_analysis_time = sum(v.analysis_time for v in run.videos.values())
@@ -689,7 +695,7 @@ def write_offline_runs(runs: List[Analysis], writer):
     for run in [r for r in runs if r.algorithm == "offline"]:
         videos = run.videos
 
-        missed = check_video_count(list(videos.values()), run.log_dir, False)
+        missed = check_video_count(list(videos.values()))
         writer.writerow([f"Device: {run.get_master_full_name()}"])
         writer.writerow([
             f"Download Delay: {run.delay}",
@@ -732,7 +738,7 @@ def write_offline_runs(runs: List[Analysis], writer):
 
 
 def write_online_run(run: Analysis, writer):
-    missed = check_video_count(list(run.videos.values()), run.log_dir, True)
+    missed = check_video_count(list(run.videos.values()))
 
     writer.writerow([
         f"Master: {run.get_master_full_name()}",
@@ -1098,8 +1104,7 @@ def make_spreadsheet(root: str, out: str, append: bool, sort: bool, full_results
         else:
             runs.sort(key=lambda r: r.log_dir)
 
-        for run in runs:
-            check_videos(list(run.videos.values()), run.log_dir)
+        check_errors(runs)
 
         if table:
             write_tables(runs, writer)
