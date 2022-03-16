@@ -88,6 +88,7 @@ printf "Collecting logs from %s\n" "${serial_string}"
 
 phone_dir="/storage/emulated/0/Documents/out"
 read -ra log_times -d '' <<<"$(adb.exe -s "${serials[0]}" shell ls "${phone_dir}" | sed 's/\.log\r$//')"
+count=0
 
 # Assumes that all connected devices have the same number of log files
 for ((i = 0; i < ${#log_times[@]}; i++)); do
@@ -100,6 +101,7 @@ for ((i = 0; i < ${#log_times[@]}; i++)); do
     fi
 
     for serial in "${serials[@]}"; do
+        ((count++))
         filename="$(adb.exe -s "${serial}" shell ls "${phone_dir}" | sed 's/\r$//' | sed "$((i + 1))q;d")"
         verbose_log="${out_dir}/verbose-${serial}.log"
         short_log="$out_dir/${serial}.log"
@@ -112,3 +114,5 @@ for ((i = 0; i < ${#log_times[@]}; i++)); do
         pcre2grep -M '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w PowerMonitor: Power usage:\n.*\n.*\n.*' "${verbose_log}" | tail -4 >>"${short_log}"
     done
 done
+
+echo "Collected ${#log_times[@]} sets of logs from ${#serials[@]} device(s), ${count} logs in total"
