@@ -39,6 +39,7 @@ import com.example.edgedashanalytics.page.setting.SettingsActivity;
 import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.hardware.PowerMonitor;
+import com.example.edgedashanalytics.util.nearby.Algorithm;
 import com.example.edgedashanalytics.util.nearby.Endpoint;
 import com.example.edgedashanalytics.util.nearby.NearbyFragment;
 import com.example.edgedashanalytics.util.video.eventhandler.ProcessingVideosEventHandler;
@@ -46,10 +47,10 @@ import com.example.edgedashanalytics.util.video.eventhandler.RawVideosEventHandl
 import com.example.edgedashanalytics.util.video.eventhandler.ResultEventHandler;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import org.tinylog.Logger;
+
 import java.util.Locale;
+import java.util.StringJoiner;
 
 public class MainActivity extends AppCompatActivity implements
         VideoFragment.Listener, ResultsFragment.Listener, NearbyFragment.Listener {
@@ -96,35 +97,59 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        checkPermissions();
+        setupLogging();
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        checkPermissions();
         scanVideoDirectories();
         setToolBarAsTheAppBar();
         setUpBottomNavigation();
         setUpFragments();
         FileManager.initialiseDirectories();
-        storeLogsInFile();
         DashCam.setFetch(this);
     }
 
-    private void storeLogsInFile() {
-        int id = android.os.Process.myPid();
-        @SuppressWarnings("SpellCheckingInspection")
-        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.ENGLISH).format(new Date());
-        String logPath = String.format("%s/%s.log", FileManager.getLogDirPath(), timestamp);
+    private void setupLogging() {
+        System.setProperty("tinylog.directory", FileManager.getLogDirPath());
+        // Log.v(TAG, "testing");
+        // Logger.tag(I_TAG).trace("testing");
 
-        try {
-            // Clear logcat buffer
-            Runtime.getRuntime().exec("logcat -c");
-            // Write logcat messages to logPath
-            String loggingCommand = String.format("logcat --pid %s -f %s", id, logPath);
-            Log.v(TAG, String.format("Running logging command: %s", loggingCommand));
-            Runtime.getRuntime().exec(loggingCommand);
-        } catch (IOException e) {
-            Log.e(TAG, String.format("Unable to store log in file:\n%s", e.getMessage()));
-        }
+        Logger.info("Hello World!");
+
+        final SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
+        final boolean defaultBool = false;
+        final int defaultInt = 1;
+
+        String objectModel = pref.getString(getString(R.string.object_model_key),
+                getString(R.string.default_object_model_key));
+        String poseModel = pref.getString(getString(R.string.pose_model_key),
+                getString(R.string.default_pose_model_key));
+        String algorithmKey = getString(R.string.scheduling_algorithm_key);
+        Algorithm.AlgorithmKey algorithm = Algorithm.AlgorithmKey.valueOf(pref.getString(algorithmKey,
+                Algorithm.DEFAULT_ALGORITHM.name()));
+        boolean local = pref.getBoolean(getString(R.string.local_process_key), defaultBool);
+        boolean segmentationEnabled = pref.getBoolean(getString(R.string.enable_segment_key), defaultBool);
+        int segNum = pref.getInt(getString(R.string.segment_number_key), defaultInt);
+        int delay = pref.getInt(getString(R.string.download_delay_key), defaultInt);
+        boolean dualDownload = pref.getBoolean(getString(R.string.dual_download_key), defaultBool);
+
+        StringJoiner prefMessage = new StringJoiner("\n  ");
+        prefMessage.add("Preferences:");
+        prefMessage.add(String.format("Master: %s", true));
+        prefMessage.add(String.format("Object detection model: %s", objectModel));
+        prefMessage.add(String.format("Pose estimation model: %s", poseModel));
+        prefMessage.add(String.format("Algorithm: %s", algorithm.name()));
+        prefMessage.add(String.format("Local processing: %s", local));
+        prefMessage.add(String.format("Auto download: %s", true));
+        prefMessage.add(String.format("Segmentation: %s", segmentationEnabled));
+        prefMessage.add(String.format("Segment number: %s", segNum));
+        prefMessage.add(String.format("Download delay: %s", delay));
+        prefMessage.add(String.format("Dual download: %s", dualDownload));
+        prefMessage.add(String.format("Concurrent downloads: %s", DashCam.concurrentDownloads));
+
+        Logger.tag(I_TAG).info(prefMessage.toString());
     }
 
     private void checkPermissions() {
