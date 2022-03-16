@@ -911,19 +911,28 @@ def write_tables(runs: List[Analysis], writer):
         "Total power (mW)",
         "Total time (s)"
     ])
+    averages_list = []  # type: List[List[float]]
 
     for run in [r for r in runs if r.algorithm == "offline"]:
-        writer.writerow([
-            run.get_master_full_name(),
-            f"{run.avg_down_time:.3f}",
-            f"{run.avg_analysis_time:.3f}",
-            f"{run.avg_wait_time:.3f}",
-            f"{run.avg_turnaround_time:.3f}",
-            f"{run.avg_network_power:.3f}",
-            f"{run.avg_analysis_power:.3f}",
-            f"{run.avg_total_power:.3f}",
-            run.get_time_seconds_string()
-        ])
+        averages = [
+            run.avg_down_time,
+            run.avg_analysis_time,
+            run.avg_wait_time,
+            run.avg_turnaround_time,
+            run.avg_network_power,
+            run.avg_analysis_power,
+            run.avg_total_power,
+            run.total_time.total_seconds()
+        ]
+        averages_list.append(averages)
+
+        writer.writerow(
+            [run.get_master_full_name()] +
+            [f"{a:.3f}" for a in averages[:-1]] +
+            [run.get_time_seconds_string()]
+        )
+    average_values = [sum(col) / len(col) for col in zip(*averages_list)]
+    writer.writerow(["Average"] + [f"{a:.3f}" for a in average_values])
     writer.writerow('')
 
     writer.writerow(["Two-node tests"])
@@ -940,10 +949,16 @@ def write_tables(runs: List[Analysis], writer):
         "Total time (s)"
     ])
     prev_master = ""
+    averages_list = []
 
     for run in [r for r in runs if len(r.devices) == 2]:
         if run.get_master_full_name() != prev_master:
+            if averages_list:
+                average_values = [sum(col) / len(col) for col in zip(*averages_list)]
+                writer.writerow(["Average"] + [f"{a:.3f}" for a in average_values])
+                averages_list = []
             prev_master = run.get_master_full_name()
+
             down_times = [
                 r.avg_down_time for r in runs if r.get_master_full_name() == prev_master and len(r.devices) == 2]
             avg_down_time = sum(t for t in down_times) / len(down_times)
@@ -952,18 +967,26 @@ def write_tables(runs: List[Analysis], writer):
                 "Download time (s):", f"{avg_down_time:.3f}"
             ])
 
-        writer.writerow([
-            run.get_worker_string(),
-            f"{run.avg_transfer_time:.3f}",
-            f"{run.avg_return_time:.3f}",
-            f"{run.avg_analysis_time:.3f}",
-            f"{run.avg_wait_time:.3f}",
-            f"{run.avg_turnaround_time:.3f}",
-            f"{run.avg_network_power:.3f}",
-            f"{run.avg_analysis_power:.3f}",
-            f"{run.avg_total_power:.3f}",
-            run.get_time_seconds_string()
-        ])
+        averages = [
+            run.avg_transfer_time,
+            run.avg_return_time,
+            run.avg_analysis_time,
+            run.avg_wait_time,
+            run.avg_turnaround_time,
+            run.avg_network_power,
+            run.avg_analysis_power,
+            run.avg_total_power,
+            run.total_time.total_seconds()
+        ]
+        averages_list.append(averages)
+
+        writer.writerow(
+            [run.get_worker_string()] +
+            [f"{a:.3f}" for a in averages[:-1]] +
+            [run.get_time_seconds_string()]
+        )
+    average_values = [sum(col) / len(col) for col in zip(*averages_list)]
+    writer.writerow(["Average"] + [f"{a:.3f}" for a in average_values])
     writer.writerow('')
 
     writer.writerow(["Three-node tests"])
@@ -981,9 +1004,14 @@ def write_tables(runs: List[Analysis], writer):
     ])
     prev_master = ""
     prev_workers = ""
+    averages_list = []
 
     for run in [r for r in runs if len(r.devices) == 3]:
         if run.get_master_full_name() != prev_master or run.get_worker_string() != prev_workers:
+            if averages_list:
+                average_values = [sum(col) / len(col) for col in zip(*averages_list)]
+                writer.writerow(["Average"] + [f"{a:.3f}" for a in average_values])
+                averages_list = []
             prev_master = run.get_master_full_name()
             prev_workers = run.get_worker_string()
 
@@ -997,18 +1025,26 @@ def write_tables(runs: List[Analysis], writer):
                 "Download time (s):", f"{avg_down_time:.3f}"
             ])
 
-        writer.writerow([
-            run.get_algorithm_name(),
-            f"{run.avg_transfer_time:.3f}",
-            f"{run.avg_return_time:.3f}",
-            f"{run.avg_analysis_time:.3f}",
-            f"{run.avg_wait_time:.3f}",
-            f"{run.avg_turnaround_time:.3f}",
-            f"{run.avg_network_power:.3f}",
-            f"{run.avg_analysis_power:.3f}",
-            f"{run.avg_total_power:.3f}",
-            run.get_time_seconds_string()
-        ])
+        averages = [
+            run.avg_transfer_time,
+            run.avg_return_time,
+            run.avg_analysis_time,
+            run.avg_wait_time,
+            run.avg_turnaround_time,
+            run.avg_network_power,
+            run.avg_analysis_power,
+            run.avg_total_power,
+            run.total_time.total_seconds()
+        ]
+        averages_list.append(averages)
+
+        writer.writerow(
+            [run.get_algorithm_name()] +
+            [f"{a:.3f}" for a in averages[:-1]] +
+            [run.get_time_seconds_string()]
+        )
+    average_values = [sum(col) / len(col) for col in zip(*averages_list)]
+    writer.writerow(["Average"] + [f"{a:.3f}" for a in average_values])
 
 
 def make_spreadsheet(root: str, out: str, append: bool, sort: bool, full_results: bool, table: bool):
