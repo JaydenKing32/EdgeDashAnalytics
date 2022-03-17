@@ -66,7 +66,8 @@ DeviceInfoHidlClient ANDR-PERF-LM OplusNecManagerHelper OppoBaseWatchdog PlayCom
 DeviceStatisticsService OppoBaseBatteryService System.err ORMS_CORE MmTelFeatureConnection
 OppoThermalStats WeatherS_WeatherServiceVersionUtils AudioFlinger Parcel t_app_installe
 OplusExSystemServiceHelper AuthPII SingleClockView OppoRpmSubsystemManager OppoDevicePowerStats
-OplusDexOptimizeManager ColorHansManager sensors-hal Finsky Mdaci ORMS_HAL ORMS_Platform"
+OplusDexOptimizeManager ColorHansManager sensors-hal Finsky Mdaci ORMS_HAL ORMS_Platform
+MediaMetadataRetriever MetadataRetrieverClient FrameDecoder io_stats"
 
 if [[ $prune == true ]]; then
     for serial in "${serials[@]}"; do
