@@ -77,7 +77,7 @@ if [[ $prune == true ]]; then
         adb.exe -s "${serial}" logcat -P "\"${uid}\""
 
         for tag in $common_tags; do
-            adb.exe shell setprop "log.tag.${tag}" ASSERT
+            adb.exe -s "${serial}" shell setprop "log.tag.${tag}" ASSERT
         done
     done
     exit 0
