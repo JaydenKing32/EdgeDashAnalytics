@@ -61,13 +61,8 @@ if [[ -z "${serials[*]}" ]]; then
     exit 1
 fi
 
-common_tags="system_server JobScheduler.Temperature OplusNetworkStackService alarmtest dbsw
-DeviceInfoHidlClient ANDR-PERF-LM OplusNecManagerHelper OppoBaseWatchdog PlayCommon BatteryLed
-DeviceStatisticsService OppoBaseBatteryService System.err ORMS_CORE MmTelFeatureConnection
-OppoThermalStats WeatherS_WeatherServiceVersionUtils AudioFlinger Parcel t_app_installe
-OplusExSystemServiceHelper AuthPII SingleClockView OppoRpmSubsystemManager OppoDevicePowerStats
-OplusDexOptimizeManager ColorHansManager sensors-hal Finsky Mdaci ORMS_HAL ORMS_Platform
-MediaMetadataRetriever MetadataRetrieverClient FrameDecoder io_stats"
+# Useful command for identifying common tags, after storing an unfiltered log into raw.log:
+# pcre2grep -O '$1' '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w (\w+):' raw.log | sort | uniq -c | sort -nr
 
 if [[ $prune == true ]]; then
     for serial in "${serials[@]}"; do
@@ -77,9 +72,10 @@ if [[ $prune == true ]]; then
         # https://developer.android.com/studio/command-line/logcat#options
         adb.exe -s "${serial}" logcat -P "\"${uid}\""
 
-        for tag in $common_tags; do
-            adb.exe -s "${serial}" shell setprop "log.tag.${tag}" ASSERT
-        done
+        # Iterates over tags stored in common_tags.txt, disabling their log messages
+        while IFS="" read -r tag || [ -n "${tag}" ]; do
+            adb.exe -s "${serial}" shell setprop "log.tag.${tag}" ASSERT </dev/null
+        done <common_tags.txt
     done
     exit 0
 fi
