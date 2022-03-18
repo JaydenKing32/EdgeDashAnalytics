@@ -66,6 +66,8 @@ fi
 
 if [[ $prune == true ]]; then
     for serial in "${serials[@]}"; do
+        printf "Setting log priority on %s\n" "${serial}"
+
         # Get UID of app, strip '\r' if it exists
         uid="$(adb.exe -s "${serial}" shell dumpsys package com.example.edgedashanalytics | awk -F= '/userId=/ {print $2}' | sed -r 's/\r$//')"
         # Whitelist the app's UID in logcat's prune list
