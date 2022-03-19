@@ -39,7 +39,7 @@ public abstract class VideoAnalysis<T extends Frame> {
     VideoAnalysis(Context context) {
         // Check if phone has at least (roughly) 2GB of RAM
         HardwareInfo hwi = new HardwareInfo(context);
-        this.bufferSize = hwi.totalRam < 2000000000L ? 5 : 50;
+        this.bufferSize = hwi.totalRam < 2000000000L ? 5 : 60;
 
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         this.verbose = pref.getBoolean(context.getString(R.string.verbose_output_key), DEFAULT_VERBOSE);
@@ -88,18 +88,18 @@ public abstract class VideoAnalysis<T extends Frame> {
     }
 
     private void processFramesLoop(MediaMetadataRetriever retriever, int totalFrames) {
+        Bitmap bitmap;
+        List<Bitmap> frameBuffer;
+
         // getFramesAtIndex is inconsistent, seems to only reliably with x264, may fail with other codecs
         // Using getFramesAtIndex on a full video requires too much memory, while extracting each frame separately
         // through getFrameAtIndex is too slow. Instead use a buffer, extracting groups of frames
         for (int i = 0; i < totalFrames; i += bufferSize) {
-            if (Thread.currentThread().isInterrupted()) {
-                return;
-            }
             int frameBuffSize = Integer.min(bufferSize, totalFrames - i);
-            List<Bitmap> frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize);
+            frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize);
 
             for (int k = 0; k < frameBuffSize; k++) {
-                Bitmap bitmap = frameBuffer.get(k);
+                bitmap = frameBuffer.get(k);
                 int curFrame = i + k;
 
                 if (bitmap == null) {

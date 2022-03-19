@@ -49,6 +49,9 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
     private int inputHeight;
     private int[] outputShape;
 
+    private static TensorImage image = null;
+    private static ImageProcessor imageProcessor = null;
+
     public InnerAnalysis(Context context) {
         super(context);
 
@@ -154,20 +157,23 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
      * Prepare input image for detection
      */
     private TensorImage processInputImage(Bitmap bitmap, int inputWidth, int inputHeight) {
+        if (image != null) {
+            image.load(bitmap);
+            return imageProcessor.process(image);
+        }
         int width = bitmap.getWidth();
         int height = bitmap.getHeight();
-
         int size = Math.min(height, width);
 
-        ImageProcessor imageProcessor = new ImageProcessor.Builder()
+        imageProcessor = new ImageProcessor.Builder()
                 .add(new ResizeWithCropOrPadOp(size, size))
                 // Example code is backwards? TODO: check both ways
                 // .add(new ResizeOp(inputWidth, inputHeight, ResizeOp.ResizeMethod.BILINEAR))
                 .add(new ResizeOp(inputHeight, inputWidth, ResizeOp.ResizeMethod.BILINEAR))
                 .build();
-        TensorImage tensorImage = new TensorImage(DataType.UINT8);
-        tensorImage.load(bitmap);
-        return imageProcessor.process(tensorImage);
+        image = new TensorImage(DataType.UINT8);
+        image.load(bitmap);
+        return imageProcessor.process(image);
     }
 
     /**

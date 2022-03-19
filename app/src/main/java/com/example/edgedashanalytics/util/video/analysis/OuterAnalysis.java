@@ -40,6 +40,7 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
     private static final float MIN_SCORE = 0.2f;
 
     private ObjectDetector detector;
+    private static TensorImage image;
 
     // Include or exclude bicycles?
     private static final ArrayList<String> vehicleCategories = new ArrayList<>(Arrays.asList(
@@ -48,6 +49,7 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
 
     public OuterAnalysis(Context context) {
         super(context);
+        image = new TensorImage();
 
         try {
             BaseOptions baseOptions = BaseOptions.builder().setNumThreads(THREAD_NUM).build();
@@ -70,7 +72,7 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
     }
 
     void processFrame(Bitmap bitmap, int frameIndex) {
-        TensorImage image = TensorImage.fromBitmap(bitmap);
+        image.load(bitmap);
         List<Detection> detectionList = detector.detect(image);
         List<Hazard> hazards = new ArrayList<>(detectionList.size());
 
