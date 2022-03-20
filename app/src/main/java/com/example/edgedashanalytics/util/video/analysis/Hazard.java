@@ -2,6 +2,8 @@ package com.example.edgedashanalytics.util.video.analysis;
 
 import android.graphics.Rect;
 
+import androidx.annotation.NonNull;
+
 @SuppressWarnings({"FieldCanBeLocal", "unused"})
 class Hazard {
     private final String category;
@@ -14,5 +16,16 @@ class Hazard {
         this.score = score;
         this.danger = danger;
         this.bBox = bBox;
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return "Hazard{" +
+                "category='" + category + '\'' +
+                ", score=" + score +
+                ", danger=" + danger +
+                ", bBox=" + bBox +
+                '}';
     }
 }

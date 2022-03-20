@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 public abstract class VideoAnalysis<T extends Frame> {
     private static final String TAG = VideoAnalysis.class.getSimpleName();
@@ -47,7 +48,9 @@ public abstract class VideoAnalysis<T extends Frame> {
         this.frames = new ArrayList<>();
     }
 
-    abstract void processFrame(Bitmap bitmap, int frameIndex);
+    abstract void processFrame(Bitmap bitmap, int frameIndex, float scaleFactor);
+
+    public abstract float getScaleFactor(int width);
 
     public abstract void printParameters();
 
@@ -88,6 +91,16 @@ public abstract class VideoAnalysis<T extends Frame> {
     }
 
     private void processFramesLoop(MediaMetadataRetriever retriever, int totalFrames) {
+        String videoWidthString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH);
+        String videoHeightString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT);
+        int videoWidth = Integer.parseInt(videoWidthString);
+        int videoHeight = Integer.parseInt(videoHeightString);
+
+        // float scaleFactor = 2f;
+        float scaleFactor = getScaleFactor(videoWidth);
+        int scaledWidth = (int) (videoWidth / scaleFactor);
+        int scaledHeight = (int) (videoHeight / scaleFactor);
+
         Bitmap bitmap;
         List<Bitmap> frameBuffer;
 
@@ -96,7 +109,10 @@ public abstract class VideoAnalysis<T extends Frame> {
         // through getFrameAtIndex is too slow. Instead use a buffer, extracting groups of frames
         for (int i = 0; i < totalFrames; i += bufferSize) {
             int frameBuffSize = Integer.min(bufferSize, totalFrames - i);
-            frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize);
+            // frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize);
+            frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize).stream()
+                    .map(b -> Bitmap.createScaledBitmap(b, scaledWidth, scaledHeight, false))
+                    .collect(Collectors.toList());
 
             for (int k = 0; k < frameBuffSize; k++) {
                 bitmap = frameBuffer.get(k);
@@ -107,13 +123,14 @@ public abstract class VideoAnalysis<T extends Frame> {
                     continue;
                 }
 
-                processFrame(bitmap, curFrame);
+                processFrame(bitmap, curFrame, scaleFactor);
             }
         }
     }
 
     private void writeResultsToJson(String jsonFilePath) {
         try {
+            // Gson gson = new GsonBuilder().setPrettyPrinting().create();
             Gson gson = new Gson();
             Writer writer = new FileWriter(jsonFilePath);
             gson.toJson(frames, writer);

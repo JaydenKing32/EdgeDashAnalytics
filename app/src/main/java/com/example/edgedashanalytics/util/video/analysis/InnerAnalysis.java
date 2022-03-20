@@ -72,9 +72,7 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         }
     }
 
-    void processFrame(Bitmap bitmap, int frameIndex) {
-        // String videoPath = "/storage/emulated/0/Movies/dmd/inn_01_body.mp4";
-
+    void processFrame(Bitmap bitmap, int frameIndex, float scaleFactor) {
         // estimatePoses
         if (cropRegion == null) {
             cropRegion = initRectF(bitmap.getWidth(), bitmap.getHeight());
@@ -127,14 +125,14 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         matrix.mapPoints(points);
 
         for (int i = 0; i < keyPoints.size(); i++) {
-            keyPoints.get(i).coordinate = new PointF(points[i * 2], points[i * 2 + 1]);
+            keyPoints.get(i).coordinate = new PointF(points[i * 2] * scaleFactor, points[i * 2 + 1] * scaleFactor);
         }
 
-        boolean distracted = isDistracted(keyPoints, bitmap.getWidth(), bitmap.getHeight());
-        frames.add(new InnerFrame(frameIndex, distracted, totalScore, keyPoints));
+        int origWidth = (int) (bitmap.getWidth() * scaleFactor);
+        int origHeight = (int) (bitmap.getHeight() * scaleFactor);
 
-        // TODO: May improve performance, investigate later
-        // cropRegion = determineRectF(keyPoints, bitmap.getWidth(), bitmap.getHeight());
+        boolean distracted = isDistracted(keyPoints, origWidth, origHeight);
+        frames.add(new InnerFrame(frameIndex, distracted, totalScore, keyPoints));
 
         if (verbose) {
             String resultHead = String.format(Locale.ENGLISH,
@@ -167,8 +165,6 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
 
         imageProcessor = new ImageProcessor.Builder()
                 .add(new ResizeWithCropOrPadOp(size, size))
-                // Example code is backwards? TODO: check both ways
-                // .add(new ResizeOp(inputWidth, inputHeight, ResizeOp.ResizeMethod.BILINEAR))
                 .add(new ResizeOp(inputHeight, inputWidth, ResizeOp.ResizeMethod.BILINEAR))
                 .build();
         image = new TensorImage(DataType.UINT8);
@@ -214,10 +210,10 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         KeyPoint wristL = keyDict.get(BodyPart.LEFT_WRIST);
         KeyPoint wristR = keyDict.get(BodyPart.RIGHT_WRIST);
 
-        if (wristL.score >= MIN_SCORE) {
+        if (wristL != null && wristL.score >= MIN_SCORE) {
             handsOccupied = areHandsOccupied(wristL, imageHeight);
         }
-        if (wristR.score >= MIN_SCORE) {
+        if (wristR != null && wristR.score >= MIN_SCORE) {
             handsOccupied = handsOccupied || areHandsOccupied(wristR, imageHeight);
         }
 
@@ -265,6 +261,10 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         double threshold = ear.coordinate.y / 20.0;
 
         return dist < threshold;
+    }
+
+    public float getScaleFactor(int width) {
+        return width / (float) inputWidth;
     }
 
     public void printParameters() {
