@@ -13,6 +13,8 @@ import androidx.preference.PreferenceManager;
 
 import com.example.edgedashanalytics.R;
 
+import org.tensorflow.lite.Interpreter;
+import org.tensorflow.lite.support.common.FileUtil;
 import org.tensorflow.lite.support.image.TensorImage;
 import org.tensorflow.lite.support.label.Category;
 import org.tensorflow.lite.task.core.BaseOptions;
@@ -41,6 +43,7 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
     private static final float MIN_SCORE = 0.2f;
 
     private ObjectDetector detector;
+    private int inputSize;
     private static TensorImage image;
 
     // Include or exclude bicycles?
@@ -52,19 +55,20 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         super(context);
         image = new TensorImage();
 
+        String defaultModel = context.getString(R.string.default_object_model_key);
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        String modelFilename = pref.getString(context.getString(R.string.object_model_key), defaultModel);
+
+        BaseOptions baseOptions = BaseOptions.builder().setNumThreads(THREAD_NUM).build();
+        ObjectDetector.ObjectDetectorOptions objectDetectorOptions = ObjectDetector.ObjectDetectorOptions.builder()
+                .setBaseOptions(baseOptions)
+                .setMaxResults(MAX_DETECTIONS)
+                .setScoreThreshold(MIN_SCORE)
+                .build();
+
         try {
-            BaseOptions baseOptions = BaseOptions.builder().setNumThreads(THREAD_NUM).build();
-
-            ObjectDetector.ObjectDetectorOptions objectDetectorOptions =
-                    ObjectDetector.ObjectDetectorOptions.builder()
-                            .setBaseOptions(baseOptions)
-                            .setMaxResults(MAX_DETECTIONS)
-                            .setScoreThreshold(MIN_SCORE)
-                            .build();
-
-            String defaultModel = context.getString(R.string.default_object_model_key);
-            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-            String modelFilename = pref.getString(context.getString(R.string.object_model_key), defaultModel);
+            Interpreter interpreter = new Interpreter(FileUtil.loadMappedFile(context, modelFilename));
+            inputSize = interpreter.getInputTensor(0).shape()[1];
 
             detector = ObjectDetector.createFromFileAndOptions(context, modelFilename, objectDetectorOptions);
         } catch (IOException e) {
@@ -72,13 +76,7 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         }
     }
 
-    void processFrame(Bitmap origBitmap, int frameIndex) {
-        double scaleFactor = 720.0 / 300.0;
-        int width = (int) (origBitmap.getWidth() / scaleFactor);
-        int height = (int) (origBitmap.getHeight() / scaleFactor);
-
-        Bitmap bitmap = Bitmap.createScaledBitmap(origBitmap, width, height, false);
-
+    void processFrame(List<OuterFrame> frames, Bitmap bitmap, int frameIndex, float scaleFactor) {
         image.load(bitmap);
         List<Detection> detectionList = detector.detect(image);
         List<Hazard> hazards = new ArrayList<>(detectionList.size());
@@ -90,8 +88,6 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
                 continue;
             }
             Category category = categoryList.get(0);
-            // Rect boundingBox = new Rect();
-            // detection.getBoundingBox().roundOut(boundingBox);
 
             RectF detBox = detection.getBoundingBox();
             Rect boundingBox = new Rect(
@@ -101,10 +97,13 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
                     (int) (detBox.bottom * scaleFactor)
             );
 
+            int origWidth = (int) (bitmap.getWidth() * scaleFactor);
+            int origHeight = (int) (bitmap.getHeight() * scaleFactor);
+
             hazards.add(new Hazard(
                     category.getLabel(),
                     category.getScore(),
-                    isDanger(detection, bitmap.getWidth(), bitmap.getHeight()),
+                    isDanger(boundingBox, category.getLabel(), origWidth, origHeight),
                     boundingBox
             ));
         }
@@ -114,13 +113,13 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
             String resultHead = String.format(
                     Locale.ENGLISH,
                     "Analysis completed for frame: %04d\nDetected hazards: %02d\n",
-                    frameIndex, detectionList.size()
+                    frameIndex, hazards.size()
             );
             StringBuilder builder = new StringBuilder(resultHead);
 
-            for (Detection detection : detectionList) {
-                String resultBody = getDetectionString(detection);
-                builder.append(resultBody);
+            for (Hazard hazard : hazards) {
+                builder.append("  ");
+                builder.append(hazard.toString());
             }
             builder.append('\n');
 
@@ -129,46 +128,15 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         }
     }
 
-    private String getDetectionString(Detection detection) {
-        List<Category> categoryList = detection.getCategories();
-
-        if (categoryList == null || categoryList.size() == 0) {
-            String noCategoriesString = "No categories found";
-            Log.e(TAG, noCategoriesString);
-            return noCategoriesString;
-        }
-
-        Category category = categoryList.get(0);
-        float score = category.getScore();
-        Rect boundingBox = new Rect();
-        detection.getBoundingBox().roundOut(boundingBox);
-
-        StringJoiner result = new StringJoiner("\n  ");
-        result.add(String.format("Category: %s", category.getLabel()));
-        result.add(String.format(Locale.ENGLISH, "Score: %.2f", score));
-        result.add(String.format("BBox: %s", boundingBox));
-
-        return String.format("%s\n", result);
-    }
-
-    private boolean isDanger(Detection detection, int imageWidth, int imageHeight) {
-        List<Category> categoryList = detection.getCategories();
-        if (categoryList == null || categoryList.size() == 0) {
-            return false;
-        }
-
-        String detCategory = categoryList.get(0).getLabel();
-        Rect detBox = new Rect();
-        detection.getBoundingBox().roundOut(detBox);
-
-        if (vehicleCategories.contains(detCategory)) {
+    private boolean isDanger(Rect boundingBox, String category, int imageWidth, int imageHeight) {
+        if (vehicleCategories.contains(category)) {
             // Check tailgating
             Rect tailgateZone = getTailgateZone(imageWidth, imageHeight);
-            return tailgateZone.contains(detBox) || tailgateZone.intersect(detBox);
+            return tailgateZone.contains(boundingBox) || tailgateZone.intersect(boundingBox);
         } else {
             // Check obstruction
             Rect dangerZone = getDangerZone(imageWidth, imageHeight);
-            return dangerZone.contains(detBox) || dangerZone.intersect(detBox);
+            return dangerZone.contains(boundingBox) || dangerZone.intersect(boundingBox);
         }
     }
 
@@ -189,6 +157,14 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         int tailBottom = imageHeight - imageHeight / 10;
 
         return new Rect(tailLeft, tailTop, tailRight, tailBottom);
+    }
+
+    void setup(int width, int height) {
+        // Doesn't need setup
+    }
+
+    float getScaleFactor(int width) {
+        return width / (float) inputSize;
     }
 
     public void printParameters() {

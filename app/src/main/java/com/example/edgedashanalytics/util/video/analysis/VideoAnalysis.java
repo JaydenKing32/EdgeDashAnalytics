@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 public abstract class VideoAnalysis<T extends Frame> {
     private static final String TAG = VideoAnalysis.class.getSimpleName();
@@ -31,7 +32,6 @@ public abstract class VideoAnalysis<T extends Frame> {
 
     final int bufferSize;
     final boolean verbose;
-    final List<T> frames;
 
     /**
      * Set up default parameters
@@ -43,11 +43,13 @@ public abstract class VideoAnalysis<T extends Frame> {
 
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         this.verbose = pref.getBoolean(context.getString(R.string.verbose_output_key), DEFAULT_VERBOSE);
-
-        this.frames = new ArrayList<>();
     }
 
-    abstract void processFrame(Bitmap bitmap, int frameIndex);
+    abstract void processFrame(List<T> frames, Bitmap bitmap, int frameIndex, float scaleFactor);
+
+    abstract void setup(int width, int height);
+
+    abstract float getScaleFactor(int width);
 
     public abstract void printParameters();
 
@@ -75,8 +77,10 @@ public abstract class VideoAnalysis<T extends Frame> {
         Log.d(I_TAG, startString);
         Log.d(TAG, String.format("Total frames of %s: %d", videoName, totalFrames));
 
-        processFramesLoop(retriever, totalFrames);
-        writeResultsToJson(outPath);
+        final List<T> frames = new ArrayList<>(totalFrames);
+
+        processFramesLoop(retriever, totalFrames, frames);
+        writeResultsToJson(outPath, frames);
 
         String time = FileManager.getDurationString(startTime);
         long powerConsumption = PowerMonitor.getPowerConsumption(startPower);
@@ -87,41 +91,31 @@ public abstract class VideoAnalysis<T extends Frame> {
         PowerMonitor.printSummary();
     }
 
-    private void processFramesLoop(MediaMetadataRetriever retriever, int totalFrames) {
+    private void processFramesLoop(MediaMetadataRetriever retriever, int totalFrames, List<T> frames) {
+        String videoWidthString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH);
+        String videoHeightString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT);
+        int videoWidth = Integer.parseInt(videoWidthString);
+        int videoHeight = Integer.parseInt(videoHeightString);
+
+        // float scaleFactor = 2f;
+        float scaleFactor = getScaleFactor(videoWidth);
+        int scaledWidth = (int) (videoWidth / scaleFactor);
+        int scaledHeight = (int) (videoHeight / scaleFactor);
+
+        setup(scaledWidth, scaledHeight);
+
         Bitmap bitmap;
         List<Bitmap> frameBuffer;
-
-        // String videoWidthString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH);
-        // String videoHeightString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT);
-        //
-        // if (videoWidthString == null || videoHeightString == null) {
-        //     Log.e(TAG, "Could not retrieve metadata");
-        //     return;
-        // }
-        //
-        // int videoWidth = Integer.parseInt(videoWidthString);
-        // int videoHeight = Integer.parseInt(videoHeightString);
-        // double scaleFactor = videoWidth / 300.0;
-        //
-        // int scaledWidth = (int) (videoWidth / scaleFactor);
-        // int scaledHeight = (int) (videoHeight / scaleFactor);
-
-        // Bitmap bitmap = Bitmap.createScaledBitmap(origBitmap, width, height, false);
 
         // getFramesAtIndex is inconsistent, seems to only reliably with x264, may fail with other codecs
         // Using getFramesAtIndex on a full video requires too much memory, while extracting each frame separately
         // through getFrameAtIndex is too slow. Instead use a buffer, extracting groups of frames
         for (int i = 0; i < totalFrames; i += bufferSize) {
             int frameBuffSize = Integer.min(bufferSize, totalFrames - i);
-            // frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize).stream()
-            //         .map(b -> Bitmap.createScaledBitmap(b, scaledWidth, scaledHeight, false))
-            //         .collect(Collectors.toList());
-            // TODO move downscaling to here, make subclasses set scalingFactor, which will be used in
-            //  writeResultsToJson, or make subclasses implement writeResultsToJson.
-            //  Should only upscale bounding boxes when writing results file, or make sure that original frame size
-            //  is used when identifying hazards/distractions.
-            //  Can also try multi-threading, though won't be able to re-use TensorImages
-            frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize);
+            // frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize);
+            frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize).stream()
+                    .map(b -> Bitmap.createScaledBitmap(b, scaledWidth, scaledHeight, false))
+                    .collect(Collectors.toList());
 
             for (int k = 0; k < frameBuffSize; k++) {
                 bitmap = frameBuffer.get(k);
@@ -132,13 +126,14 @@ public abstract class VideoAnalysis<T extends Frame> {
                     continue;
                 }
 
-                processFrame(bitmap, curFrame);
+                processFrame(frames, bitmap, curFrame, scaleFactor);
             }
         }
     }
 
-    private void writeResultsToJson(String jsonFilePath) {
+    private void writeResultsToJson(String jsonFilePath, List<T> frames) {
         try {
+            // Gson gson = new GsonBuilder().setPrettyPrinting().create();
             Gson gson = new Gson();
             Writer writer = new FileWriter(jsonFilePath);
             gson.toJson(frames, writer);

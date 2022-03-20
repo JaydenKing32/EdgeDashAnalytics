@@ -131,11 +131,21 @@ public class OuterSupport extends VideoAnalysis<OuterFrame> {
     }
 
     @Override
-    void processFrame(Bitmap bitmap, int frameIndex) {
+    void processFrame(List<OuterFrame> frames, Bitmap bitmap, int frameIndex, float scaleFactor) {
         List<Hazard> hazards = detectHazards(bitmap);
 
         frames.add(new OuterFrame(frameIndex, hazards));
         Log.v(TAG, String.format("%s", frameIndex));
+    }
+
+    @Override
+    void setup(int width, int height) {
+
+    }
+
+    @Override
+    float getScaleFactor(int width) {
+        return width / (float) inputSize;
     }
 
     private List<Hazard> detectHazards(Bitmap bitmap) {
