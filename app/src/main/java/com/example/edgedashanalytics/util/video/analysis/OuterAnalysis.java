@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.util.Log;
 
 import androidx.preference.PreferenceManager;
@@ -71,7 +72,13 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         }
     }
 
-    void processFrame(Bitmap bitmap, int frameIndex) {
+    void processFrame(Bitmap origBitmap, int frameIndex) {
+        double scaleFactor = 720.0 / 300.0;
+        int width = (int) (origBitmap.getWidth() / scaleFactor);
+        int height = (int) (origBitmap.getHeight() / scaleFactor);
+
+        Bitmap bitmap = Bitmap.createScaledBitmap(origBitmap, width, height, false);
+
         image.load(bitmap);
         List<Detection> detectionList = detector.detect(image);
         List<Hazard> hazards = new ArrayList<>(detectionList.size());
@@ -83,8 +90,16 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
                 continue;
             }
             Category category = categoryList.get(0);
-            Rect boundingBox = new Rect();
-            detection.getBoundingBox().roundOut(boundingBox);
+            // Rect boundingBox = new Rect();
+            // detection.getBoundingBox().roundOut(boundingBox);
+
+            RectF detBox = detection.getBoundingBox();
+            Rect boundingBox = new Rect(
+                    (int) (detBox.left * scaleFactor),
+                    (int) (detBox.top * scaleFactor),
+                    (int) (detBox.right * scaleFactor),
+                    (int) (detBox.bottom * scaleFactor)
+            );
 
             hazards.add(new Hazard(
                     category.getLabel(),

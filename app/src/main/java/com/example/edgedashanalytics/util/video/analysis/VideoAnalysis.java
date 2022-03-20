@@ -91,11 +91,36 @@ public abstract class VideoAnalysis<T extends Frame> {
         Bitmap bitmap;
         List<Bitmap> frameBuffer;
 
+        // String videoWidthString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH);
+        // String videoHeightString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT);
+        //
+        // if (videoWidthString == null || videoHeightString == null) {
+        //     Log.e(TAG, "Could not retrieve metadata");
+        //     return;
+        // }
+        //
+        // int videoWidth = Integer.parseInt(videoWidthString);
+        // int videoHeight = Integer.parseInt(videoHeightString);
+        // double scaleFactor = videoWidth / 300.0;
+        //
+        // int scaledWidth = (int) (videoWidth / scaleFactor);
+        // int scaledHeight = (int) (videoHeight / scaleFactor);
+
+        // Bitmap bitmap = Bitmap.createScaledBitmap(origBitmap, width, height, false);
+
         // getFramesAtIndex is inconsistent, seems to only reliably with x264, may fail with other codecs
         // Using getFramesAtIndex on a full video requires too much memory, while extracting each frame separately
         // through getFrameAtIndex is too slow. Instead use a buffer, extracting groups of frames
         for (int i = 0; i < totalFrames; i += bufferSize) {
             int frameBuffSize = Integer.min(bufferSize, totalFrames - i);
+            // frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize).stream()
+            //         .map(b -> Bitmap.createScaledBitmap(b, scaledWidth, scaledHeight, false))
+            //         .collect(Collectors.toList());
+            // TODO move downscaling to here, make subclasses set scalingFactor, which will be used in
+            //  writeResultsToJson, or make subclasses implement writeResultsToJson.
+            //  Should only upscale bounding boxes when writing results file, or make sure that original frame size
+            //  is used when identifying hazards/distractions.
+            //  Can also try multi-threading, though won't be able to re-use TensorImages
             frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize);
 
             for (int k = 0; k < frameBuffSize; k++) {

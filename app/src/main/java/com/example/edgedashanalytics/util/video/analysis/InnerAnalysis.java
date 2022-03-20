@@ -72,8 +72,14 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         }
     }
 
-    void processFrame(Bitmap bitmap, int frameIndex) {
+    void processFrame(Bitmap origBitmap, int frameIndex) {
         // String videoPath = "/storage/emulated/0/Movies/dmd/inn_01_body.mp4";
+
+        float scaleFactor = 720.0f / 192.0f;
+        int width = (int) (origBitmap.getWidth() / scaleFactor);
+        int height = (int) (origBitmap.getHeight() / scaleFactor);
+
+        Bitmap bitmap = Bitmap.createScaledBitmap(origBitmap, width, height, false);
 
         // estimatePoses
         if (cropRegion == null) {
@@ -127,10 +133,10 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         matrix.mapPoints(points);
 
         for (int i = 0; i < keyPoints.size(); i++) {
-            keyPoints.get(i).coordinate = new PointF(points[i * 2], points[i * 2 + 1]);
+            keyPoints.get(i).coordinate = new PointF(points[i * 2] * scaleFactor, points[i * 2 + 1] * scaleFactor);
         }
 
-        boolean distracted = isDistracted(keyPoints, bitmap.getWidth(), bitmap.getHeight());
+        boolean distracted = isDistracted(keyPoints, origBitmap.getWidth(), origBitmap.getHeight());
         frames.add(new InnerFrame(frameIndex, distracted, totalScore, keyPoints));
 
         // TODO: May improve performance, investigate later

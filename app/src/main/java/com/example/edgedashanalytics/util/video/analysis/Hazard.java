@@ -15,4 +15,8 @@ class Hazard {
         this.danger = danger;
         this.bBox = bBox;
     }
+
+    void setBBox(float left, float top, float right, float bottom) {
+        bBox.set((int) left, (int) top, (int) right, (int) bottom);
+    }
 }

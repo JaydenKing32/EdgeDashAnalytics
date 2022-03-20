@@ -50,6 +50,7 @@ dependencies {
     implementation 'org.tensorflow:tensorflow-lite-gpu:2.8.0'
     implementation 'org.tensorflow:tensorflow-lite-support:0.3.1'
     implementation 'org.tensorflow:tensorflow-lite-task-vision:0.3.1'
+    implementation 'org.tensorflow:tensorflow-lite-metadata:0.3.1'
 
     implementation 'commons-io:commons-io:2.8.0'
     implementation 'org.apache.commons:commons-lang3:3.12.0'
