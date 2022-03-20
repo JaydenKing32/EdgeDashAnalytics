@@ -76,7 +76,7 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         }
     }
 
-    void processFrame(Bitmap bitmap, int frameIndex, float scaleFactor) {
+    void processFrame(List<OuterFrame> frames, Bitmap bitmap, int frameIndex, float scaleFactor) {
         image.load(bitmap);
         List<Detection> detectionList = detector.detect(image);
         List<Hazard> hazards = new ArrayList<>(detectionList.size());

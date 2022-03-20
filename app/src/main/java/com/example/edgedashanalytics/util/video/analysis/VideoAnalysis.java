@@ -32,7 +32,6 @@ public abstract class VideoAnalysis<T extends Frame> {
 
     final int bufferSize;
     final boolean verbose;
-    final List<T> frames;
 
     /**
      * Set up default parameters
@@ -44,11 +43,9 @@ public abstract class VideoAnalysis<T extends Frame> {
 
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         this.verbose = pref.getBoolean(context.getString(R.string.verbose_output_key), DEFAULT_VERBOSE);
-
-        this.frames = new ArrayList<>();
     }
 
-    abstract void processFrame(Bitmap bitmap, int frameIndex, float scaleFactor);
+    abstract void processFrame(List<T> frames, Bitmap bitmap, int frameIndex, float scaleFactor);
 
     abstract void setup(int width, int height);
 
@@ -80,8 +77,10 @@ public abstract class VideoAnalysis<T extends Frame> {
         Log.d(I_TAG, startString);
         Log.d(TAG, String.format("Total frames of %s: %d", videoName, totalFrames));
 
-        processFramesLoop(retriever, totalFrames);
-        writeResultsToJson(outPath);
+        final List<T> frames = new ArrayList<>(totalFrames);
+
+        processFramesLoop(retriever, totalFrames, frames);
+        writeResultsToJson(outPath, frames);
 
         String time = FileManager.getDurationString(startTime);
         long powerConsumption = PowerMonitor.getPowerConsumption(startPower);
@@ -92,7 +91,7 @@ public abstract class VideoAnalysis<T extends Frame> {
         PowerMonitor.printSummary();
     }
 
-    private void processFramesLoop(MediaMetadataRetriever retriever, int totalFrames) {
+    private void processFramesLoop(MediaMetadataRetriever retriever, int totalFrames, List<T> frames) {
         String videoWidthString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH);
         String videoHeightString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT);
         int videoWidth = Integer.parseInt(videoWidthString);
@@ -127,12 +126,12 @@ public abstract class VideoAnalysis<T extends Frame> {
                     continue;
                 }
 
-                processFrame(bitmap, curFrame, scaleFactor);
+                processFrame(frames, bitmap, curFrame, scaleFactor);
             }
         }
     }
 
-    private void writeResultsToJson(String jsonFilePath) {
+    private void writeResultsToJson(String jsonFilePath, List<T> frames) {
         try {
             // Gson gson = new GsonBuilder().setPrettyPrinting().create();
             Gson gson = new Gson();

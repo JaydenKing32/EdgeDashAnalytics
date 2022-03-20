@@ -71,7 +71,7 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         }
     }
 
-    void processFrame(Bitmap bitmap, int frameIndex, float scaleFactor) {
+    void processFrame(List<InnerFrame> frames, Bitmap bitmap, int frameIndex, float scaleFactor) {
         float totalScore = 0;
         int numKeyPoints = outputShape[2];
 
