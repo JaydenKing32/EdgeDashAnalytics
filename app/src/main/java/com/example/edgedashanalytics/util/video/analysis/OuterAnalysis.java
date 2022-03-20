@@ -4,6 +4,7 @@ import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -21,7 +22,10 @@ import org.tensorflow.lite.task.core.BaseOptions;
 import org.tensorflow.lite.task.vision.detector.Detection;
 import org.tensorflow.lite.task.vision.detector.ObjectDetector;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -42,9 +46,8 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
     private static final int MAX_DETECTIONS = -1;
     private static final float MIN_SCORE = 0.2f;
 
-    private ObjectDetector detector;
+    private final String modelFilename;
     private int inputSize;
-    private static TensorImage image;
 
     // Include or exclude bicycles?
     private static final ArrayList<String> vehicleCategories = new ArrayList<>(Arrays.asList(
@@ -53,12 +56,20 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
 
     public OuterAnalysis(Context context) {
         super(context);
-        image = new TensorImage();
 
         String defaultModel = context.getString(R.string.default_object_model_key);
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-        String modelFilename = pref.getString(context.getString(R.string.object_model_key), defaultModel);
+        modelFilename = pref.getString(context.getString(R.string.object_model_key), defaultModel);
 
+        try {
+            Interpreter interpreter = new Interpreter(FileUtil.loadMappedFile(context, modelFilename));
+            inputSize = interpreter.getInputTensor(0).shape()[1];
+        } catch (IOException e) {
+            Log.w(TAG, String.format("Model failure:\n  %s", e.getMessage()));
+        }
+    }
+
+    private ObjectDetector getObjectDetector() {
         BaseOptions baseOptions = BaseOptions.builder().setNumThreads(THREAD_NUM).build();
         ObjectDetector.ObjectDetectorOptions objectDetectorOptions = ObjectDetector.ObjectDetectorOptions.builder()
                 .setBaseOptions(baseOptions)
@@ -67,18 +78,28 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
                 .build();
 
         try {
-            Interpreter interpreter = new Interpreter(FileUtil.loadMappedFile(context, modelFilename));
-            inputSize = interpreter.getInputTensor(0).shape()[1];
+            AssetFileDescriptor fileDescriptor = assets.openFd(modelFilename);
+            FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor());
+            FileChannel fileChannel = inputStream.getChannel();
+            long startOffset = fileDescriptor.getStartOffset();
+            long declaredLength = fileDescriptor.getDeclaredLength();
+            MappedByteBuffer modelBytebuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset,
+                    declaredLength);
 
-            detector = ObjectDetector.createFromFileAndOptions(context, modelFilename, objectDetectorOptions);
+            return ObjectDetector.createFromBufferAndOptions(modelBytebuffer, objectDetectorOptions);
         } catch (IOException e) {
             Log.w(TAG, String.format("Model failure:\n  %s", e.getMessage()));
+            return null;
         }
     }
 
     void processFrame(List<OuterFrame> frames, Bitmap bitmap, int frameIndex, float scaleFactor) {
-        image.load(bitmap);
-        List<Detection> detectionList = detector.detect(image);
+        ObjectDetector detector = getObjectDetector();
+        if (detector == null) {
+            Log.w(TAG, String.format("Couldn't create object detector for frame %s", frameIndex));
+        }
+
+        List<Detection> detectionList = getObjectDetector().detect(TensorImage.fromBitmap(bitmap));
         List<Hazard> hazards = new ArrayList<>(detectionList.size());
 
         for (Detection detection : detectionList) {

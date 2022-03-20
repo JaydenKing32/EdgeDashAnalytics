@@ -87,12 +87,19 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         Canvas canvas = new Canvas(detectBitmap);
         canvas.drawBitmap(bitmap, -rect.left, -rect.top, null);
 
-        TensorImage inputTensor = imageProcessor.process(TensorImage.fromBitmap(bitmap));
+        // TensorImage image = new TensorImage(DataType.UINT8);
+        // image.load(bitmap);
+        TensorImage inputTensor;
+        synchronized (imageProcessor) {
+            inputTensor = imageProcessor.process(TensorImage.fromBitmap(bitmap));
+        }
         TensorBuffer outputTensor = TensorBuffer.createFixedSize(outputShape, DataType.FLOAT32);
         float widthRatio = detectBitmap.getWidth() / (float) inputWidth;
         float heightRatio = detectBitmap.getHeight() / (float) inputHeight;
 
-        interpreter.run(inputTensor.getBuffer(), outputTensor.getBuffer().rewind());
+        synchronized (interpreter) {
+            interpreter.run(inputTensor.getBuffer(), outputTensor.getBuffer().rewind());
+        }
         float[] output = outputTensor.getFloatArray();
         List<Float> positions = new ArrayList<>();
         List<KeyPoint> keyPoints = new ArrayList<>();
