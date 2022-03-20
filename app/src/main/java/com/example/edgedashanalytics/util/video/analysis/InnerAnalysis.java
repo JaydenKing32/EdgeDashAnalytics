@@ -44,13 +44,12 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
     private static final float MIN_SCORE = 0.2f;
 
     private Interpreter interpreter;
-    private RectF cropRegion = null;
     private int inputWidth;
     private int inputHeight;
     private int[] outputShape;
 
-    private static TensorImage image = null;
-    private static ImageProcessor imageProcessor = null;
+    private static ImageProcessor imageProcessor;
+    private static RectF cropRegion;
 
     public InnerAnalysis(Context context) {
         super(context);
@@ -73,11 +72,6 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
     }
 
     void processFrame(Bitmap bitmap, int frameIndex, float scaleFactor) {
-        // estimatePoses
-        if (cropRegion == null) {
-            cropRegion = initRectF(bitmap.getWidth(), bitmap.getHeight());
-        }
-
         float totalScore = 0;
         int numKeyPoints = outputShape[2];
 
@@ -93,7 +87,7 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         Canvas canvas = new Canvas(detectBitmap);
         canvas.drawBitmap(bitmap, -rect.left, -rect.top, null);
 
-        TensorImage inputTensor = processInputImage(detectBitmap, inputWidth, inputHeight);
+        TensorImage inputTensor = imageProcessor.process(TensorImage.fromBitmap(bitmap));
         TensorBuffer outputTensor = TensorBuffer.createFixedSize(outputShape, DataType.FLOAT32);
         float widthRatio = detectBitmap.getWidth() / (float) inputWidth;
         float heightRatio = detectBitmap.getHeight() / (float) inputHeight;
@@ -151,25 +145,15 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         }
     }
 
-    /**
-     * Prepare input image for detection
-     */
-    private TensorImage processInputImage(Bitmap bitmap, int inputWidth, int inputHeight) {
-        if (image != null) {
-            image.load(bitmap);
-            return imageProcessor.process(image);
-        }
-        int width = bitmap.getWidth();
-        int height = bitmap.getHeight();
+    void setup(int width, int height) {
         int size = Math.min(height, width);
 
         imageProcessor = new ImageProcessor.Builder()
                 .add(new ResizeWithCropOrPadOp(size, size))
                 .add(new ResizeOp(inputHeight, inputWidth, ResizeOp.ResizeMethod.BILINEAR))
                 .build();
-        image = new TensorImage(DataType.UINT8);
-        image.load(bitmap);
-        return imageProcessor.process(image);
+
+        cropRegion = initRectF(width, height);
     }
 
     /**
@@ -263,7 +247,7 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         return dist < threshold;
     }
 
-    public float getScaleFactor(int width) {
+    float getScaleFactor(int width) {
         return width / (float) inputWidth;
     }
 

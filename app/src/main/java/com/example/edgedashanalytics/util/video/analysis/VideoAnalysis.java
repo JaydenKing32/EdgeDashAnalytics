@@ -50,7 +50,9 @@ public abstract class VideoAnalysis<T extends Frame> {
 
     abstract void processFrame(Bitmap bitmap, int frameIndex, float scaleFactor);
 
-    public abstract float getScaleFactor(int width);
+    abstract void setup(int width, int height);
+
+    abstract float getScaleFactor(int width);
 
     public abstract void printParameters();
 
@@ -100,6 +102,8 @@ public abstract class VideoAnalysis<T extends Frame> {
         float scaleFactor = getScaleFactor(videoWidth);
         int scaledWidth = (int) (videoWidth / scaleFactor);
         int scaledHeight = (int) (videoHeight / scaleFactor);
+
+        setup(scaledWidth, scaledHeight);
 
         Bitmap bitmap;
         List<Bitmap> frameBuffer;

@@ -159,7 +159,11 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         return new Rect(tailLeft, tailTop, tailRight, tailBottom);
     }
 
-    public float getScaleFactor(int width) {
+    void setup(int width, int height) {
+        // Doesn't need setup
+    }
+
+    float getScaleFactor(int width) {
         return width / (float) inputSize;
     }
 
