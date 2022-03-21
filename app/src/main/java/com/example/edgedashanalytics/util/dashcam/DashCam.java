@@ -336,8 +336,8 @@ public class DashCam {
     //     return retriever.getFrameAtTime();
     // }
 
-    // Two subsets of videos, each comprised of 600 segments, every video is exactly two seconds in length
-    private static final int testSubsetCount = 600;
+    // Two subsets of videos, each comprised of 400 segments, every video is exactly two seconds in length
+    private static final int testSubsetCount = 400;
     private static final List<String> testVideos = IntStream.rangeClosed(1, testSubsetCount)
             .mapToObj(i -> String.format(Locale.ENGLISH, "%04d", i))
             .flatMap(num -> Stream.of(String.format("inn_%s.mp4", num), String.format("out_%s.mp4", num)))
