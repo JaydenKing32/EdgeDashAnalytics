@@ -59,7 +59,7 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         String modelFilename = pref.getString(context.getString(R.string.object_model_key), defaultModel);
 
-        BaseOptions baseOptions = BaseOptions.builder().setNumThreads(THREAD_NUM).build();
+        BaseOptions baseOptions = BaseOptions.builder().useNnapi().setNumThreads(THREAD_NUM).build();
         ObjectDetector.ObjectDetectorOptions objectDetectorOptions = ObjectDetector.ObjectDetectorOptions.builder()
                 .setBaseOptions(baseOptions)
                 .setMaxResults(MAX_DETECTIONS)

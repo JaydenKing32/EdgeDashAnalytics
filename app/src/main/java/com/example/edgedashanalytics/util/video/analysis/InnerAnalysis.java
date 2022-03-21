@@ -60,6 +60,7 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
 
         try {
             Interpreter.Options options = new Interpreter.Options();
+            options.setUseXNNPACK(true);
             options.setNumThreads(THREAD_NUM);
             interpreter = new Interpreter(FileUtil.loadMappedFile(context, modelFilename), options);
 
