@@ -11,7 +11,6 @@ PlayCommon
 BatteryLed
 DeviceStatisticsService
 OppoBaseBatteryService
-System.err
 ORMS_CORE
 MmTelFeatureConnection
 OppoThermalStats
@@ -54,3 +53,10 @@ SamsungAlarmManager
 SensorsGrip
 hwservicemanager
 SDHMS
+ACodec
+OplusACodec
+OMX-VDEC-1080P
+OMXNodeInstance
+ExtendedACodec
+AtlasService
+PlatformConfig
