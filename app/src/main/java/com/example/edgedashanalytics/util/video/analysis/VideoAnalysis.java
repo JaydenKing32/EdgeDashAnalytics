@@ -21,14 +21,20 @@ import java.io.FileWriter;
 import java.io.Writer;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public abstract class VideoAnalysis<T extends Frame> {
     private static final String TAG = VideoAnalysis.class.getSimpleName();
     private static final boolean DEFAULT_VERBOSE = false;
-    final static int THREAD_NUM = 4;
+    final static int TF_THREAD_NUM = 4;
+    final static int THREAD_NUM = 2;
 
     final int bufferSize;
     final boolean verbose;
@@ -77,10 +83,24 @@ public abstract class VideoAnalysis<T extends Frame> {
         Log.d(I_TAG, startString);
         Log.d(TAG, String.format("Total frames of %s: %d", videoName, totalFrames));
 
-        final List<T> frames = new ArrayList<>(totalFrames);
+        final List<T> frames = Collections.synchronizedList(new ArrayList<>(totalFrames));
 
-        processFramesLoop(retriever, totalFrames, frames);
-        writeResultsToJson(outPath, frames);
+        ExecutorService executor = Executors.newFixedThreadPool(THREAD_NUM);
+        processFramesLoop(retriever, totalFrames, frames, executor);
+        executor.shutdown();
+        boolean complete = false;
+
+        try {
+            complete = executor.awaitTermination(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Log.e(TAG, e.getMessage());
+        }
+
+        if (complete) {
+            writeResultsToJson(outPath, frames);
+        } else {
+            Log.e(TAG, "Could not complete processing in time");
+        }
 
         String time = FileManager.getDurationString(startTime);
         long powerConsumption = PowerMonitor.getPowerConsumption(startPower);
@@ -91,34 +111,30 @@ public abstract class VideoAnalysis<T extends Frame> {
         PowerMonitor.printSummary();
     }
 
-    private void processFramesLoop(MediaMetadataRetriever retriever, int totalFrames, List<T> frames) {
+    private void processFramesLoop(MediaMetadataRetriever retriever, int totalFrames,
+                                   List<T> frames, ExecutorService executor) {
         String videoWidthString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH);
         String videoHeightString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT);
         int videoWidth = Integer.parseInt(videoWidthString);
         int videoHeight = Integer.parseInt(videoHeightString);
 
-        // float scaleFactor = 2f;
         float scaleFactor = getScaleFactor(videoWidth);
         int scaledWidth = (int) (videoWidth / scaleFactor);
         int scaledHeight = (int) (videoHeight / scaleFactor);
 
         setup(scaledWidth, scaledHeight);
 
-        Bitmap bitmap;
-        List<Bitmap> frameBuffer;
-
         // getFramesAtIndex is inconsistent, seems to only reliably with x264, may fail with other codecs
         // Using getFramesAtIndex on a full video requires too much memory, while extracting each frame separately
         // through getFrameAtIndex is too slow. Instead use a buffer, extracting groups of frames
         for (int i = 0; i < totalFrames; i += bufferSize) {
             int frameBuffSize = Integer.min(bufferSize, totalFrames - i);
-            // frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize);
-            frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize).stream()
+            List<Bitmap> frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize).stream()
                     .map(b -> Bitmap.createScaledBitmap(b, scaledWidth, scaledHeight, false))
                     .collect(Collectors.toList());
 
             for (int k = 0; k < frameBuffSize; k++) {
-                bitmap = frameBuffer.get(k);
+                Bitmap bitmap = frameBuffer.get(k);
                 int curFrame = i + k;
 
                 if (bitmap == null) {
@@ -126,14 +142,15 @@ public abstract class VideoAnalysis<T extends Frame> {
                     continue;
                 }
 
-                processFrame(frames, bitmap, curFrame, scaleFactor);
+                executor.submit(() -> processFrame(frames, bitmap, curFrame, scaleFactor));
             }
         }
     }
 
     private void writeResultsToJson(String jsonFilePath, List<T> frames) {
         try {
-            // Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            frames.sort(Comparator.comparingInt(o -> o.frame));
+
             Gson gson = new Gson();
             Writer writer = new FileWriter(jsonFilePath);
             gson.toJson(frames, writer);

@@ -27,6 +27,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.StringJoiner;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 // https://www.tensorflow.org/lite/models/object_detection/overview
 // https://tfhub.dev/tensorflow/collections/lite/task-library/object-detector/1
@@ -42,9 +45,9 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
     private static final int MAX_DETECTIONS = -1;
     private static final float MIN_SCORE = 0.2f;
 
-    private ObjectDetector detector;
-    private int inputSize;
-    private static TensorImage image;
+    private static int inputSize;
+
+    private static final BlockingQueue<ObjectDetector> detectorQueue = new LinkedBlockingQueue<>(THREAD_NUM);
 
     // Include or exclude bicycles?
     private static final ArrayList<String> vehicleCategories = new ArrayList<>(Arrays.asList(
@@ -53,13 +56,16 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
 
     public OuterAnalysis(Context context) {
         super(context);
-        image = new TensorImage();
+
+        if (!detectorQueue.isEmpty()) {
+            return;
+        }
 
         String defaultModel = context.getString(R.string.default_object_model_key);
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         String modelFilename = pref.getString(context.getString(R.string.object_model_key), defaultModel);
 
-        BaseOptions baseOptions = BaseOptions.builder().useNnapi().setNumThreads(THREAD_NUM).build();
+        BaseOptions baseOptions = BaseOptions.builder().useNnapi().setNumThreads(TF_THREAD_NUM).build();
         ObjectDetector.ObjectDetectorOptions objectDetectorOptions = ObjectDetector.ObjectDetectorOptions.builder()
                 .setBaseOptions(baseOptions)
                 .setMaxResults(MAX_DETECTIONS)
@@ -69,16 +75,38 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         try {
             Interpreter interpreter = new Interpreter(FileUtil.loadMappedFile(context, modelFilename));
             inputSize = interpreter.getInputTensor(0).shape()[1];
-
-            detector = ObjectDetector.createFromFileAndOptions(context, modelFilename, objectDetectorOptions);
         } catch (IOException e) {
             Log.w(TAG, String.format("Model failure:\n  %s", e.getMessage()));
+        }
+
+        for (int i = 0; i < THREAD_NUM; i++) {
+            try {
+                detectorQueue.add(ObjectDetector.createFromFileAndOptions(
+                        context, modelFilename, objectDetectorOptions));
+            } catch (IOException e) {
+                Log.w(TAG, String.format("Model failure:\n  %s", e.getMessage()));
+            }
         }
     }
 
     void processFrame(List<OuterFrame> frames, Bitmap bitmap, int frameIndex, float scaleFactor) {
-        image.load(bitmap);
-        List<Detection> detectionList = detector.detect(image);
+        ObjectDetector detector;
+
+        try {
+            detector = detectorQueue.poll(200, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Log.w(TAG, "Unable to acquire ObjectDetector");
+            return;
+        }
+
+        List<Detection> detectionList = detector.detect(TensorImage.fromBitmap(bitmap));
+
+        try {
+            detectorQueue.put(detector);
+        } catch (InterruptedException e) {
+            Log.e(TAG, e.getMessage());
+        }
+
         List<Hazard> hazards = new ArrayList<>(detectionList.size());
 
         for (Detection detection : detectionList) {
@@ -171,9 +199,10 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         StringJoiner paramMessage = new StringJoiner("\n  ");
         paramMessage.add("Outer analysis parameters:");
         paramMessage.add(String.format("bufferSize: %s", bufferSize));
-        paramMessage.add(String.format("THREAD_NUM: %s", THREAD_NUM));
         paramMessage.add(String.format("MAX_DETECTIONS: %s", MAX_DETECTIONS));
         paramMessage.add(String.format("MIN_SCORE: %s", MIN_SCORE));
+        paramMessage.add(String.format("TensorFlow Threads: %s", TF_THREAD_NUM));
+        paramMessage.add(String.format("Analysis Threads: %s", THREAD_NUM));
 
         Log.i(I_TAG, paramMessage.toString());
     }

@@ -31,6 +31,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 
@@ -43,32 +46,43 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
 
     private static final float MIN_SCORE = 0.2f;
 
-    private Interpreter interpreter;
-    private int inputWidth;
-    private int inputHeight;
-    private int[] outputShape;
+    private static int inputWidth;
+    private static int inputHeight;
+    private static int[] outputShape;
 
-    private static ImageProcessor imageProcessor;
+    private static ImageProcessor imageProcessor = null;
     private static RectF cropRegion;
+
+    private static final BlockingQueue<Interpreter> interpreterQueue = new LinkedBlockingQueue<>(THREAD_NUM);
 
     public InnerAnalysis(Context context) {
         super(context);
+
+        if (!interpreterQueue.isEmpty()) {
+            return;
+        }
 
         String defaultModel = context.getString(R.string.default_pose_model_key);
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         String modelFilename = pref.getString(context.getString(R.string.pose_model_key), defaultModel);
 
-        try {
-            Interpreter.Options options = new Interpreter.Options();
-            options.setUseXNNPACK(true);
-            options.setNumThreads(THREAD_NUM);
-            interpreter = new Interpreter(FileUtil.loadMappedFile(context, modelFilename), options);
+        Interpreter.Options options = new Interpreter.Options();
+        options.setUseXNNPACK(true);
+        options.setNumThreads(TF_THREAD_NUM);
 
+        for (int i = 0; i < THREAD_NUM; i++) {
+            try {
+                interpreterQueue.add(new Interpreter(FileUtil.loadMappedFile(context, modelFilename), options));
+            } catch (IOException e) {
+                Log.w(TAG, String.format("Model failure:\n  %s", e.getMessage()));
+            }
+        }
+
+        Interpreter interpreter = interpreterQueue.peek();
+        if (interpreter != null) {
             inputWidth = interpreter.getInputTensor(0).shape()[1];
             inputHeight = interpreter.getInputTensor(0).shape()[2];
             outputShape = interpreter.getOutputTensor(0).shape();
-        } catch (IOException e) {
-            Log.w(TAG, String.format("Model failure:\n  %s", e.getMessage()));
         }
     }
 
@@ -93,7 +107,22 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         float widthRatio = detectBitmap.getWidth() / (float) inputWidth;
         float heightRatio = detectBitmap.getHeight() / (float) inputHeight;
 
+        Interpreter interpreter;
+        try {
+            interpreter = interpreterQueue.poll(200, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Log.w(TAG, "Unable to acquire ImageProcessor");
+            return;
+        }
+
         interpreter.run(inputTensor.getBuffer(), outputTensor.getBuffer().rewind());
+
+        try {
+            interpreterQueue.put(interpreter);
+        } catch (InterruptedException e) {
+            Log.e(TAG, e.getMessage());
+        }
+
         float[] output = outputTensor.getFloatArray();
         List<Float> positions = new ArrayList<>();
         List<KeyPoint> keyPoints = new ArrayList<>();
@@ -147,6 +176,10 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
     }
 
     void setup(int width, int height) {
+        if (imageProcessor != null) {
+            return;
+        }
+
         int size = Math.min(height, width);
 
         imageProcessor = new ImageProcessor.Builder()
@@ -256,8 +289,9 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         StringJoiner paramMessage = new StringJoiner("\n  ");
         paramMessage.add("Inner analysis parameters:");
         paramMessage.add(String.format("bufferSize: %s", bufferSize));
-        paramMessage.add(String.format("THREAD_NUM: %s", THREAD_NUM));
         paramMessage.add(String.format("MIN_SCORE: %s", MIN_SCORE));
+        paramMessage.add(String.format("TensorFlow Threads: %s", TF_THREAD_NUM));
+        paramMessage.add(String.format("Analysis Threads: %s", THREAD_NUM));
 
         Log.i(I_TAG, paramMessage.toString());
     }
