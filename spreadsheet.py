@@ -168,6 +168,14 @@ class Video:
             f"{self.analysis_power:.3f}"
         ]
 
+    def has_error(self) -> bool:
+        return (
+                self.down_time == 0
+                or self.analysis_time == 0
+                or (self.transfer_time > 0 and self.return_time == 0)
+                or (self.transfer_time == 0 and self.return_time > 0)
+        )
+
 
 class Device:
     def __init__(self, name: str):
@@ -405,8 +413,7 @@ def check_video_count(videos: List[Video]) -> int:
 
 
 def check_videos(videos: List[Video]):
-    return [video.name for video in videos if ((video.transfer_time > 0 and video.return_time == 0) or
-                                               (video.transfer_time == 0 and video.return_time > 0))]
+    return [video.name for video in videos if video.has_error()]
 
 
 def check_errors(runs: List[Analysis]):
