@@ -90,7 +90,7 @@ public class VideoManager {
                 projection, selection, selectionArgs, Media.DEFAULT_SORT_ORDER);
 
         if (videoCursor == null || !videoCursor.moveToFirst()) {
-            Log.d(TAG, "videoCursor is null");
+            // Log.d(TAG, "videoCursor is null");
             return null;
         }
         Video video = videoFromCursor(videoCursor);
@@ -166,7 +166,6 @@ public class VideoManager {
     }
 
     private static Video videoFromCursor(Cursor cursor) {
-        Log.v(TAG, "videoFromCursor");
         Video video = null;
         try {
             int idIndex = cursor.getColumnIndex(Media._ID);

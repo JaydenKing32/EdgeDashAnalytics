@@ -25,7 +25,7 @@ public class ExternalStorageVideosRepository implements VideosRepository {
 
     public ExternalStorageVideosRepository(Context context, String path) {
         if (path == null) {
-            Log.w("ExternalStorageVideosRepository", "null");
+            Log.w(TAG, "Null path");
             return;
         }
 

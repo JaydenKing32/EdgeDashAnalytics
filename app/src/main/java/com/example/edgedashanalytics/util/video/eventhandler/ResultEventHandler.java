@@ -21,7 +21,6 @@ public class ResultEventHandler {
     public void onAdd(AddResultEvent event) {
         nullCheck(event);
 
-        Log.v(TAG, "onAdd");
         try {
             repository.insert(event.result);
         } catch (Exception e) {
@@ -33,7 +32,6 @@ public class ResultEventHandler {
     public void onRemove(RemoveResultEvent event) {
         nullCheck(event);
 
-        Log.v(TAG, "onRemove");
         try {
             repository.delete(event.result.getData());
         } catch (Exception e) {

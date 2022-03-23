@@ -26,7 +26,6 @@ public class ProcessingVideosEventHandler implements VideoEventHandler {
         nullCheck(event);
 
         if (event.type == Type.PROCESSING) {
-            Log.v(TAG, "onAdd");
             try {
                 repository.insert(event.video);
             } catch (Exception e) {
@@ -41,7 +40,6 @@ public class ProcessingVideosEventHandler implements VideoEventHandler {
         nullCheck(event);
 
         if (event.type == Type.PROCESSING) {
-            Log.v(TAG, "onRemove");
             try {
                 repository.delete(event.video.getData());
             } catch (Exception e) {
@@ -65,7 +63,6 @@ public class ProcessingVideosEventHandler implements VideoEventHandler {
         }
 
         if (event.type == Type.PROCESSING) {
-            Log.v(TAG, "removeByName");
             try {
                 String path = String.format("%s/%s", FileManager.getRawDirPath(), event.name);
                 repository.delete(path);
