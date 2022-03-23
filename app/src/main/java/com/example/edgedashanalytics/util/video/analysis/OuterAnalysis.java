@@ -76,7 +76,7 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
             Interpreter interpreter = new Interpreter(FileUtil.loadMappedFile(context, modelFilename));
             inputSize = interpreter.getInputTensor(0).shape()[1];
         } catch (IOException e) {
-            Log.w(TAG, String.format("Model failure:\n  %s", e.getMessage()));
+            Log.w(I_TAG, String.format("Model failure:\n  %s", e.getMessage()));
         }
 
         for (int i = 0; i < THREAD_NUM; i++) {
@@ -84,7 +84,7 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
                 detectorQueue.add(ObjectDetector.createFromFileAndOptions(
                         context, modelFilename, objectDetectorOptions));
             } catch (IOException e) {
-                Log.w(TAG, String.format("Model failure:\n  %s", e.getMessage()));
+                Log.w(I_TAG, String.format("Model failure:\n  %s", e.getMessage()));
             }
         }
     }
@@ -95,7 +95,7 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         try {
             detector = detectorQueue.poll(200, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-            Log.w(TAG, "Unable to acquire ObjectDetector");
+            Log.w(I_TAG, String.format("Cannot acquire detector for frame %s:\n  %s", frameIndex, e.getMessage()));
             return;
         }
 
@@ -104,7 +104,7 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         try {
             detectorQueue.put(detector);
         } catch (InterruptedException e) {
-            Log.e(TAG, e.getMessage());
+            Log.w(TAG, String.format("Unable to return detector to queue:\n  %s", e.getMessage()));
         }
 
         List<Hazard> hazards = new ArrayList<>(detectionList.size());

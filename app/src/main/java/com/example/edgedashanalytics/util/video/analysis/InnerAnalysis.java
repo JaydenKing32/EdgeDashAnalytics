@@ -74,7 +74,7 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
             try {
                 interpreterQueue.add(new Interpreter(FileUtil.loadMappedFile(context, modelFilename), options));
             } catch (IOException e) {
-                Log.w(TAG, String.format("Model failure:\n  %s", e.getMessage()));
+                Log.w(I_TAG, String.format("Model failure:\n  %s", e.getMessage()));
             }
         }
 
@@ -111,7 +111,7 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         try {
             interpreter = interpreterQueue.poll(200, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-            Log.w(TAG, "Unable to acquire ImageProcessor");
+            Log.w(I_TAG, String.format("Cannot acquire interpreter for frame %s:\n  %s", frameIndex, e.getMessage()));
             return;
         }
 
@@ -120,7 +120,7 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         try {
             interpreterQueue.put(interpreter);
         } catch (InterruptedException e) {
-            Log.e(TAG, e.getMessage());
+            Log.w(TAG, String.format("Unable to return interpreter to queue:\n  %s", e.getMessage()));
         }
 
         float[] output = outputTensor.getFloatArray();

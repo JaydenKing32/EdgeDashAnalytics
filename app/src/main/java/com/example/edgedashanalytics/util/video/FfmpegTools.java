@@ -1,5 +1,7 @@
 package com.example.edgedashanalytics.util.video;
 
+import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
+
 import android.content.Context;
 import android.text.TextUtils;
 import android.util.Log;
@@ -38,7 +40,7 @@ public class FfmpegTools {
         try {
             return Double.parseDouble(durationString);
         } catch (NumberFormatException e) {
-            Log.e(TAG, String.format("ffmpeg-mobile error, could not retrieve duration of %s:\n%s",
+            Log.e(I_TAG, String.format("ffmpeg-mobile error, could not retrieve duration of %s:\n%s",
                     filePath, e.getMessage()));
             return -1.0;
         }
@@ -89,7 +91,7 @@ public class FfmpegTools {
         List<Video> segments = VideoManager.getVideosFromDir(context, segmentDirPath);
 
         if (segments == null) {
-            Log.e(TAG, String.format("Failed to split video, returning whole video %s", baseName));
+            Log.e(I_TAG, String.format("Failed to split video, returning whole video %s", baseName));
             return new ArrayList<>(Collections.singletonList(VideoManager.getVideoFromPath(context, filePath)));
         }
         return VideoManager.getVideosFromDir(context, segmentDirPath);
@@ -106,7 +108,7 @@ public class FfmpegTools {
         int segTime = (int) Math.ceil(FfmpegTools.getDuration(filePath) / segNum);
 
         if (segTime < 2) {
-            Log.e(TAG, String.format("Segment time (%ds) too low, aborting split", segTime));
+            Log.w(TAG, String.format("Segment time (%ds) too low, aborting split", segTime));
             return;
         }
 

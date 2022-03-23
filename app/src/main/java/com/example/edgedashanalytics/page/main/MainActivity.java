@@ -123,7 +123,7 @@ public class MainActivity extends AppCompatActivity implements
             Log.v(TAG, String.format("Running logging command: %s", loggingCommand));
             Runtime.getRuntime().exec(loggingCommand);
         } catch (IOException e) {
-            Log.e(TAG, String.format("Unable to store log in file:\n%s", e.getMessage()));
+            Log.e(I_TAG, String.format("Unable to store log in file:\n%s", e.getMessage()));
         }
     }
 

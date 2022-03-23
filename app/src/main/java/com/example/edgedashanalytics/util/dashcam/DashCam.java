@@ -114,7 +114,7 @@ public class DashCam {
             List<String> allFiles = getViofoFilenames();
 
             if (allFiles == null) {
-                Log.e(TAG, "Dash cam file list is null");
+                Log.e(I_TAG, "Dash cam file list is null");
                 return;
             }
 
@@ -131,7 +131,7 @@ public class DashCam {
         try {
             doc = Jsoup.connect(baseUrl + "blackvue_vod.cgi").get();
         } catch (IOException e) {
-            Log.e(TAG, "Could not connect to dash cam");
+            Log.e(I_TAG, "Could not connect to dash cam");
             return null;
         }
         List<String> allFiles = new ArrayList<>();
@@ -154,7 +154,7 @@ public class DashCam {
         try {
             doc = Jsoup.connect(baseUrl).get();
         } catch (IOException e) {
-            Log.e(TAG, "Could not connect to dash cam");
+            Log.e(I_TAG, "Could not connect to dash cam");
             return null;
         }
         List<String> allFiles = new ArrayList<>();
@@ -184,7 +184,7 @@ public class DashCam {
         try {
             FileUtils.copyURLToFile(new URL(url), new File(filePath));
         } catch (IOException e) {
-            Log.e(TAG, String.format("Video download error, retrying: \n%s", e.getMessage()));
+            Log.w(TAG, String.format("Video download error, retrying: \n%s", e.getMessage()));
             return;
         }
 
@@ -192,7 +192,7 @@ public class DashCam {
         if (video == null) {
             try {
                 String errorMessage = String.format("Failed to download %s, retrying in 5s", filename);
-                Log.e(TAG, errorMessage);
+                Log.w(TAG, errorMessage);
                 Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show();
 
                 Thread.sleep(5000);
@@ -227,7 +227,7 @@ public class DashCam {
             List<String> allVideos = getBlackvueFilenames();
 
             if (allVideos == null || allVideos.size() == 0) {
-                Log.e(TAG, "Couldn't download videos");
+                Log.e(I_TAG, "Couldn't download videos");
                 return;
             }
             List<String> newVideos = new ArrayList<>(CollectionUtils.disjunction(allVideos, downloads));
@@ -322,7 +322,7 @@ public class DashCam {
         Instant start = downloadStarts.remove(filename);
 
         if (start == null) {
-            Log.w(TAG, String.format("Could not calculate the turnaround time of %s", filename));
+            Log.w(I_TAG, String.format("Could not calculate the turnaround time of %s", filename));
         } else {
             String time = FileManager.getDurationString(start);
             Log.i(I_TAG, String.format("Turnaround time of %s: %ss", filename, time));
@@ -366,7 +366,7 @@ public class DashCam {
                     Instant start = downloadStarts.get(videoName);
                     time = FileManager.getDurationString(start);
                 } else {
-                    Log.e(TAG, String.format("Could not record download time of %s", videoName));
+                    Log.e(I_TAG, String.format("Could not record download time of %s", videoName));
                     time = "0.000";
                 }
 

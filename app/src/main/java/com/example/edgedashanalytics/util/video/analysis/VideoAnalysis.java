@@ -93,11 +93,11 @@ public abstract class VideoAnalysis<T extends Frame> {
         try {
             complete = executor.awaitTermination(20, TimeUnit.MINUTES);
         } catch (InterruptedException e) {
-            Log.e(TAG, String.format("Analysis interrupted:\n  %s", e.getMessage()));
+            Log.e(I_TAG, String.format("Interrupted analysis of %s:\n  %s", videoName, e.getMessage()));
         }
 
         if (!complete) {
-            Log.e(TAG, "Could not complete processing in time");
+            Log.e(I_TAG, "Could not complete processing in time");
             return;
         }
         writeResultsToJson(outPath, frames);
@@ -138,7 +138,7 @@ public abstract class VideoAnalysis<T extends Frame> {
                 int curFrame = i + k;
 
                 if (bitmap == null) {
-                    Log.w(TAG, String.format("Could not extract frame at index %d", curFrame));
+                    Log.w(I_TAG, String.format("Could not extract frame at index %d", curFrame));
                     continue;
                 }
 
@@ -158,7 +158,7 @@ public abstract class VideoAnalysis<T extends Frame> {
             writer.flush();
             writer.close();
         } catch (Exception e) {
-            Log.w(TAG, String.format("Failed to write results file:\n  %s", e.getMessage()));
+            Log.e(I_TAG, String.format("Failed to write results file:\n  %s", e.getMessage()));
         }
     }
 }

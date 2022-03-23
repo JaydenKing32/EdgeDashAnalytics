@@ -457,7 +457,7 @@ public abstract class NearbyFragment extends Fragment {
         List<Video> videos = FfmpegTools.splitAndReturn(context, videoPath, segNum);
 
         if (videos == null || videos.size() == 0) {
-            Log.e(TAG, String.format("Could not split %s", baseVideoName));
+            Log.e(I_TAG, String.format("Could not split %s", baseVideoName));
             return;
         }
 
@@ -569,7 +569,7 @@ public abstract class NearbyFragment extends Fragment {
 
     private void sendFile(Message message, Endpoint toEndpoint) {
         if (message == null || toEndpoint == null) {
-            Log.e(TAG, "No message or endpoint selected");
+            Log.e(I_TAG, "No message or endpoint selected");
             return;
         }
 
@@ -593,7 +593,7 @@ public abstract class NearbyFragment extends Fragment {
         }
 
         if (filePayload == null) {
-            Log.e(TAG, String.format("Could not create file payload for %s", message.content));
+            Log.e(I_TAG, String.format("Could not create file payload for %s", message.content));
             return;
         }
         Log.i(I_TAG, String.format("Sending %s to %s", message.content.getName(), toEndpoint.name));
@@ -835,7 +835,7 @@ public abstract class NearbyFragment extends Fragment {
                     Instant start = startTimes.remove(payloadId);
                     time = FileManager.getDurationString(start);
                 } else {
-                    Log.e(TAG, String.format("Could not record transfer time of %s", filename));
+                    Log.e(I_TAG, String.format("Could not record transfer time of %s", filename));
                     time = "0.000";
                 }
 
@@ -860,14 +860,14 @@ public abstract class NearbyFragment extends Fragment {
                 // Get the received file (which will be in the Downloads folder)
                 Payload.File payload = filePayload.asFile();
                 if (payload == null) {
-                    Log.e(TAG, String.format("Could not create file payload for %s", filename));
+                    Log.e(I_TAG, String.format("Could not create file payload for %s", filename));
                     return;
                 }
 
                 //noinspection deprecation
                 File payloadFile = payload.asJavaFile();
                 if (payloadFile == null) {
-                    Log.e(TAG, String.format("Could not create file payload for %s", filename));
+                    Log.e(I_TAG, String.format("Could not create file payload for %s", filename));
                     return;
                 }
 
@@ -878,7 +878,7 @@ public abstract class NearbyFragment extends Fragment {
                     try {
                         Files.move(payloadFile.toPath(), videoDest.toPath(), REPLACE_EXISTING);
                     } catch (IOException e) {
-                        Log.e(TAG, String.format("Could not move %s:\n%s", filename, e.getMessage()));
+                        Log.e(I_TAG, String.format("Could not move %s:\n%s", filename, e.getMessage()));
                         return;
                     }
 
@@ -893,7 +893,7 @@ public abstract class NearbyFragment extends Fragment {
                     try {
                         Files.move(payloadFile.toPath(), resultsDest.toPath(), REPLACE_EXISTING);
                     } catch (IOException e) {
-                        Log.e(TAG, String.format("processFilePayload copy error: \n%s", e.getMessage()));
+                        Log.e(I_TAG, String.format("processFilePayload copy error: \n%s", e.getMessage()));
                         return;
                     }
 

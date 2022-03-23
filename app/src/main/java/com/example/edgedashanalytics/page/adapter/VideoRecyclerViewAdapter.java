@@ -98,7 +98,7 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
                     // Seconds to milliseconds
                     Thread.sleep(delay * 1000L);
                 } catch (InterruptedException e) {
-                    Log.e(TAG, String.format("Thread error: \n%s", e.getMessage()));
+                    Log.e(I_TAG, String.format("Thread error: \n%s", e.getMessage()));
                 }
             }
         };
