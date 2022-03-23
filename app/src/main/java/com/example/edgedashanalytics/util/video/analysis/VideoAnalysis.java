@@ -91,16 +91,16 @@ public abstract class VideoAnalysis<T extends Frame> {
         boolean complete = false;
 
         try {
-            complete = executor.awaitTermination(5, TimeUnit.SECONDS);
+            complete = executor.awaitTermination(20, TimeUnit.MINUTES);
         } catch (InterruptedException e) {
-            Log.e(TAG, e.getMessage());
+            Log.e(TAG, String.format("Analysis interrupted:\n  %s", e.getMessage()));
         }
 
-        if (complete) {
-            writeResultsToJson(outPath, frames);
-        } else {
+        if (!complete) {
             Log.e(TAG, "Could not complete processing in time");
+            return;
         }
+        writeResultsToJson(outPath, frames);
 
         String time = FileManager.getDurationString(startTime);
         long powerConsumption = PowerMonitor.getPowerConsumption(startPower);
