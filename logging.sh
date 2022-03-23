@@ -62,7 +62,7 @@ if [[ -z "${serials[*]}" ]]; then
 fi
 
 # Useful command for identifying common tags, after storing an unfiltered log into raw.log:
-# pcre2grep -O '$1' '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w (\w+):' raw.log | sort | uniq -c | sort -nr
+# pcre2grep -O '$1' '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w (\w+):' raw.log | sort | uniq -c | sort -nr | sed 's/^ *[0-9]* //' | head -n 20
 
 if [[ $prune == true ]]; then
     for serial in "${serials[@]}"; do
