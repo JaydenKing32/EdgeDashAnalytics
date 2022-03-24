@@ -305,7 +305,12 @@ class Analysis:
         return sum(d.average_power for d in self.devices.values())
 
     def get_network(self) -> str:
-        return next(iter(self.devices.values())).network if all(d.network for d in self.devices.values()) else "Direct"
+        master_network = self.devices[self.get_master_short_name()].network
+
+        if master_network != "offline" and all(d.network == master_network for d in self.devices.values()):
+            return master_network
+        else:
+            return "Direct"
 
     def get_worker_string(self) -> str:
         return "-".join(get_device_name(name) for name in sorted(
