@@ -51,7 +51,7 @@ public abstract class VideoAnalysis<T extends Frame> {
         this.verbose = pref.getBoolean(context.getString(R.string.verbose_output_key), DEFAULT_VERBOSE);
     }
 
-    abstract void processFrame(List<T> frames, Bitmap bitmap, int frameIndex, float scaleFactor);
+    abstract T processFrame(Bitmap bitmap, int frameIndex, float scaleFactor);
 
     abstract void setup(int width, int height);
 
@@ -142,7 +142,7 @@ public abstract class VideoAnalysis<T extends Frame> {
                     continue;
                 }
 
-                executor.submit(() -> processFrame(frames, bitmap, curFrame, scaleFactor));
+                executor.submit(() -> frames.add(processFrame(bitmap, curFrame, scaleFactor)));
             }
         }
     }

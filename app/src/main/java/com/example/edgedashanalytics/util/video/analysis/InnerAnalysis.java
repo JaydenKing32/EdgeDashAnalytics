@@ -50,10 +50,10 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
     private static int inputHeight;
     private static int[] outputShape;
 
-    private static ImageProcessor imageProcessor = null;
     private static RectF cropRegion;
 
     private static final BlockingQueue<Interpreter> interpreterQueue = new LinkedBlockingQueue<>(THREAD_NUM);
+    private static final BlockingQueue<ImageProcessor> processorQueue = new LinkedBlockingQueue<>(THREAD_NUM);
 
     public InnerAnalysis(Context context) {
         super(context);
@@ -86,7 +86,7 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         }
     }
 
-    void processFrame(List<InnerFrame> frames, Bitmap bitmap, int frameIndex, float scaleFactor) {
+    InnerFrame processFrame(Bitmap bitmap, int frameIndex, float scaleFactor) {
         float totalScore = 0;
         int numKeyPoints = outputShape[2];
 
@@ -102,7 +102,23 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
         Canvas canvas = new Canvas(detectBitmap);
         canvas.drawBitmap(bitmap, -rect.left, -rect.top, null);
 
+        ImageProcessor imageProcessor;
+
+        try {
+            imageProcessor = processorQueue.poll(200, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Log.w(I_TAG, String.format("Cannot acquire processor for frame %s:\n  %s", frameIndex, e.getMessage()));
+            return null;
+        }
+
         TensorImage inputTensor = imageProcessor.process(TensorImage.fromBitmap(bitmap));
+
+        try {
+            processorQueue.put(imageProcessor);
+        } catch (InterruptedException e) {
+            Log.w(TAG, String.format("Unable to return processor to queue:\n  %s", e.getMessage()));
+        }
+
         TensorBuffer outputTensor = TensorBuffer.createFixedSize(outputShape, DataType.FLOAT32);
         float widthRatio = detectBitmap.getWidth() / (float) inputWidth;
         float heightRatio = detectBitmap.getHeight() / (float) inputHeight;
@@ -112,7 +128,7 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
             interpreter = interpreterQueue.poll(200, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Log.w(I_TAG, String.format("Cannot acquire interpreter for frame %s:\n  %s", frameIndex, e.getMessage()));
-            return;
+            return null;
         }
 
         interpreter.run(inputTensor.getBuffer(), outputTensor.getBuffer().rewind());
@@ -152,12 +168,6 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
             keyPoints.get(i).coordinate = new PointF(points[i * 2] * scaleFactor, points[i * 2 + 1] * scaleFactor);
         }
 
-        int origWidth = (int) (bitmap.getWidth() * scaleFactor);
-        int origHeight = (int) (bitmap.getHeight() * scaleFactor);
-
-        boolean distracted = isDistracted(keyPoints, origWidth, origHeight);
-        frames.add(new InnerFrame(frameIndex, distracted, totalScore, keyPoints));
-
         if (verbose) {
             String resultHead = String.format(Locale.ENGLISH,
                     "Analysis completed for frame: %04d\nKeyPoints:\n", frameIndex);
@@ -173,21 +183,27 @@ public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
             String resultMessage = builder.toString();
             Log.v(TAG, resultMessage);
         }
+
+        int origWidth = (int) (bitmap.getWidth() * scaleFactor);
+        int origHeight = (int) (bitmap.getHeight() * scaleFactor);
+
+        boolean distracted = isDistracted(keyPoints, origWidth, origHeight);
+        return new InnerFrame(frameIndex, distracted, totalScore, keyPoints);
     }
 
     void setup(int width, int height) {
-        if (imageProcessor != null) {
+        if (!processorQueue.isEmpty()) {
             return;
         }
-
         int size = Math.min(height, width);
-
-        imageProcessor = new ImageProcessor.Builder()
-                .add(new ResizeWithCropOrPadOp(size, size))
-                .add(new ResizeOp(inputHeight, inputWidth, ResizeOp.ResizeMethod.BILINEAR))
-                .build();
-
         cropRegion = initRectF(width, height);
+
+        for (int i = 0; i < THREAD_NUM; i++) {
+            processorQueue.add(new ImageProcessor.Builder()
+                    .add(new ResizeWithCropOrPadOp(size, size))
+                    .add(new ResizeOp(inputHeight, inputWidth, ResizeOp.ResizeMethod.BILINEAR))
+                    .build());
+        }
     }
 
     /**

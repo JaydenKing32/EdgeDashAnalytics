@@ -89,14 +89,14 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
         }
     }
 
-    void processFrame(List<OuterFrame> frames, Bitmap bitmap, int frameIndex, float scaleFactor) {
+    OuterFrame processFrame(Bitmap bitmap, int frameIndex, float scaleFactor) {
         ObjectDetector detector;
 
         try {
             detector = detectorQueue.poll(200, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Log.w(I_TAG, String.format("Cannot acquire detector for frame %s:\n  %s", frameIndex, e.getMessage()));
-            return;
+            return null;
         }
 
         List<Detection> detectionList = detector.detect(TensorImage.fromBitmap(bitmap));
@@ -135,7 +135,6 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
                     boundingBox
             ));
         }
-        frames.add(new OuterFrame(frameIndex, hazards));
 
         if (verbose) {
             String resultHead = String.format(
@@ -154,6 +153,8 @@ public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
             String resultMessage = builder.toString();
             Log.v(TAG, resultMessage);
         }
+
+        return new OuterFrame(frameIndex, hazards);
     }
 
     private boolean isDanger(Rect boundingBox, String category, int imageWidth, int imageHeight) {
