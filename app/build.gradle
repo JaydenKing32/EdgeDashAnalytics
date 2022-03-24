@@ -60,4 +60,6 @@ dependencies {
     implementation 'com.google.android.gms:play-services-nearby:18.0.2'
     implementation 'com.arthenica:ffmpeg-kit-full-gpl:4.5.1'
     implementation "com.github.tonyofrancis:fetch:3.1.6"
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.13.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.2'
 }

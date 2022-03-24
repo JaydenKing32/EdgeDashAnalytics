@@ -14,11 +14,14 @@ import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.hardware.HardwareInfo;
 import com.example.edgedashanalytics.util.hardware.PowerMonitor;
-import com.google.gson.Gson;
+import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.io.Writer;
+import java.io.FileOutputStream;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,6 +36,10 @@ import java.util.stream.Collectors;
 public abstract class VideoAnalysis<T extends Frame> {
     private static final String TAG = VideoAnalysis.class.getSimpleName();
     private static final boolean DEFAULT_VERBOSE = false;
+    private static final ObjectWriter writer = JsonMapper.builder()
+            .disable(MapperFeature.AUTO_DETECT_IS_GETTERS).visibility(PropertyAccessor.FIELD, Visibility.ANY)
+            .build().writer();
+
     final static int TF_THREAD_NUM = 4;
     final static int THREAD_NUM = 2;
 
@@ -150,13 +157,7 @@ public abstract class VideoAnalysis<T extends Frame> {
     private void writeResultsToJson(String jsonFilePath, List<T> frames) {
         try {
             frames.sort(Comparator.comparingInt(o -> o.frame));
-
-            Gson gson = new Gson();
-            Writer writer = new FileWriter(jsonFilePath);
-            gson.toJson(frames, writer);
-
-            writer.flush();
-            writer.close();
+            writer.writeValue(new FileOutputStream(jsonFilePath), frames);
         } catch (Exception e) {
             Log.e(I_TAG, String.format("Failed to write results file:\n  %s", e.getMessage()));
         }
