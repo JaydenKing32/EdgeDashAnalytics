@@ -107,24 +107,24 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
         };
     }
 
-    public Runnable simulateDownloads(int delay, Consumer<Video> downloadCallback) {
+    public Runnable simulateDownloads(int delay, Consumer<Video> downloadCallback, boolean dualDownload) {
         LinkedList<Video> videoList = videos.stream()
                 .sorted((v1, v2) -> DashCam.testVideoComparator(v1.getName(), v2.getName()))
                 .collect(Collectors.toCollection(LinkedList::new));
+        int downloadCount = dualDownload ? 2 : 1;
 
         return () -> {
-            for (int i = 0; i < 2; i++) {
+            for (int i = 0; i < downloadCount; i++) {
                 if (videoList.isEmpty()) {
                     downloadCallback.accept(null);
                 }
-
-                try {
-                    Thread.sleep(delay);
-                } catch (InterruptedException e) {
-                    Log.e(I_TAG, String.format("Simulated download interrupted: \n%s", e.getMessage()));
-                }
-
                 downloadCallback.accept(videoList.pop());
+            }
+
+            try {
+                Thread.sleep(delay);
+            } catch (InterruptedException e) {
+                Log.e(I_TAG, String.format("Simulated download interrupted: \n%s", e.getMessage()));
             }
         };
     }

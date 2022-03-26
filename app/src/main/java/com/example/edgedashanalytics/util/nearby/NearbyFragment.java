@@ -315,10 +315,11 @@ public abstract class NearbyFragment extends Fragment {
 
         boolean simDownload = pref.getBoolean(context.getString(R.string.enable_download_simulation_key), false);
         int simDelay = Integer.parseInt(pref.getString(context.getString(R.string.simulation_delay_key), defaultDelay));
+        boolean dualDownload = pref.getBoolean(context.getString(R.string.dual_download_key), false);
 
         if (simDownload) {
             downloadTaskExecutor.scheduleWithFixedDelay(listener.getSimulateDownloads(simDelay,
-                    this::downloadCallback), 0, delay, TimeUnit.MILLISECONDS);
+                    this::downloadCallback, dualDownload), 0, delay, TimeUnit.MILLISECONDS);
         } else {
             DashCam.setDownloadCallback(context, this::downloadCallback);
             downloadTaskExecutor.scheduleWithFixedDelay(DashCam.downloadTestVideos(), 0, delay, TimeUnit.MILLISECONDS);
@@ -718,7 +719,7 @@ public abstract class NearbyFragment extends Fragment {
 
         void nextTransfer();
 
-        Runnable getSimulateDownloads(int delay, Consumer<Video> downloadCallback);
+        Runnable getSimulateDownloads(int delay, Consumer<Video> downloadCallback, boolean dualDownload);
     }
 
     private class ReceiveFilePayloadCallback extends PayloadCallback {

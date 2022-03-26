@@ -309,8 +309,8 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     @Override
-    public Runnable simulateDownloads(int delay, Consumer<Video> downloadCallback) {
-        return rawFragment.simulateDownloads(delay, downloadCallback);
+    public Runnable simulateDownloads(int delay, Consumer<Video> downloadCallback, boolean dualDownload) {
+        return rawFragment.simulateDownloads(delay, downloadCallback, dualDownload);
     }
 
     @Override
@@ -348,7 +348,7 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     @Override
-    public Runnable getSimulateDownloads(int delay, Consumer<Video> downloadCallback) {
-        return simulateDownloads(delay, downloadCallback);
+    public Runnable getSimulateDownloads(int delay, Consumer<Video> downloadCallback, boolean dualDownload) {
+        return simulateDownloads(delay, downloadCallback, dualDownload);
     }
 }

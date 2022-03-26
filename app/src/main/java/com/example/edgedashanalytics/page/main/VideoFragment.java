@@ -244,8 +244,8 @@ public class VideoFragment extends Fragment {
         adapter.setVideos(new ArrayList<>());
     }
 
-    Runnable simulateDownloads(int delay, Consumer<Video> downloadCallback) {
-        return adapter.simulateDownloads(delay, downloadCallback);
+    Runnable simulateDownloads(int delay, Consumer<Video> downloadCallback, boolean dualDownload) {
+        return adapter.simulateDownloads(delay, downloadCallback, dualDownload);
     }
 
     /**
@@ -265,6 +265,6 @@ public class VideoFragment extends Fragment {
 
         void getNextTransfer();
 
-        Runnable simulateDownloads(int delay, Consumer<Video> downloadCallback);
+        Runnable simulateDownloads(int delay, Consumer<Video> downloadCallback, boolean dualDownload);
     }
 }
