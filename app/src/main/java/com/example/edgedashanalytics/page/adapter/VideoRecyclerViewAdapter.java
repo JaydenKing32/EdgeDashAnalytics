@@ -25,10 +25,14 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.page.main.VideoFragment;
+import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.video.analysis.AnalysisTools;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * {@link RecyclerView.Adapter} that can display a {@link Video} and makes a call to the
@@ -100,6 +104,29 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
                 } catch (InterruptedException e) {
                     Log.e(I_TAG, String.format("Thread error: \n%s", e.getMessage()));
                 }
+            }
+        };
+    }
+
+    public Runnable simulateDownloads(int delay, Consumer<Video> downloadCallback) {
+        LinkedList<Video> videoList = videos.stream()
+                .sorted((v1, v2) -> DashCam.testVideoComparator(v1.getName(), v2.getName()))
+                .collect(Collectors.toCollection(LinkedList::new));
+
+        return () -> {
+            for (int i = 0; i < 2; i++) {
+                if (videoList.isEmpty()) {
+                    downloadCallback.accept(null);
+                }
+
+                try {
+                    // Seconds to milliseconds
+                    Thread.sleep(delay * 1000L);
+                } catch (InterruptedException e) {
+                    Log.e(I_TAG, String.format("Simulated download interrupted: \n%s", e.getMessage()));
+                }
+
+                downloadCallback.accept(videoList.pop());
             }
         };
     }

@@ -36,6 +36,7 @@ import org.greenrobot.eventbus.EventBus;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -243,6 +244,10 @@ public class VideoFragment extends Fragment {
         adapter.setVideos(new ArrayList<>());
     }
 
+    Runnable simulateDownloads(int delay, Consumer<Video> downloadCallback) {
+        return adapter.simulateDownloads(delay, downloadCallback);
+    }
+
     /**
      * This interface must be implemented by activities that contain this
      * fragment to allow an interaction in this fragment to be communicated
@@ -259,5 +264,7 @@ public class VideoFragment extends Fragment {
         void getAddVideo(Video video);
 
         void getNextTransfer();
+
+        Runnable simulateDownloads(int delay, Consumer<Video> downloadCallback);
     }
 }

@@ -302,7 +302,7 @@ public class DashCam {
         downloadExecutor.scheduleWithFixedDelay(downloadRunnable, 0, delay, TimeUnit.SECONDS);
     }
 
-    private static int testVideoComparator(String videoA, String videoB) {
+    public static int testVideoComparator(String videoA, String videoB) {
         String prefixA = videoA.substring(0, 3);
         String prefixB = videoB.substring(0, 3);
         int suffixA = Integer.parseInt(StringUtils.substringBetween(videoA, "_", "."));

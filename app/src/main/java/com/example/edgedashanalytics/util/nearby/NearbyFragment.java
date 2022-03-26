@@ -79,6 +79,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public abstract class NearbyFragment extends Fragment {
@@ -312,8 +313,16 @@ public abstract class NearbyFragment extends Fragment {
         Log.w(I_TAG, "Started downloading from dash cam");
         PowerMonitor.startPowerMonitor(context);
 
-        DashCam.setDownloadCallback(context, this::downloadCallback);
-        downloadTaskExecutor.scheduleWithFixedDelay(DashCam.downloadTestVideos(), 0, delay, TimeUnit.SECONDS);
+        boolean simDownload = pref.getBoolean(context.getString(R.string.enable_download_simulation_key), false);
+        int simDelay = pref.getInt(context.getString(R.string.download_simulation_delay_key), defaultDelay);
+
+        if (simDownload) {
+            downloadTaskExecutor.scheduleWithFixedDelay(listener.getSimulateDownloads(simDelay,
+                    this::downloadCallback), 0, delay, TimeUnit.SECONDS);
+        } else {
+            DashCam.setDownloadCallback(context, this::downloadCallback);
+            downloadTaskExecutor.scheduleWithFixedDelay(DashCam.downloadTestVideos(), 0, delay, TimeUnit.SECONDS);
+        }
     }
 
     protected void stopDashDownload() {
@@ -708,6 +717,8 @@ public abstract class NearbyFragment extends Fragment {
         void addVideo(Video video);
 
         void nextTransfer();
+
+        Runnable getSimulateDownloads(int delay, Consumer<Video> downloadCallback);
     }
 
     private class ReceiveFilePayloadCallback extends PayloadCallback {
