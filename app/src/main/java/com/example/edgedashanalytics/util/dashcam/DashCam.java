@@ -295,9 +295,9 @@ public class DashCam {
             }
         };
 
-        int defaultDelay = 1;
+        String defaultDelay = "1";
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-        int delay = pref.getInt(context.getString(R.string.download_delay_key), defaultDelay);
+        int delay = Integer.parseInt(pref.getString(context.getString(R.string.download_delay_key), defaultDelay));
 
         downloadExecutor.scheduleWithFixedDelay(downloadRunnable, 0, delay, TimeUnit.SECONDS);
     }

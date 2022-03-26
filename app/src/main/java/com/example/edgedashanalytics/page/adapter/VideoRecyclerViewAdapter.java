@@ -40,7 +40,6 @@ import java.util.stream.Collectors;
  */
 public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<VideoRecyclerViewAdapter.VideoViewHolder> {
     private static final String TAG = VideoRecyclerViewAdapter.class.getSimpleName();
-    private static final int DEFAULT_DELAY = 15;
 
     List<Video> videos;
     SelectionTracker<Long> tracker;
@@ -55,17 +54,18 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
         this.tracker = tracker;
     }
 
-    public void processSelected(Selection<Long> positions, Context context) {
-        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-        boolean simDownload = pref.getBoolean(context.getString(R.string.enable_download_simulation_key), false);
-        int downloadDelay = pref.getInt(context.getString(R.string.download_simulation_delay_key), DEFAULT_DELAY);
+    public void processSelected(Selection<Long> positions, Context c) {
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(c);
+        boolean simDownload = pref.getBoolean(c.getString(R.string.enable_download_simulation_key), false);
+        String defaultDelay = "1";
+        int downloadDelay = Integer.parseInt(pref.getString(c.getString(R.string.simulation_delay_key), defaultDelay));
 
         if (simDownload) {
             Log.d(I_TAG, String.format("Starting simulated download with delay: %s", downloadDelay));
-            Thread transferDelayThread = new Thread(processSelectedDelay(positions, downloadDelay, context));
+            Thread transferDelayThread = new Thread(processSelectedDelay(positions, downloadDelay, c));
             transferDelayThread.start();
         } else {
-            processSelectedNow(positions, context);
+            processSelectedNow(positions, c);
         }
     }
 

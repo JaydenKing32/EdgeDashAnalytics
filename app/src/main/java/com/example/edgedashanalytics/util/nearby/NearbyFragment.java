@@ -305,16 +305,16 @@ public abstract class NearbyFragment extends Fragment {
             return;
         }
 
-        int defaultDelay = 1;
+        String defaultDelay = "1";
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-        int delay = pref.getInt(getString(R.string.download_delay_key), defaultDelay);
+        int delay = Integer.parseInt(pref.getString(context.getString(R.string.download_delay_key), defaultDelay));
 
         SettingsActivity.printPreferences(master, true, context);
         Log.w(I_TAG, "Started downloading from dash cam");
         PowerMonitor.startPowerMonitor(context);
 
         boolean simDownload = pref.getBoolean(context.getString(R.string.enable_download_simulation_key), false);
-        int simDelay = pref.getInt(context.getString(R.string.download_simulation_delay_key), defaultDelay);
+        int simDelay = Integer.parseInt(pref.getString(context.getString(R.string.simulation_delay_key), defaultDelay));
 
         if (simDownload) {
             downloadTaskExecutor.scheduleWithFixedDelay(listener.getSimulateDownloads(simDelay,
