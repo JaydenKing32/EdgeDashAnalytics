@@ -305,7 +305,7 @@ public abstract class NearbyFragment extends Fragment {
             return;
         }
 
-        String defaultDelay = "1";
+        String defaultDelay = "1000";
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         int delay = Integer.parseInt(pref.getString(context.getString(R.string.download_delay_key), defaultDelay));
 
@@ -318,10 +318,10 @@ public abstract class NearbyFragment extends Fragment {
 
         if (simDownload) {
             downloadTaskExecutor.scheduleWithFixedDelay(listener.getSimulateDownloads(simDelay,
-                    this::downloadCallback), 0, delay, TimeUnit.SECONDS);
+                    this::downloadCallback), 0, delay, TimeUnit.MILLISECONDS);
         } else {
             DashCam.setDownloadCallback(context, this::downloadCallback);
-            downloadTaskExecutor.scheduleWithFixedDelay(DashCam.downloadTestVideos(), 0, delay, TimeUnit.SECONDS);
+            downloadTaskExecutor.scheduleWithFixedDelay(DashCam.downloadTestVideos(), 0, delay, TimeUnit.MILLISECONDS);
         }
     }
 

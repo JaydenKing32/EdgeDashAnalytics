@@ -57,7 +57,7 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
     public void processSelected(Selection<Long> positions, Context c) {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(c);
         boolean simDownload = pref.getBoolean(c.getString(R.string.enable_download_simulation_key), false);
-        String defaultDelay = "1";
+        String defaultDelay = "1000";
         int downloadDelay = Integer.parseInt(pref.getString(c.getString(R.string.simulation_delay_key), defaultDelay));
 
         if (simDownload) {
@@ -99,8 +99,7 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
                 }
 
                 try {
-                    // Seconds to milliseconds
-                    Thread.sleep(delay * 1000L);
+                    Thread.sleep(delay);
                 } catch (InterruptedException e) {
                     Log.e(I_TAG, String.format("Thread error: \n%s", e.getMessage()));
                 }
@@ -120,8 +119,7 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
                 }
 
                 try {
-                    // Seconds to milliseconds
-                    Thread.sleep(delay * 1000L);
+                    Thread.sleep(delay);
                 } catch (InterruptedException e) {
                     Log.e(I_TAG, String.format("Simulated download interrupted: \n%s", e.getMessage()));
                 }
