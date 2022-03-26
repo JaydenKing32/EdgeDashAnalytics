@@ -28,6 +28,8 @@ import com.example.edgedashanalytics.page.main.VideoFragment;
 import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.video.analysis.AnalysisTools;
 
+import org.apache.commons.lang3.time.DurationFormatUtils;
+
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -124,12 +126,18 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
                 toDownload.add(videoList.pop());
             }
 
+            // Assumes concurrent downloading, all downloads share a single delay instead of each having their own
             try {
                 Thread.sleep(delay);
             } catch (InterruptedException e) {
                 Log.e(I_TAG, String.format("Simulated download interrupted: \n%s", e.getMessage()));
             }
-            toDownload.forEach(downloadCallback);
+
+            toDownload.forEach((v) -> {
+                String time = DurationFormatUtils.formatDuration(delay, "ss.SSS");
+                Log.i(I_TAG, String.format("Successfully downloaded %s in %ss", v.getName(), time));
+                downloadCallback.accept(v);
+            });
         };
     }
 
