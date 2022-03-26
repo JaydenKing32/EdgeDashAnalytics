@@ -18,7 +18,7 @@ ffmpeg = ["ffmpeg", "-v", "warning", "-threads", "1"]
 
 fps = 30
 seconds_per_vid = 2
-frames_per_vid = fps * seconds_per_vid
+frames_per_vid = int(fps * seconds_per_vid)
 video_count = 1
 verbose = False
 
