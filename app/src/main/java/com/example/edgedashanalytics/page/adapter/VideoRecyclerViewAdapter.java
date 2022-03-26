@@ -114,11 +114,14 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
         int downloadCount = dualDownload ? 2 : 1;
 
         return () -> {
+            ArrayList<Video> toDownload = new ArrayList<>(2);
+
             for (int i = 0; i < downloadCount; i++) {
                 if (videoList.isEmpty()) {
                     downloadCallback.accept(null);
+                    return;
                 }
-                downloadCallback.accept(videoList.pop());
+                toDownload.add(videoList.pop());
             }
 
             try {
@@ -126,6 +129,7 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
             } catch (InterruptedException e) {
                 Log.e(I_TAG, String.format("Simulated download interrupted: \n%s", e.getMessage()));
             }
+            toDownload.forEach(downloadCallback);
         };
     }
 
