@@ -16,25 +16,27 @@ import com.example.edgedashanalytics.util.video.FfmpegTools;
 import com.example.edgedashanalytics.util.video.analysis.Frame;
 import com.example.edgedashanalytics.util.video.analysis.InnerFrame;
 import com.example.edgedashanalytics.util.video.analysis.OuterFrame;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-import com.google.gson.stream.JsonReader;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.MappingIterator;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -62,6 +64,13 @@ public class FileManager {
 
     private static final List<File> DIRS = Arrays.asList(
             RAW_DIR, RESULTS_DIR, NEARBY_DIR, SEGMENT_DIR, SEGMENT_RES_DIR, LOG_DIR);
+
+    private static final ObjectWriter frameWriter = JsonMapper.builder()
+            .disable(MapperFeature.AUTO_DETECT_IS_GETTERS)
+            .visibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY)
+            .build().writer();
+    private static final ObjectReader innerReader = new ObjectMapper().readerFor(InnerFrame.class);
+    private static final ObjectReader outerReader = new ObjectMapper().readerFor(OuterFrame.class);
 
     public static String getRawDirPath() {
         return RAW_DIR.getAbsolutePath();
@@ -250,43 +259,10 @@ public class FileManager {
         }
 
         String outPath = String.format("%s/%s", getResultDirPath(), parentName);
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        Type collectionType;
-
-        if (isInner(baseName)) {
-            collectionType = new TypeToken<Collection<InnerFrame>>() {
-            }.getType();
-        } else {
-            collectionType = new TypeToken<Collection<OuterFrame>>() {
-            }.getType();
-        }
-
-        int offset = 0;
-        List<Frame> allFrames = new ArrayList<>();
 
         try {
-            for (String resultPath : resultPaths) {
-                FileReader fileReader = new FileReader(resultPath);
-                JsonReader jsonReader = new JsonReader(fileReader);
-                List<Frame> frames = gson.fromJson(jsonReader, collectionType);
-
-                for (Frame frame : frames) {
-                    frame.frame += offset;
-                }
-
-                offset = frames.get(frames.size() - 1).frame + 1;
-                allFrames.addAll(frames);
-
-                // Shouldn't be necessary, all frames should sorted as resultPaths are sorted
-                // frames.sort(Comparator.comparing(o -> o.frame));
-                fileReader.close();
-                jsonReader.close();
-            }
-
-            FileWriter writer = new FileWriter(outPath);
-            gson.toJson(allFrames, writer);
-            writer.flush();
-            writer.close();
+            List<Frame> frames = isInner(baseName) ? getInnerFrames(resultPaths) : getOuterFrames(resultPaths);
+            frameWriter.writeValue(new FileOutputStream(outPath), frames);
 
             String time = getDurationString(start);
             Log.d(I_TAG, String.format("Merged results of %s in %ss", baseName, time));
@@ -296,6 +272,44 @@ public class FileManager {
             Log.e(TAG, String.format("Results merge error: \n%s", e.getMessage()));
         }
         return null;
+    }
+
+    private static List<Frame> getInnerFrames(List<String> resultPaths) throws IOException {
+        int offset = 0;
+        List<Frame> allFrames = new ArrayList<>();
+
+        for (String resultPath : resultPaths) {
+            MappingIterator<InnerFrame> map = innerReader.readValues(new FileInputStream(resultPath));
+            List<InnerFrame> frames = map.readAll();
+
+            for (InnerFrame frame : frames) {
+                frame.frame += offset;
+            }
+
+            offset = frames.get(frames.size() - 1).frame + 1;
+            allFrames.addAll(frames);
+        }
+
+        return allFrames;
+    }
+
+    private static List<Frame> getOuterFrames(List<String> resultPaths) throws IOException {
+        int offset = 0;
+        List<Frame> allFrames = new ArrayList<>();
+
+        for (String resultPath : resultPaths) {
+            MappingIterator<OuterFrame> map = outerReader.readValues(new FileInputStream(resultPath));
+            List<OuterFrame> frames = map.readAll();
+
+            for (OuterFrame frame : frames) {
+                frame.frame += offset;
+            }
+
+            offset = frames.get(frames.size() - 1).frame + 1;
+            allFrames.addAll(frames);
+        }
+
+        return allFrames;
     }
 
     // Not file-related, should be in a different file
