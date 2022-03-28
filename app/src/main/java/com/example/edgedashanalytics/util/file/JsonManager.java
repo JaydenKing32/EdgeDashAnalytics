@@ -10,6 +10,7 @@ import com.example.edgedashanalytics.util.video.analysis.InnerFrame;
 import com.example.edgedashanalytics.util.video.analysis.OuterFrame;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,17 +31,19 @@ import java.util.List;
 
 public class JsonManager {
     private static final String TAG = JsonManager.class.getSimpleName();
-    private static final ObjectWriter frameWriter = JsonMapper.builder()
+
+    private static final ObjectMapper mapper = JsonMapper.builder()
             .disable(MapperFeature.AUTO_DETECT_IS_GETTERS)
             .visibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY)
-            .build().writer();
-    private static final ObjectReader innerReader = new ObjectMapper().readerFor(InnerFrame.class);
-    private static final ObjectReader outerReader = new ObjectMapper().readerFor(OuterFrame.class);
+            .build();
+    private static final ObjectWriter writer = mapper.writer();
+    private static final ObjectReader innerReader = mapper.readerFor(InnerFrame.class);
+    private static final ObjectReader outerReader = mapper.readerFor(OuterFrame.class);
 
     public static void writeResultsToJson(String jsonFilePath, List<Frame> frames) {
         try {
             frames.sort(Comparator.comparingInt(o -> o.frame));
-            frameWriter.writeValue(new FileOutputStream(jsonFilePath), frames);
+            writer.writeValue(new FileOutputStream(jsonFilePath), frames);
         } catch (Exception e) {
             Log.e(I_TAG, String.format("Failed to write results file:\n  %s", e.getMessage()));
         }
@@ -61,7 +64,7 @@ public class JsonManager {
         try {
             List<Frame> frames = FileManager.isInner(baseName) ?
                     getInnerFrames(resultPaths) : getOuterFrames(resultPaths);
-            frameWriter.writeValue(new FileOutputStream(outPath), frames);
+            writer.writeValue(new FileOutputStream(outPath), frames);
 
             String time = FileManager.getDurationString(start);
             Log.d(I_TAG, String.format("Merged results of %s in %ss", baseName, time));
@@ -109,5 +112,21 @@ public class JsonManager {
         }
 
         return allFrames;
+    }
+
+    public static String writeToString(Object object) {
+        try {
+            return writer.writeValueAsString(object);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
+    }
+
+    public static Object readFromString(String json, Class<?> classType) {
+        try {
+            return mapper.readValue(json, classType);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
     }
 }

@@ -56,7 +56,6 @@ import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
-import com.google.gson.Gson;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -97,7 +96,6 @@ public abstract class NearbyFragment extends Fragment {
     private final List<Future<?>> analysisFutures = new ArrayList<>();
     private final ScheduledExecutorService downloadTaskExecutor = Executors.newSingleThreadScheduledExecutor();
     private final LinkedHashMap<String, Instant> waitTimes = new LinkedHashMap<>();
-    private final Gson gson = new Gson();
 
     private ConnectionsClient connectionsClient;
     protected DeviceListAdapter deviceAdapter;
@@ -390,7 +388,7 @@ public abstract class NearbyFragment extends Fragment {
 
     private void sendHardwareInfo(Context context) {
         HardwareInfo hwi = new HardwareInfo(context);
-        String hwiMessage = String.join(MESSAGE_SEPARATOR, Command.HW_INFO.toString(), gson.toJson(hwi));
+        String hwiMessage = String.join(MESSAGE_SEPARATOR, Command.HW_INFO.toString(), hwi.toJson());
         Payload messageBytesPayload = Payload.fromBytes(hwiMessage.getBytes(UTF_8));
         Log.d(TAG, String.format("Sending hardware information: \n%s", hwi));
 
@@ -791,7 +789,7 @@ public abstract class NearbyFragment extends Fragment {
 
                         break;
                     case HW_INFO:
-                        HardwareInfo hwi = gson.fromJson(parts[1], HardwareInfo.class);
+                        HardwareInfo hwi = HardwareInfo.fromJson(parts[1]);
                         Log.i(TAG, String.format("Received hardware information from %s: \n%s", fromEndpoint, hwi));
                         fromEndpoint.hardwareInfo = hwi;
                         break;

@@ -11,6 +11,10 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.example.edgedashanalytics.util.file.JsonManager;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
@@ -24,6 +28,23 @@ public class HardwareInfo {
     public final long totalStorage;
     public final long availStorage;
     public final int batteryLevel;
+
+    @JsonCreator
+    public HardwareInfo(@JsonProperty("cpuFreq") long cpuFreq,
+                        @JsonProperty("cpuCores") int cpuCores,
+                        @JsonProperty("totalRam") long totalRam,
+                        @JsonProperty("availRam") long availRam,
+                        @JsonProperty("totalStorage") long totalStorage,
+                        @JsonProperty("availStorage") long availStorage,
+                        @JsonProperty("batteryLevel") int batteryLevel) {
+        this.cpuFreq = cpuFreq;
+        this.cpuCores = cpuCores;
+        this.totalRam = totalRam;
+        this.availRam = availRam;
+        this.totalStorage = totalStorage;
+        this.availStorage = availStorage;
+        this.batteryLevel = batteryLevel;
+    }
 
     public HardwareInfo(Context context) {
         cpuFreq = getCpuFreq();
@@ -114,6 +135,14 @@ public class HardwareInfo {
                 ", availStorage=" + availStorage +
                 ", batteryLevel=" + batteryLevel +
                 '}';
+    }
+
+    public String toJson() {
+        return JsonManager.writeToString(this);
+    }
+
+    public static HardwareInfo fromJson(String json) {
+        return (HardwareInfo) JsonManager.readFromString(json, HardwareInfo.class);
     }
 }
 
