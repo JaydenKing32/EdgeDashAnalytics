@@ -107,7 +107,7 @@ public class FfmpegTools {
         // Round segment time up to ensure that the number of split videos doesn't exceed segNum
         int segTime = (int) Math.ceil(FfmpegTools.getDuration(filePath) / segNum);
 
-        if (segTime < 2) {
+        if (segTime < 1) {
             Log.w(TAG, String.format("Segment time (%ds) too low, aborting split", segTime));
             return;
         }
