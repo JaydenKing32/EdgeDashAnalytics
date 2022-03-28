@@ -1,6 +1,5 @@
 package com.example.edgedashanalytics.util.file;
 
-import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 import static org.apache.commons.io.FilenameUtils.getBaseName;
 
 import android.content.Context;
@@ -13,25 +12,12 @@ import androidx.preference.PreferenceManager;
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.model.Result;
 import com.example.edgedashanalytics.util.video.FfmpegTools;
-import com.example.edgedashanalytics.util.video.analysis.Frame;
-import com.example.edgedashanalytics.util.video.analysis.InnerFrame;
-import com.example.edgedashanalytics.util.video.analysis.OuterFrame;
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.MappingIterator;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
-import com.fasterxml.jackson.databind.ObjectWriter;
-import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -65,13 +51,6 @@ public class FileManager {
     private static final List<File> DIRS = Arrays.asList(
             RAW_DIR, RESULTS_DIR, NEARBY_DIR, SEGMENT_DIR, SEGMENT_RES_DIR, LOG_DIR);
 
-    private static final ObjectWriter frameWriter = JsonMapper.builder()
-            .disable(MapperFeature.AUTO_DETECT_IS_GETTERS)
-            .visibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY)
-            .build().writer();
-    private static final ObjectReader innerReader = new ObjectMapper().readerFor(InnerFrame.class);
-    private static final ObjectReader outerReader = new ObjectMapper().readerFor(OuterFrame.class);
-
     public static String getRawDirPath() {
         return RAW_DIR.getAbsolutePath();
     }
@@ -96,7 +75,7 @@ public class FileManager {
         return SEGMENT_RES_DIR.getAbsolutePath();
     }
 
-    private static String getSegmentResDirPath(String subDir) {
+    static String getSegmentResDirPath(String subDir) {
         return makeDirectory(SEGMENT_RES_DIR, subDir).getAbsolutePath();
     }
 
@@ -238,7 +217,7 @@ public class FileManager {
         return results;
     }
 
-    private static List<String> getChildPaths(File dir) {
+    static List<String> getChildPaths(File dir) {
         File[] files = dir.listFiles();
 
         if (files == null) {
@@ -248,71 +227,7 @@ public class FileManager {
         return Arrays.stream(files).map(File::getAbsolutePath).sorted(String::compareTo).collect(Collectors.toList());
     }
 
-    public static Result mergeResults(String parentName) {
-        Instant start = Instant.now();
-        String baseName = FilenameUtils.getBaseName(parentName);
-        List<String> resultPaths = getChildPaths(new File(getSegmentResDirPath(baseName)));
-        Log.v(TAG, String.format("Starting merge of results of %s", baseName));
-
-        if (resultPaths == null) {
-            return null;
-        }
-
-        String outPath = String.format("%s/%s", getResultDirPath(), parentName);
-
-        try {
-            List<Frame> frames = isInner(baseName) ? getInnerFrames(resultPaths) : getOuterFrames(resultPaths);
-            frameWriter.writeValue(new FileOutputStream(outPath), frames);
-
-            String time = getDurationString(start);
-            Log.d(I_TAG, String.format("Merged results of %s in %ss", baseName, time));
-
-            return new Result(outPath);
-        } catch (IOException e) {
-            Log.e(TAG, String.format("Results merge error: \n%s", e.getMessage()));
-        }
-        return null;
-    }
-
-    private static List<Frame> getInnerFrames(List<String> resultPaths) throws IOException {
-        int offset = 0;
-        List<Frame> allFrames = new ArrayList<>();
-
-        for (String resultPath : resultPaths) {
-            MappingIterator<InnerFrame> map = innerReader.readValues(new FileInputStream(resultPath));
-            List<InnerFrame> frames = map.readAll();
-
-            for (InnerFrame frame : frames) {
-                frame.frame += offset;
-            }
-
-            offset = frames.get(frames.size() - 1).frame + 1;
-            allFrames.addAll(frames);
-        }
-
-        return allFrames;
-    }
-
-    private static List<Frame> getOuterFrames(List<String> resultPaths) throws IOException {
-        int offset = 0;
-        List<Frame> allFrames = new ArrayList<>();
-
-        for (String resultPath : resultPaths) {
-            MappingIterator<OuterFrame> map = outerReader.readValues(new FileInputStream(resultPath));
-            List<OuterFrame> frames = map.readAll();
-
-            for (OuterFrame frame : frames) {
-                frame.frame += offset;
-            }
-
-            offset = frames.get(frames.size() - 1).frame + 1;
-            allFrames.addAll(frames);
-        }
-
-        return allFrames;
-    }
-
-    // Not file-related, should be in a different file
+    // Not file-related, should be in a different class
     public static String getDurationString(Instant start) {
         return getDurationString(start, true);
     }

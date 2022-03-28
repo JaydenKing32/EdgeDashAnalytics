@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 // https://www.tensorflow.org/lite/tutorials/pose_classification
 // https://github.com/tensorflow/examples/tree/master/lite/examples/pose_estimation/android
 // https://github.com/tensorflow/examples/blob/master/lite/examples/pose_estimation/android/app/src/main/java/org/tensorflow/lite/examples/poseestimation/ml/MoveNet.kt
-public class InnerAnalysis extends VideoAnalysis<InnerFrame> {
+public class InnerAnalysis extends VideoAnalysis {
     private static final String TAG = InnerAnalysis.class.getSimpleName();
 
     private static final float MIN_SCORE = 0.2f;

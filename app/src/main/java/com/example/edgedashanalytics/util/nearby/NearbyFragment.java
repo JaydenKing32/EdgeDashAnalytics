@@ -31,6 +31,7 @@ import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.page.setting.SettingsActivity;
 import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.file.FileManager;
+import com.example.edgedashanalytics.util.file.JsonManager;
 import com.example.edgedashanalytics.util.hardware.HardwareInfo;
 import com.example.edgedashanalytics.util.hardware.PowerMonitor;
 import com.example.edgedashanalytics.util.nearby.Algorithm.AlgorithmKey;
@@ -490,7 +491,7 @@ public abstract class NearbyFragment extends Fragment {
         if (results.size() == resultTotal) {
             Log.d(TAG, String.format("Received all result segments of %s", baseName));
             String parentName = String.format("%s.%s", baseName, FilenameUtils.getExtension(resultName));
-            Result result = FileManager.mergeResults(parentName);
+            Result result = JsonManager.mergeResults(parentName);
 
             String videoName = FileManager.getVideoNameFromResultName(parentName);
             EventBus.getDefault().post(new AddResultEvent(result));
@@ -655,7 +656,7 @@ public abstract class NearbyFragment extends Fragment {
                 Log.e(TAG, String.format("Could not record wait time of %s", videoName));
             }
 
-            VideoAnalysis<?> videoAnalysis = video.isInner() ? new InnerAnalysis(context) : new OuterAnalysis(context);
+            VideoAnalysis videoAnalysis = video.isInner() ? new InnerAnalysis(context) : new OuterAnalysis(context);
             videoAnalysis.analyse(video.getData(), outPath);
 
             Result result = new Result(outPath);

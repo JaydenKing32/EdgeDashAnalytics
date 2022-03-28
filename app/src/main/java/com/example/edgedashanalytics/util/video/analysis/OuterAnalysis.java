@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 // https://www.tensorflow.org/lite/guide/android
 // https://www.tensorflow.org/lite/inference_with_metadata/task_library/object_detector
 // https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/running_on_mobile_tf2.md
-public class OuterAnalysis extends VideoAnalysis<OuterFrame> {
+public class OuterAnalysis extends VideoAnalysis {
     private static final String TAG = OuterAnalysis.class.getSimpleName();
 
     // Different models have different maximum detection limits

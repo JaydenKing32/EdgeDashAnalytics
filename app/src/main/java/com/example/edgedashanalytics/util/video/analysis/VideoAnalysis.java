@@ -12,20 +12,14 @@ import androidx.preference.PreferenceManager;
 
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.util.file.FileManager;
+import com.example.edgedashanalytics.util.file.JsonManager;
 import com.example.edgedashanalytics.util.hardware.HardwareInfo;
 import com.example.edgedashanalytics.util.hardware.PowerMonitor;
-import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectWriter;
-import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
@@ -33,12 +27,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public abstract class VideoAnalysis<T extends Frame> {
+public abstract class VideoAnalysis {
     private static final String TAG = VideoAnalysis.class.getSimpleName();
     private static final boolean DEFAULT_VERBOSE = false;
-    private static final ObjectWriter writer = JsonMapper.builder()
-            .disable(MapperFeature.AUTO_DETECT_IS_GETTERS).visibility(PropertyAccessor.FIELD, Visibility.ANY)
-            .build().writer();
 
     final static int TF_THREAD_NUM = 4;
     final static int THREAD_NUM = 2;
@@ -58,7 +49,7 @@ public abstract class VideoAnalysis<T extends Frame> {
         this.verbose = pref.getBoolean(context.getString(R.string.verbose_output_key), DEFAULT_VERBOSE);
     }
 
-    abstract T processFrame(Bitmap bitmap, int frameIndex, float scaleFactor);
+    abstract Frame processFrame(Bitmap bitmap, int frameIndex, float scaleFactor);
 
     abstract void setup(int width, int height);
 
@@ -90,7 +81,7 @@ public abstract class VideoAnalysis<T extends Frame> {
         Log.d(I_TAG, startString);
         Log.d(TAG, String.format("Total frames of %s: %d", videoName, totalFrames));
 
-        final List<T> frames = Collections.synchronizedList(new ArrayList<>(totalFrames));
+        final List<Frame> frames = Collections.synchronizedList(new ArrayList<>(totalFrames));
 
         ExecutorService executor = Executors.newFixedThreadPool(THREAD_NUM);
         processFramesLoop(retriever, totalFrames, frames, executor);
@@ -107,7 +98,7 @@ public abstract class VideoAnalysis<T extends Frame> {
             Log.e(I_TAG, "Could not complete processing in time");
             return;
         }
-        writeResultsToJson(outPath, frames);
+        JsonManager.writeResultsToJson(outPath, frames);
 
         String time = FileManager.getDurationString(startTime);
         long powerConsumption = PowerMonitor.getPowerConsumption(startPower);
@@ -119,7 +110,7 @@ public abstract class VideoAnalysis<T extends Frame> {
     }
 
     private void processFramesLoop(MediaMetadataRetriever retriever, int totalFrames,
-                                   List<T> frames, ExecutorService executor) {
+                                   List<Frame> frames, ExecutorService executor) {
         String videoWidthString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH);
         String videoHeightString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT);
         int videoWidth = Integer.parseInt(videoWidthString);
@@ -151,15 +142,6 @@ public abstract class VideoAnalysis<T extends Frame> {
 
                 executor.submit(() -> frames.add(processFrame(bitmap, curFrame, scaleFactor)));
             }
-        }
-    }
-
-    private void writeResultsToJson(String jsonFilePath, List<T> frames) {
-        try {
-            frames.sort(Comparator.comparingInt(o -> o.frame));
-            writer.writeValue(new FileOutputStream(jsonFilePath), frames);
-        } catch (Exception e) {
-            Log.e(I_TAG, String.format("Failed to write results file:\n  %s", e.getMessage()));
         }
     }
 }
