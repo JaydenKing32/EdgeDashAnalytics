@@ -127,6 +127,7 @@ summary_header = [
 
 excel = False
 proper_name = False
+max_row_size = 0
 
 
 class Video:
@@ -403,6 +404,15 @@ def get_basename_sans_ext(filename: str) -> str:
 def excel_format(string: str) -> str:
     # \t prevents excel cell type conversion
     return f"\t{string}" if excel and string else string
+
+
+def pad_row(row: List[str]) -> List[str]:
+    pad_size = max_row_size - len(row)
+    return row + [''] * pad_size
+
+
+def write_row(writer, row: List[str]):
+    writer.writerow(pad_row(row))
 
 
 def get_device_name(short_serial: str) -> str:
@@ -702,14 +712,14 @@ def parse_offline_logs(log_dir: str, runs: List[Analysis]):
 
 
 def write_offline_runs(runs: List[Analysis], writer):
-    writer.writerow(["Offline"])
+    write_row(writer, ["Offline"])
 
     for run in [r for r in runs if r.algorithm == "offline"]:
         videos = run.videos
 
         missed = check_video_count(list(videos.values()))
-        writer.writerow([f"Device: {run.get_master_full_name()}"])
-        writer.writerow([
+        write_row(writer, [f"Device: {run.get_master_full_name()}"])
+        write_row(writer, [
             f"Download Delay: {run.delay}",
             f"Object Model: {run.object_model}",
             f"Pose Model: {run.pose_model}",
@@ -719,12 +729,12 @@ def write_offline_runs(runs: List[Analysis], writer):
             "",
             f"Dir: {run.get_sub_log_dir()}",
         ])
-        writer.writerow(offline_header)
+        write_row(writer, offline_header)
 
         for video in videos.values():
-            writer.writerow(video.get_offline_stats())
+            write_row(writer, video.get_offline_stats())
 
-        writer.writerow([
+        write_row(writer, [
             "Total",
             f"{run.down_time:.3f}",
             f"{run.analysis_time:.3f}",
@@ -733,7 +743,7 @@ def write_offline_runs(runs: List[Analysis], writer):
             f"{run.network_power:.3f}",
             f"{run.analysis_power:.3f}"
         ])
-        writer.writerow([
+        write_row(writer, [
             "Average",
             f"{run.avg_down_time:.3f}",
             f"{run.avg_analysis_time:.3f}",
@@ -742,23 +752,23 @@ def write_offline_runs(runs: List[Analysis], writer):
             f"{run.avg_network_power:.3f}",
             f"{run.avg_analysis_power:.3f}"
         ])
-        writer.writerow([
+        write_row(writer, [
             "Total total time", run.get_time_string(),
             "Total total power", f"{run.get_total_power():.3f}"
         ])
-    writer.writerow('')
+    write_row(writer, [])
 
 
 def write_online_run(run: Analysis, writer):
     missed = check_video_count(list(run.videos.values()))
 
-    writer.writerow([
+    write_row(writer, [
         f"Master: {run.get_master_full_name()}",
         f"Segments: {run.seg_num}",
         f"Nodes: {run.nodes}",
         f"Algorithm: {run.get_algorithm_name()}"
     ])
-    writer.writerow([
+    write_row(writer, [
         f"Local Processing: {run.local}",
         f"Download Delay: {run.delay}",
         f"Object Model: {run.object_model}",
@@ -771,21 +781,21 @@ def write_online_run(run: Analysis, writer):
 
     # Cannot cleanly separate videos between devices when segmentation is used
     if run.seg_num > 1:
-        writer.writerow(["Device", "Total Power (mW)", "Network"])
+        write_row(writer, ["Device", "Total Power (mW)", "Network"])
         for device_name, device in run.devices.items():
-            writer.writerow([get_device_name(device_name), f"{device.total_power:.3f}", device.network])
+            write_row(writer, [get_device_name(device_name), f"{device.total_power:.3f}", device.network])
 
-        writer.writerow(online_header)
+        write_row(writer, online_header)
 
         for video in run.videos.values():
-            writer.writerow(video.get_stats())
+            write_row(writer, video.get_stats())
 
-        writer.writerow(["Total"] + run.get_total_stats())
-        writer.writerow(["Average"] + run.get_average_stats())
+        write_row(writer, ["Total"] + run.get_total_stats())
+        write_row(writer, ["Average"] + run.get_average_stats())
 
     else:
         for device_name, device in run.devices.items():
-            writer.writerow([f"Device: {get_device_name(device_name)}", f"Network: {device.network}"])
+            write_row(writer, [f"Device: {get_device_name(device_name)}", f"Network: {device.network}"])
 
             # Master videos list should only contain videos that haven't been transferred
             videos = [v for v in device.videos.values() if v.transfer_time == 0] \
@@ -793,13 +803,13 @@ def write_online_run(run: Analysis, writer):
                 else list(device.videos.values())
 
             if not videos:
-                writer.writerow(["Did not analyse any videos"])
+                write_row(writer, ["Did not analyse any videos"])
                 continue
 
-            writer.writerow(online_header + ["Total total power", f"{device.total_power:.3f}"])
+            write_row(writer, online_header + ["Total total power", f"{device.total_power:.3f}"])
 
             for video in videos:
-                writer.writerow(video.get_stats())
+                write_row(writer, video.get_stats())
 
             video_count = len(videos)
             if video_count > 1:
@@ -812,7 +822,7 @@ def write_online_run(run: Analysis, writer):
                 total_network_power = sum(v.down_power + v.transfer_power for v in videos)
                 total_analysis_power = sum(v.analysis_power for v in videos)
 
-                writer.writerow([
+                write_row(writer, [
                     "Total",
                     f"{total_down_time:.3f}",
                     f"{total_transfer_time:.3f}" if total_transfer_time != 0 else "n/a",
@@ -824,7 +834,7 @@ def write_online_run(run: Analysis, writer):
                     f"{total_analysis_power:.3f}"
                 ])
 
-                writer.writerow([
+                write_row(writer, [
                     "Average",
                     f"{total_down_time / video_count:.3f}",
                     f"{total_transfer_time / video_count:.3f}" if total_transfer_time != 0 else "n/a",
@@ -837,21 +847,21 @@ def write_online_run(run: Analysis, writer):
                 ])
 
         if sum(1 for device in run.devices.values() if device) > 1:
-            writer.writerow(["Combined total"] + run.get_total_stats())
-            writer.writerow(["Combined average"] + run.get_average_stats())
+            write_row(writer, ["Combined total"] + run.get_total_stats())
+            write_row(writer, ["Combined average"] + run.get_average_stats())
 
-    writer.writerow([
+    write_row(writer, [
         "Total total time", run.get_time_string(),
         "Total total power", f"{run.get_total_power():.3f}"
     ])
-    writer.writerow('')
+    write_row(writer, [])
 
 
 def write_spread_totals(runs: List[Analysis], writer):
-    writer.writerow(summary_header + ["Summary of totals"])
+    write_row(writer, summary_header + ["Summary of totals"])
 
     for run in runs:
-        writer.writerow([
+        write_row(writer, [
             run.get_master_full_name(),
             excel_format(run.get_worker_string()),
             "Duo" if len(run.devices) == 2 else run.get_algorithm_name(),
@@ -871,7 +881,7 @@ def write_spread_totals(runs: List[Analysis], writer):
         ])
 
     time = timedelta(seconds=sum(run.total_time.total_seconds() for run in runs))
-    writer.writerow(["Total"] + ['', ''] + [
+    write_row(writer, ["Total"] + ['', ''] + [
         f"{sum(run.down_time for run in runs):.3f}",
         f"{sum(run.transfer_time for run in runs):.3f}",
         f"{sum(run.return_time for run in runs):.3f}",
@@ -884,14 +894,14 @@ def write_spread_totals(runs: List[Analysis], writer):
         f"{sum(run.total_time.total_seconds() for run in runs):.3f}",
         excel_format(format_timedelta(time))
     ])
-    writer.writerow('')
+    write_row(writer, [])
 
 
 def write_spread_averages(runs: List[Analysis], writer):
-    writer.writerow(summary_header + ["Summary of averages"])
+    write_row(writer, summary_header + ["Summary of averages"])
 
     for run in runs:
-        writer.writerow([
+        write_row(writer, [
             run.get_master_full_name(),
             excel_format(run.get_worker_string()),
             "Duo" if len(run.devices) == 2 else run.get_algorithm_name(),
@@ -911,7 +921,7 @@ def write_spread_averages(runs: List[Analysis], writer):
         ])
 
     time = timedelta(seconds=sum(run.total_time.total_seconds() for run in runs) / len(runs))
-    writer.writerow(["Average"] + ['', ''] + [
+    write_row(writer, ["Average"] + ['', ''] + [
         f"{sum(run.avg_down_time for run in runs) / len(runs):.3f}",
         f"{sum(run.avg_transfer_time for run in runs) / len(runs):.3f}",
         f"{sum(run.avg_return_time for run in runs) / len(runs):.3f}",
@@ -924,12 +934,12 @@ def write_spread_averages(runs: List[Analysis], writer):
         f"{sum(run.total_time.total_seconds() for run in runs) / len(runs):.3f}",
         excel_format(format_timedelta(time))
     ])
-    writer.writerow('')
+    write_row(writer, [])
 
 
 def write_tables(runs: List[Analysis], writer):
-    writer.writerow(["Offline tests"])
-    writer.writerow([
+    write_row(writer, ["Offline tests"])
+    write_row(writer, [
         "Device",
         "Download time (s)",
         "Processing time (s)",
@@ -955,16 +965,17 @@ def write_tables(runs: List[Analysis], writer):
         ]
         averages_list.append(averages)
 
-        writer.writerow(
+        write_row(
+            writer,
             [run.get_master_full_name()] +
             [f"{a:.3f}" for a in averages[:-1]] +
             [run.get_time_seconds_string()]
         )
-    writer.writerow(get_average_row(averages_list))
-    writer.writerow('')
+    write_row(writer, get_average_row(averages_list))
+    write_row(writer, [])
 
-    writer.writerow(["Two-node tests"])
-    writer.writerow([
+    write_row(writer, ["Two-node tests"])
+    write_row(writer, [
         "Worker",
         "Transfer time (s)",
         "Return time (s)",
@@ -982,14 +993,14 @@ def write_tables(runs: List[Analysis], writer):
     for run in [r for r in runs if len(r.devices) == 2]:
         if run.get_master_full_name() != prev_master:
             if averages_list:
-                writer.writerow(get_average_row(averages_list))
+                write_row(writer, get_average_row(averages_list))
                 averages_list = []
             prev_master = run.get_master_full_name()
 
             down_times = [
                 r.avg_down_time for r in runs if r.get_master_full_name() == prev_master and len(r.devices) == 2]
             avg_down_time = sum(t for t in down_times) / len(down_times)
-            writer.writerow([
+            write_row(writer, [
                 "Master:", prev_master,
                 "Download time (s):", f"{avg_down_time:.3f}"
             ])
@@ -1007,16 +1018,17 @@ def write_tables(runs: List[Analysis], writer):
         ]
         averages_list.append(averages)
 
-        writer.writerow(
+        write_row(
+            writer,
             [run.get_worker_string()] +
             [f"{a:.3f}" for a in averages[:-1]] +
             [run.get_time_seconds_string()]
         )
-    writer.writerow(get_average_row(averages_list))
-    writer.writerow('')
+    write_row(writer, get_average_row(averages_list))
+    write_row(writer, [])
 
-    writer.writerow(["Three-node tests"])
-    writer.writerow([
+    write_row(writer, ["Three-node tests"])
+    write_row(writer, [
         "Algorithm",
         "Transfer time (s)",
         "Return time (s)",
@@ -1035,7 +1047,7 @@ def write_tables(runs: List[Analysis], writer):
     for run in [r for r in runs if len(r.devices) == 3]:
         if run.get_master_full_name() != prev_master or run.get_worker_string() != prev_workers:
             if averages_list:
-                writer.writerow(get_average_row(averages_list))
+                write_row(writer, get_average_row(averages_list))
                 averages_list = []
             prev_master = run.get_master_full_name()
             prev_workers = run.get_worker_string()
@@ -1044,7 +1056,7 @@ def write_tables(runs: List[Analysis], writer):
                 r.avg_down_time for r in runs if
                 r.get_master_full_name() == prev_master and r.get_worker_string() == prev_workers]
             avg_down_time = sum(t for t in down_times) / len(down_times)
-            writer.writerow([
+            write_row(writer, [
                 "Master:", prev_master,
                 "Workers:", prev_workers,
                 "Download time (s):", f"{avg_down_time:.3f}"
@@ -1063,12 +1075,13 @@ def write_tables(runs: List[Analysis], writer):
         ]
         averages_list.append(averages)
 
-        writer.writerow(
+        write_row(
+            writer,
             [run.get_algorithm_name()] +
             [f"{a:.3f}" for a in averages[:-1]] +
             [run.get_time_seconds_string()]
         )
-    writer.writerow(get_average_row(averages_list))
+    write_row(writer, get_average_row(averages_list))
 
 
 def make_spreadsheet(root: str, out: str, append: bool, sort: bool, full_results: bool, table: bool):
@@ -1134,11 +1147,16 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--append", action="store_true", help="append to results file instead of overwriting it")
     parser.add_argument("-s", "--sort", action="store_true", help="sort summaries based on config instead of log paths")
     parser.add_argument("-e", "--excel", action="store_true", help="use measures to prevent excel cell type conversion")
-    parser.add_argument("-p", "--proper-name", action="store_true", help="use device model names instead of serial ID")
+    parser.add_argument("-n", "--names", action="store_true", help="use device model names instead of serial ID")
     parser.add_argument("-f", "--full-results", action="store_true", help="full results instead of just summaries")
     parser.add_argument("-t", "--table", action="store_true", help="structure results in summary tables")
+    parser.add_argument("-p", "--pad", action="store_true", help="ensure all rows have the same number of commas")
     args = parser.parse_args()
 
     excel = args.excel
-    proper_name = args.proper_name or args.table
+    proper_name = args.names or args.table
+
+    if args.pad:
+        max_row_size = 11 if args.table else 17
+
     make_spreadsheet(args.dir, args.output, args.append, args.sort, args.full_results, args.table)
