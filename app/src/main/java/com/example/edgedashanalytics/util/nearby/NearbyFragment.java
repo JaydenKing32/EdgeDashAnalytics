@@ -103,6 +103,7 @@ public abstract class NearbyFragment extends Fragment {
     private Listener listener;
     private boolean verbose;
     private boolean master = false;
+    private boolean dualDownload = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -116,6 +117,7 @@ public abstract class NearbyFragment extends Fragment {
 
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(activity);
         verbose = pref.getBoolean(getString(R.string.verbose_output_key), false);
+        dualDownload = pref.getBoolean(getString(R.string.dual_download_key), false);
 
         deviceAdapter = new DeviceListAdapter(listener, activity, discoveredEndpoints);
         connectionsClient = Nearby.getConnectionsClient(activity);
@@ -331,7 +333,30 @@ public abstract class NearbyFragment extends Fragment {
         }
         if (isConnected()) {
             EventBus.getDefault().post(new AddEvent(video, Type.RAW));
-            addVideo(video);
+
+            // List<Endpoint> endpoints = getConnectedEndpoints();
+            // if (video.isInner()) {
+            //     Endpoint onePlus = endpoints.stream().filter(e -> e.name.contains("IN2013"))
+            //             .collect(Collectors.toList()).get(0);
+            //     sendFile(new Message(video, Command.ANALYSE), onePlus);
+            // } else {
+            //     Endpoint pixel = endpoints.stream().filter(e -> e.name.contains("Pixel 6"))
+            //             .collect(Collectors.toList()).get(0);
+            // }
+
+            List<Endpoint> endpoints = getConnectedEndpoints();
+            int freeEndpointCount = (int) endpoints.stream().filter(Endpoint::isInactive).count();
+
+            if (dualDownload && endpoints.size() > 1 &&
+                    (freeEndpointCount < endpoints.size() || endpoints.size() % 2 == 1)) {
+                // Free endpoints and master
+                // splitAndQueue(video.getData(), freeEndpointCount + 1);
+                splitAndQueue(video.getData(), 2);
+            } else {
+                addVideo(video);
+            }
+
+            // addVideo(video);
             nextTransfer();
         } else {
             analyse(video, false);
@@ -452,6 +477,7 @@ public abstract class NearbyFragment extends Fragment {
             return;
         }
 
+        Instant start = Instant.now();
         String baseVideoName = FilenameUtils.getBaseName(videoPath);
         List<Video> videos = FfmpegTools.splitAndReturn(context, videoPath, segNum);
 
@@ -459,6 +485,9 @@ public abstract class NearbyFragment extends Fragment {
             Log.e(I_TAG, String.format("Could not split %s", baseVideoName));
             return;
         }
+
+        String time = FileManager.getDurationString(start);
+        Log.i(I_TAG, String.format("Split %s into %s segments in %ss", baseVideoName, segNum, time));
 
         int vidNum = videos.size();
         if (vidNum != segNum) {
