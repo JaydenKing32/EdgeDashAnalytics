@@ -561,12 +561,12 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
                 video_name = get_video_name(wait.group(2))
                 wait_time = float(wait.group(3))
 
-                videos[video_name].wait_time = wait_time
+                videos[video_name].wait_time += wait_time
             elif turn is not None:
                 video_name = get_video_name(turn.group(2))
                 turn_time = float(turn.group(3))
 
-                videos[video_name].turnaround_time = turn_time
+                videos[video_name].turnaround_time += turn_time
             elif total_power is not None:
                 master.total_power = parse_power(total_power.group(2), master_name)
             elif average_power is not None:
@@ -615,12 +615,12 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
                     video_name = get_video_name(wait.group(2))
                     wait_time = float(wait.group(3))
 
-                    videos[video_name].wait_time = wait_time
+                    videos[video_name].wait_time += wait_time
                 elif turn is not None:
                     video_name = get_video_name(turn.group(2))
                     turn_time = float(turn.group(3))
 
-                    videos[video_name].turnaround_time = turn_time
+                    videos[video_name].turnaround_time += turn_time
                 elif total_power is not None:
                     worker.total_power = parse_power(total_power.group(2), device_name)
                 elif average_power is not None:
