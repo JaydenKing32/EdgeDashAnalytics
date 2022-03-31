@@ -25,7 +25,6 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public abstract class VideoAnalysis {
     private static final String TAG = VideoAnalysis.class.getSimpleName();
@@ -122,26 +121,13 @@ public abstract class VideoAnalysis {
 
         setup(scaledWidth, scaledHeight);
 
-        // getFramesAtIndex is inconsistent, seems to only reliably with x264, may fail with other codecs
-        // Using getFramesAtIndex on a full video requires too much memory, while extracting each frame separately
-        // through getFrameAtIndex is too slow. Instead use a buffer, extracting groups of frames
-        for (int i = 0; i < totalFrames; i += bufferSize) {
-            int frameBuffSize = Integer.min(bufferSize, totalFrames - i);
-            List<Bitmap> frameBuffer = retriever.getFramesAtIndex(i, frameBuffSize).stream()
-                    .map(b -> Bitmap.createScaledBitmap(b, scaledWidth, scaledHeight, false))
-                    .collect(Collectors.toList());
-
-            for (int k = 0; k < frameBuffSize; k++) {
-                Bitmap bitmap = frameBuffer.get(k);
-                int curFrame = i + k;
-
-                if (bitmap == null) {
-                    Log.w(I_TAG, String.format("Could not extract frame at index %d", curFrame));
-                    continue;
-                }
-
-                executor.submit(() -> frames.add(processFrame(bitmap, curFrame, scaleFactor)));
-            }
+        // MediaMetadataRetriever is inconsistent, seems to only reliably with x264, may fail with other codecs
+        for (int i = 0; i < totalFrames; i++) {
+            final Bitmap bitmap = retriever.getFrameAtIndex(i);
+            final int k = i;
+            executor.submit(() -> frames.add(processFrame(
+                    Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, false), k, scaleFactor)
+            ));
         }
     }
 }
