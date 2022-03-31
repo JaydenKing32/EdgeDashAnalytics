@@ -346,12 +346,13 @@ public abstract class NearbyFragment extends Fragment {
 
             List<Endpoint> endpoints = getConnectedEndpoints();
             int freeEndpointCount = (int) endpoints.stream().filter(Endpoint::isInactive).count();
+            int totalEndpointCount = endpoints.size();
 
-            if (dualDownload && endpoints.size() > 1 &&
-                    (freeEndpointCount < endpoints.size() || endpoints.size() % 2 == 1)) {
+            if (dualDownload && totalEndpointCount > 1 &&
+                    freeEndpointCount < totalEndpointCount && totalEndpointCount % 2 == 0) {
                 // Free endpoints and master
                 // splitAndQueue(video.getData(), freeEndpointCount + 1);
-                splitAndQueue(video.getData(), 2);
+                splitAndQueue(video.getData(), totalEndpointCount);
             } else {
                 addVideo(video);
             }
@@ -360,6 +361,29 @@ public abstract class NearbyFragment extends Fragment {
             nextTransfer();
         } else {
             analyse(video, false);
+        }
+    }
+
+    private void evenSegmentation(Video video) {
+        List<Endpoint> endpoints = getConnectedEndpoints();
+        Endpoint strongest = endpoints.stream()
+                .min((e1, e2) -> (int) (e1.hardwareInfo.cpuFreq - e2.hardwareInfo.cpuFreq))
+                .orElse(null);
+
+        // if (endpoints.size() % 2 == 0) {
+        if (video.isOuter()) {
+            sendFile(new Message(video, Command.ANALYSE), strongest);
+        } else {
+            List<Video> segments = FfmpegTools.splitAndReturn(getContext(), video.getData(), endpoints.size());
+            analyse(segments.remove(0), false);
+            List<Endpoint> remainingEndpoints = endpoints.stream()
+                    .filter(e -> e != strongest)
+                    .sorted((e1, e2) -> (int) (e1.hardwareInfo.cpuFreq - e2.hardwareInfo.cpuFreq))
+                    .collect(Collectors.toList());
+
+            for (int i = 0; i < segments.size() && i < remainingEndpoints.size(); i++) {
+                sendFile(new Message(segments.get(i), Command.SEGMENT), remainingEndpoints.get(i));
+            }
         }
     }
 
