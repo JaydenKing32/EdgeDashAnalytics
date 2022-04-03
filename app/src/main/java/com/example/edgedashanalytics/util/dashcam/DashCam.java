@@ -82,7 +82,11 @@ public class DashCam {
     private static final long updateInterval = 10000;
     private static final int retryAttempts = 5;
 
-    public static void setFetch(Context context) {
+    // Two subsets of videos, each comprised of 400 segments, every video is exactly two seconds in length
+    private static int testSubsetCount = 400;
+    private static List<String> testVideos;
+
+    public static void setup(Context context) {
         if (fetch == null) {
             FetchConfiguration fetchConfiguration = new FetchConfiguration.Builder(context)
                     .setDownloadConcurrentLimit(concurrentDownloads)
@@ -92,15 +96,26 @@ public class DashCam {
 
             fetch = Fetch.Impl.getInstance(fetchConfiguration);
             clearDownloads();
-
-            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-            dualDownload = pref.getBoolean(context.getString(R.string.dual_download_key), dualDownload);
         }
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        dualDownload = pref.getBoolean(context.getString(R.string.dual_download_key), dualDownload);
+        testSubsetCount = Integer.parseInt(pref.getString(
+                context.getString(R.string.test_video_count_key), String.valueOf(testSubsetCount)));
+
+        testVideos = IntStream.rangeClosed(1, testSubsetCount)
+                .mapToObj(i -> String.format(Locale.ENGLISH, "%04d", i))
+                .flatMap(num -> Stream.of(String.format("inn_%s.mp4", num), String.format("out_%s.mp4", num)))
+                .sorted(DashCam::testVideoComparator)
+                .collect(Collectors.toList());
     }
 
     public static void clearDownloads() {
         fetch.cancelAll();
         fetch.removeAll();
+    }
+
+    public static int getTestVideoCount() {
+        return testSubsetCount * 2;
     }
 
     public static void startDownloadAll(Context context) {
@@ -295,14 +310,14 @@ public class DashCam {
             }
         };
 
-        int defaultDelay = 1;
+        String defaultDelay = "1000";
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-        int delay = pref.getInt(context.getString(R.string.download_delay_key), defaultDelay);
+        int delay = Integer.parseInt(pref.getString(context.getString(R.string.download_delay_key), defaultDelay));
 
-        downloadExecutor.scheduleWithFixedDelay(downloadRunnable, 0, delay, TimeUnit.SECONDS);
+        downloadExecutor.scheduleWithFixedDelay(downloadRunnable, 0, delay, TimeUnit.MILLISECONDS);
     }
 
-    private static int testVideoComparator(String videoA, String videoB) {
+    public static int testVideoComparator(String videoA, String videoB) {
         String prefixA = videoA.substring(0, 3);
         String prefixB = videoB.substring(0, 3);
         int suffixA = Integer.parseInt(StringUtils.substringBetween(videoA, "_", "."));
@@ -335,14 +350,6 @@ public class DashCam {
     //
     //     return retriever.getFrameAtTime();
     // }
-
-    // Two subsets of videos, each comprised of 400 segments, every video is exactly two seconds in length
-    private static final int testSubsetCount = 400;
-    private static final List<String> testVideos = IntStream.rangeClosed(1, testSubsetCount)
-            .mapToObj(i -> String.format(Locale.ENGLISH, "%04d", i))
-            .flatMap(num -> Stream.of(String.format("inn_%s.mp4", num), String.format("out_%s.mp4", num)))
-            .sorted(DashCam::testVideoComparator)
-            .collect(Collectors.toList());
 
     private static FetchListener getFetchListener(Context context, Consumer<Video> downloadCallback) {
         return new FetchListener() {

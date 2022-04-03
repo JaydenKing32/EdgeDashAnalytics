@@ -79,6 +79,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public abstract class NearbyFragment extends Fragment {
@@ -303,16 +304,25 @@ public abstract class NearbyFragment extends Fragment {
             return;
         }
 
-        int defaultDelay = 1;
+        String defaultDelay = "1000";
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-        int delay = pref.getInt(getString(R.string.download_delay_key), defaultDelay);
+        int delay = Integer.parseInt(pref.getString(context.getString(R.string.download_delay_key), defaultDelay));
 
         SettingsActivity.printPreferences(master, true, context);
         Log.w(I_TAG, "Started downloading from dash cam");
         PowerMonitor.startPowerMonitor(context);
 
-        DashCam.setDownloadCallback(context, this::downloadCallback);
-        downloadTaskExecutor.scheduleWithFixedDelay(DashCam.downloadTestVideos(), 0, delay, TimeUnit.SECONDS);
+        boolean simDownload = pref.getBoolean(context.getString(R.string.enable_download_simulation_key), false);
+        int simDelay = Integer.parseInt(pref.getString(context.getString(R.string.simulation_delay_key), defaultDelay));
+        boolean dualDownload = pref.getBoolean(context.getString(R.string.dual_download_key), false);
+
+        if (simDownload) {
+            downloadTaskExecutor.scheduleWithFixedDelay(listener.getSimulateDownloads(simDelay,
+                    this::downloadCallback, dualDownload), 0, delay, TimeUnit.MILLISECONDS);
+        } else {
+            DashCam.setDownloadCallback(context, this::downloadCallback);
+            downloadTaskExecutor.scheduleWithFixedDelay(DashCam.downloadTestVideos(), 0, delay, TimeUnit.MILLISECONDS);
+        }
     }
 
     protected void stopDashDownload() {
@@ -757,6 +767,8 @@ public abstract class NearbyFragment extends Fragment {
         void addVideo(Video video);
 
         void nextTransfer();
+
+        Runnable getSimulateDownloads(int delay, Consumer<Video> downloadCallback, boolean dualDownload);
     }
 
     private class ReceiveFilePayloadCallback extends PayloadCallback {
