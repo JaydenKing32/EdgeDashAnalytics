@@ -25,10 +25,16 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.page.main.VideoFragment;
+import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.video.analysis.AnalysisTools;
 
+import org.apache.commons.lang3.time.DurationFormatUtils;
+
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * {@link RecyclerView.Adapter} that can display a {@link Video} and makes a call to the
@@ -36,7 +42,6 @@ import java.util.List;
  */
 public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<VideoRecyclerViewAdapter.VideoViewHolder> {
     private static final String TAG = VideoRecyclerViewAdapter.class.getSimpleName();
-    private static final int DEFAULT_DELAY = 15;
 
     List<Video> videos;
     SelectionTracker<Long> tracker;
@@ -51,17 +56,18 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
         this.tracker = tracker;
     }
 
-    public void processSelected(Selection<Long> positions, Context context) {
-        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-        boolean simDownload = pref.getBoolean(context.getString(R.string.enable_download_simulation_key), false);
-        int downloadDelay = pref.getInt(context.getString(R.string.download_simulation_delay_key), DEFAULT_DELAY);
+    public void processSelected(Selection<Long> positions, Context c) {
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(c);
+        boolean simDownload = pref.getBoolean(c.getString(R.string.enable_download_simulation_key), false);
+        String defaultDelay = "1000";
+        int downloadDelay = Integer.parseInt(pref.getString(c.getString(R.string.simulation_delay_key), defaultDelay));
 
         if (simDownload) {
             Log.d(I_TAG, String.format("Starting simulated download with delay: %s", downloadDelay));
-            Thread transferDelayThread = new Thread(processSelectedDelay(positions, downloadDelay, context));
+            Thread transferDelayThread = new Thread(processSelectedDelay(positions, downloadDelay, c));
             transferDelayThread.start();
         } else {
-            processSelectedNow(positions, context);
+            processSelectedNow(positions, c);
         }
     }
 
@@ -95,12 +101,46 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
                 }
 
                 try {
-                    // Seconds to milliseconds
-                    Thread.sleep(delay * 1000L);
+                    Thread.sleep(delay);
                 } catch (InterruptedException e) {
                     Log.e(I_TAG, String.format("Thread error: \n%s", e.getMessage()));
                 }
             }
+        };
+    }
+
+    public Runnable simulateDownloads(int delay, Consumer<Video> downloadCallback, boolean dualDownload) {
+        LinkedList<Video> videoList = videos.stream()
+                .sorted((v1, v2) -> DashCam.testVideoComparator(v1.getName(), v2.getName()))
+                .collect(Collectors.toCollection(LinkedList::new));
+        int downloadCount = dualDownload ? 2 : 1;
+
+        return () -> {
+            ArrayList<Video> toDownload = new ArrayList<>(2);
+
+            for (int i = 0; i < downloadCount; i++) {
+                if (videoList.isEmpty()) {
+                    downloadCallback.accept(null);
+                    return;
+                }
+                toDownload.add(videoList.pop());
+            }
+
+            // Assumes concurrent downloading, all downloads share a single delay instead of each having their own
+            try {
+                // Seems to add to ScheduledExecutorService's delay, set as 500ms, but ended up as 700ms
+                // Try something different from sleep
+                // Also need a simulated version of printTurnaroundTime
+                Thread.sleep(delay);
+            } catch (InterruptedException e) {
+                Log.e(I_TAG, String.format("Simulated download interrupted: \n%s", e.getMessage()));
+            }
+
+            toDownload.forEach((v) -> {
+                String time = DurationFormatUtils.formatDuration(delay, "ss.SSS");
+                Log.i(I_TAG, String.format("Successfully downloaded %s in %ss", v.getName(), time));
+                downloadCallback.accept(v);
+            });
         };
     }
 

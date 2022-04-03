@@ -295,14 +295,14 @@ public class DashCam {
             }
         };
 
-        int defaultDelay = 1;
+        String defaultDelay = "1000";
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-        int delay = pref.getInt(context.getString(R.string.download_delay_key), defaultDelay);
+        int delay = Integer.parseInt(pref.getString(context.getString(R.string.download_delay_key), defaultDelay));
 
-        downloadExecutor.scheduleWithFixedDelay(downloadRunnable, 0, delay, TimeUnit.SECONDS);
+        downloadExecutor.scheduleWithFixedDelay(downloadRunnable, 0, delay, TimeUnit.MILLISECONDS);
     }
 
-    private static int testVideoComparator(String videoA, String videoB) {
+    public static int testVideoComparator(String videoA, String videoB) {
         String prefixA = videoA.substring(0, 3);
         String prefixB = videoB.substring(0, 3);
         int suffixA = Integer.parseInt(StringUtils.substringBetween(videoA, "_", "."));
