@@ -107,7 +107,7 @@ public class MainActivity extends AppCompatActivity implements
         setUpFragments();
         FileManager.initialiseDirectories();
         storeLogsInFile();
-        DashCam.setFetch(this);
+        DashCam.setup(this);
     }
 
     private void storeLogsInFile() {

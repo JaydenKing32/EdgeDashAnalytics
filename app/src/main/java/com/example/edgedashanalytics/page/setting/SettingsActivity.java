@@ -88,6 +88,7 @@ public class SettingsActivity extends AppCompatActivity {
         boolean isCharging = ((BatteryManager) c.getSystemService(Context.BATTERY_SERVICE)).isCharging();
         boolean sim = pref.getBoolean(c.getString(R.string.enable_download_simulation_key), defaultBool);
         int simDelay = Integer.parseInt(pref.getString(c.getString(R.string.simulation_delay_key), defaultString));
+        int testVideoCount = DashCam.getTestVideoCount();
 
         StringJoiner prefMessage = new StringJoiner("\n  ");
         prefMessage.add("Preferences:");
@@ -106,6 +107,7 @@ public class SettingsActivity extends AppCompatActivity {
         prefMessage.add(String.format("Charging: %s", isCharging));
         prefMessage.add(String.format("Simulated downloads: %s", sim));
         prefMessage.add(String.format("Simulated delay: %s", simDelay));
+        prefMessage.add(String.format("Test video count: %s", testVideoCount));
 
         Log.i(I_TAG, prefMessage.toString());
 
@@ -159,6 +161,8 @@ public class SettingsActivity extends AppCompatActivity {
             setupTextPreference(downloadDelay);
             EditTextPreference simDelay = findPreference(getString(R.string.simulation_delay_key));
             setupTextPreference(simDelay);
+            EditTextPreference testVideoCount = findPreference(getString(R.string.test_video_count_key));
+            setupTextPreference(testVideoCount);
         }
 
         private boolean clearLogsPrompt() {

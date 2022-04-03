@@ -33,6 +33,13 @@
         android:title="@string/pose_model_title"
         app:useSimpleSummaryProvider="true" />
     <EditTextPreference
+        android:id="@+id/test_video_count_preference"
+        android:defaultValue="400"
+        android:key="@string/test_video_count_key"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/test_video_count_title" />
+    <EditTextPreference
         android:id="@+id/download_delay_preference"
         android:defaultValue="1"
         android:key="@string/download_delay_key"
