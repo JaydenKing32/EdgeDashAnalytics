@@ -68,7 +68,6 @@ import java.nio.file.Files;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -340,7 +339,7 @@ public abstract class NearbyFragment extends Fragment {
 
     private void evenSegmentation(Video video) {
         List<Endpoint> endpoints = getConnectedEndpoints();
-        Endpoint fastest = endpoints.stream().max(Comparator.comparing(e -> e.hardwareInfo.cpuFreq)).orElse(null);
+        Endpoint fastest = endpoints.stream().max(Endpoint.compareProcessing()).orElse(null);
 
         // if (endpoints.size() % 2 == 0) {
         if (video.isOuter()) {
@@ -353,7 +352,7 @@ public abstract class NearbyFragment extends Fragment {
 
             List<Endpoint> remainingEndpoints = endpoints.stream()
                     .filter(e -> e != fastest)
-                    .sorted(Comparator.comparing(e -> e.hardwareInfo.cpuFreq, Comparator.reverseOrder()))
+                    .sorted(Endpoint.compareProcessing())
                     .collect(Collectors.toList());
 
             // Schedule segments to inactive workers

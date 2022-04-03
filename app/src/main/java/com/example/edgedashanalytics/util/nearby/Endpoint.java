@@ -5,6 +5,7 @@ import androidx.annotation.NonNull;
 import com.example.edgedashanalytics.util.hardware.HardwareInfo;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class Endpoint {
@@ -39,6 +40,12 @@ public class Endpoint {
 
     int getJobCount() {
         return jobList.size();
+    }
+
+    static Comparator<Endpoint> compareProcessing() {
+        return Comparator.comparing((Endpoint e) -> e.hardwareInfo.cpuFreq)
+                .thenComparing(e -> e.hardwareInfo.cpuCores)
+                .thenComparing(e -> e.hardwareInfo.totalRam);
     }
 
     @Override
