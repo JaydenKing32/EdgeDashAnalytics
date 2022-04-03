@@ -95,26 +95,27 @@ public class FileManager {
     }
 
     private static File makeDirectory(File dirPath) {
-        if (DeviceExternalStorage.externalStorageIsWritable()) {
-            Log.v(TAG, "External storage is readable");
-            try {
-                if (!dirPath.exists()) {
-                    if (dirPath.mkdirs()) {
-                        Log.v(TAG, String.format("Created new directory: %s", dirPath));
-                        return dirPath;
-                    } else {
-                        Log.e(TAG, String.format("Failed to create new directory: %s", dirPath));
-                    }
-                } else {
-                    Log.v(TAG, String.format("Directory already exists: %s", dirPath));
-                    return dirPath;
-                }
-            } catch (SecurityException e) {
-                Log.e(TAG, String.format("makeDirectory error: \n%s", e.getMessage()));
-            }
-        } else {
+        if (!DeviceExternalStorage.externalStorageIsWritable()) {
             Log.e(TAG, "External storage is not readable");
+            return null;
         }
+
+        if (dirPath.exists()) {
+            Log.v(TAG, String.format("Directory already exists: %s", dirPath));
+            return dirPath;
+        }
+
+        try {
+            if (dirPath.mkdirs()) {
+                Log.v(TAG, String.format("Created new directory: %s", dirPath));
+                return dirPath;
+            } else {
+                Log.e(TAG, String.format("Failed to create new directory: %s", dirPath));
+            }
+        } catch (SecurityException e) {
+            Log.e(TAG, String.format("makeDirectory error: \n%s", e.getMessage()));
+        }
+
         return null;
     }
 
