@@ -68,6 +68,7 @@ import java.nio.file.Files;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -103,7 +104,6 @@ public abstract class NearbyFragment extends Fragment {
     private Listener listener;
     private boolean verbose;
     private boolean master = false;
-    private boolean dualDownload = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -117,7 +117,6 @@ public abstract class NearbyFragment extends Fragment {
 
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(activity);
         verbose = pref.getBoolean(getString(R.string.verbose_output_key), false);
-        dualDownload = pref.getBoolean(getString(R.string.dual_download_key), false);
 
         deviceAdapter = new DeviceListAdapter(listener, activity, discoveredEndpoints);
         connectionsClient = Nearby.getConnectionsClient(activity);
@@ -333,32 +332,7 @@ public abstract class NearbyFragment extends Fragment {
         }
         if (isConnected()) {
             EventBus.getDefault().post(new AddEvent(video, Type.RAW));
-
-            // List<Endpoint> endpoints = getConnectedEndpoints();
-            // if (video.isInner()) {
-            //     Endpoint onePlus = endpoints.stream().filter(e -> e.name.contains("IN2013"))
-            //             .collect(Collectors.toList()).get(0);
-            //     sendFile(new Message(video, Command.ANALYSE), onePlus);
-            // } else {
-            //     Endpoint pixel = endpoints.stream().filter(e -> e.name.contains("Pixel 6"))
-            //             .collect(Collectors.toList()).get(0);
-            // }
-
-            List<Endpoint> endpoints = getConnectedEndpoints();
-            int freeEndpointCount = (int) endpoints.stream().filter(Endpoint::isInactive).count();
-            int totalEndpointCount = endpoints.size();
-
-            if (dualDownload && totalEndpointCount > 1 &&
-                    freeEndpointCount < totalEndpointCount && totalEndpointCount % 2 == 0) {
-                // Free endpoints and master
-                // splitAndQueue(video.getData(), freeEndpointCount + 1);
-                splitAndQueue(video.getData(), totalEndpointCount);
-            } else {
-                addVideo(video);
-            }
-
-            // addVideo(video);
-            nextTransfer();
+            evenSegmentation(video);
         } else {
             analyse(video, false);
         }
@@ -366,23 +340,47 @@ public abstract class NearbyFragment extends Fragment {
 
     private void evenSegmentation(Video video) {
         List<Endpoint> endpoints = getConnectedEndpoints();
-        Endpoint strongest = endpoints.stream()
-                .min((e1, e2) -> (int) (e1.hardwareInfo.cpuFreq - e2.hardwareInfo.cpuFreq))
-                .orElse(null);
+        Endpoint fastest = endpoints.stream().max(Comparator.comparing(e -> e.hardwareInfo.cpuFreq)).orElse(null);
 
         // if (endpoints.size() % 2 == 0) {
         if (video.isOuter()) {
-            sendFile(new Message(video, Command.ANALYSE), strongest);
+            // Send a whole video to the fastest worker
+            sendFile(new Message(video, Command.ANALYSE), fastest);
         } else {
             List<Video> segments = FfmpegTools.splitAndReturn(getContext(), video.getData(), endpoints.size());
+            // Master will locally process one segment
             analyse(segments.remove(0), false);
+
             List<Endpoint> remainingEndpoints = endpoints.stream()
-                    .filter(e -> e != strongest)
-                    .sorted((e1, e2) -> (int) (e1.hardwareInfo.cpuFreq - e2.hardwareInfo.cpuFreq))
+                    .filter(e -> e != fastest)
+                    .sorted(Comparator.comparing(e -> e.hardwareInfo.cpuFreq, Comparator.reverseOrder()))
                     .collect(Collectors.toList());
 
+            // Schedule segments to inactive workers
             for (int i = 0; i < segments.size() && i < remainingEndpoints.size(); i++) {
-                sendFile(new Message(segments.get(i), Command.SEGMENT), remainingEndpoints.get(i));
+                Endpoint endpoint = remainingEndpoints.get(i);
+
+                if (endpoint.isInactive()) {
+                    sendFile(new Message(segments.remove(i), Command.SEGMENT), endpoint);
+                }
+            }
+
+            if (segments.isEmpty()) {
+                // All segments scheduled
+                return;
+            }
+
+            // Some segments remain, try re-scheduling or designate as skipped
+            for (Video segment : segments) {
+                if (analysisFutures.stream().allMatch(Future::isDone)) {
+                    analyse(segment, false);
+                } else if (fastest != null && fastest.isInactive()) {
+                    sendFile(new Message(video, Command.SEGMENT), fastest);
+                } else {
+                    Log.i(I_TAG, String.format("Skipped %s", segment.getName()));
+                    FileManager.makeDummyResult(segment.getName());
+                    handleSegment(segment.getName());
+                }
             }
         }
     }

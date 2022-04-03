@@ -84,6 +84,10 @@ public class JsonManager {
             MappingIterator<InnerFrame> map = innerReader.readValues(new FileInputStream(resultPath));
             List<InnerFrame> frames = map.readAll();
 
+            if (frames.isEmpty()) {
+                continue;
+            }
+
             for (InnerFrame frame : frames) {
                 frame.frame += offset;
             }
@@ -102,6 +106,10 @@ public class JsonManager {
         for (String resultPath : resultPaths) {
             MappingIterator<OuterFrame> map = outerReader.readValues(new FileInputStream(resultPath));
             List<OuterFrame> frames = map.readAll();
+
+            if (frames.isEmpty()) {
+                continue;
+            }
 
             for (OuterFrame frame : frames) {
                 frame.frame += offset;

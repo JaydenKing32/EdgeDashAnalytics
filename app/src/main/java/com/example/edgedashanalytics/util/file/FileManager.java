@@ -228,6 +228,18 @@ public class FileManager {
         return Arrays.stream(files).map(File::getAbsolutePath).sorted(String::compareTo).collect(Collectors.toList());
     }
 
+    public static void makeDummyResult(String filename) {
+        try {
+            boolean result = new File(getResultPathOrSegmentResPathFromVideoName(filename)).createNewFile();
+
+            if (!result) {
+                Log.e(TAG, String.format("File already exists: %s", filename));
+            }
+        } catch (IOException e) {
+            Log.e(TAG, String.format("Failed to create dummy result '%s': \n%s", filename, e.getMessage()));
+        }
+    }
+
     // Not file-related, should be in a different class
     public static String getDurationString(Instant start) {
         return getDurationString(start, true);
