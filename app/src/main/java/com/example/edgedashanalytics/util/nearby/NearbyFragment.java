@@ -655,7 +655,7 @@ public abstract class NearbyFragment extends Fragment {
             }
 
             VideoAnalysis videoAnalysis = video.isInner() ? new InnerAnalysis(context) : new OuterAnalysis(context);
-            videoAnalysis.analyse(video.getData(), outPath);
+            long procTime = videoAnalysis.analyse(video.getData(), outPath);
 
             Result result = new Result(outPath);
             EventBus.getDefault().post(new RemoveEvent(video, Type.PROCESSING));

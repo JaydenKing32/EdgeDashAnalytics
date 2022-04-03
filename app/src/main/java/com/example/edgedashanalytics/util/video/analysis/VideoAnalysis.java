@@ -17,6 +17,7 @@ import com.example.edgedashanalytics.util.hardware.HardwareInfo;
 import com.example.edgedashanalytics.util.hardware.PowerMonitor;
 
 import java.io.File;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,11 +57,11 @@ public abstract class VideoAnalysis {
 
     public abstract void printParameters();
 
-    public void analyse(String inPath, String outPath) {
-        processVideo(inPath, outPath);
+    public long analyse(String inPath, String outPath) {
+        return processVideo(inPath, outPath);
     }
 
-    private void processVideo(String inPath, String outPath) {
+    private long processVideo(String inPath, String outPath) {
         File videoFile = new File(inPath);
         MediaMetadataRetriever retriever = new MediaMetadataRetriever();
         retriever.setDataSource(videoFile.getAbsolutePath());
@@ -70,7 +71,7 @@ public abstract class VideoAnalysis {
 
         if (totalFramesString == null) {
             Log.e(TAG, String.format("Could not retrieve metadata from %s", videoName));
-            return;
+            return -1;
         }
         int totalFrames = Integer.parseInt(totalFramesString);
 
@@ -95,10 +96,11 @@ public abstract class VideoAnalysis {
 
         if (!complete) {
             Log.e(I_TAG, "Could not complete processing in time");
-            return;
+            return -1;
         }
         JsonManager.writeResultsToJson(outPath, frames);
 
+        long processingTime = Duration.between(startTime, Instant.now()).toMillis();
         String time = FileManager.getDurationString(startTime);
         long powerConsumption = PowerMonitor.getPowerConsumption(startPower);
 
@@ -106,6 +108,8 @@ public abstract class VideoAnalysis {
                 videoName, time, powerConsumption);
         Log.d(I_TAG, endString);
         PowerMonitor.printSummary();
+
+        return processingTime;
     }
 
     private void processFramesLoop(MediaMetadataRetriever retriever, int totalFrames,
