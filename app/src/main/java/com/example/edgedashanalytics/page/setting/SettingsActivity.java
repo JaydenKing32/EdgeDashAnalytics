@@ -7,7 +7,9 @@ import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.BatteryManager;
 import android.os.Bundle;
+import android.text.InputType;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -15,6 +17,7 @@ import android.widget.LinearLayout;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.preference.EditTextPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
@@ -69,6 +72,7 @@ public class SettingsActivity extends AppCompatActivity {
         final SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(c);
         final boolean defaultBool = false;
         final int defaultInt = 1;
+        final String defaultString = "1";
 
         String objectModel = pref.getString(c.getString(R.string.object_model_key),
                 c.getString(R.string.default_object_model_key));
@@ -79,8 +83,12 @@ public class SettingsActivity extends AppCompatActivity {
         boolean local = pref.getBoolean(c.getString(R.string.local_process_key), defaultBool);
         boolean segmentationEnabled = pref.getBoolean(c.getString(R.string.enable_segment_key), defaultBool);
         int segNum = pref.getInt(c.getString(R.string.segment_number_key), defaultInt);
-        int delay = pref.getInt(c.getString(R.string.download_delay_key), defaultInt);
+        int delay = Integer.parseInt(pref.getString(c.getString(R.string.download_delay_key), defaultString));
         boolean dualDownload = pref.getBoolean(c.getString(R.string.dual_download_key), defaultBool);
+        boolean isCharging = ((BatteryManager) c.getSystemService(Context.BATTERY_SERVICE)).isCharging();
+        boolean sim = pref.getBoolean(c.getString(R.string.enable_download_simulation_key), defaultBool);
+        int simDelay = Integer.parseInt(pref.getString(c.getString(R.string.simulation_delay_key), defaultString));
+        int testVideoCount = DashCam.getTestVideoCount();
 
         StringJoiner prefMessage = new StringJoiner("\n  ");
         prefMessage.add("Preferences:");
@@ -96,6 +104,10 @@ public class SettingsActivity extends AppCompatActivity {
         prefMessage.add(String.format("Dual download: %s", dualDownload));
         prefMessage.add(String.format("Wi-Fi: %s", getWifiName(c)));
         prefMessage.add(String.format("Concurrent downloads: %s", DashCam.concurrentDownloads));
+        prefMessage.add(String.format("Charging: %s", isCharging));
+        prefMessage.add(String.format("Simulated downloads: %s", sim));
+        prefMessage.add(String.format("Simulated delay: %s", simDelay));
+        prefMessage.add(String.format("Test video count: %s", testVideoCount));
 
         Log.i(I_TAG, prefMessage.toString());
 
@@ -144,6 +156,13 @@ public class SettingsActivity extends AppCompatActivity {
                 negButton.invalidate();
                 posButton.invalidate();
             });
+
+            EditTextPreference downloadDelay = findPreference(getString(R.string.download_delay_key));
+            setupTextPreference(downloadDelay);
+            EditTextPreference simDelay = findPreference(getString(R.string.simulation_delay_key));
+            setupTextPreference(simDelay);
+            EditTextPreference testVideoCount = findPreference(getString(R.string.test_video_count_key));
+            setupTextPreference(testVideoCount);
         }
 
         private boolean clearLogsPrompt() {
@@ -152,6 +171,28 @@ public class SettingsActivity extends AppCompatActivity {
                 return false;
             } else {
                 clearDialog.show();
+                return true;
+            }
+        }
+
+        private void setupTextPreference(EditTextPreference editTextPreference) {
+            if (editTextPreference != null) {
+                setTextSummaryToValue(editTextPreference, editTextPreference.getText());
+                editTextPreference.setOnPreferenceChangeListener((preference, newValue) ->
+                        setTextSummaryToValue((EditTextPreference) preference, (String) newValue));
+                editTextPreference.setOnBindEditTextListener(editText -> {
+                    editText.setInputType(InputType.TYPE_CLASS_NUMBER);
+                    editText.selectAll();
+                });
+            }
+        }
+
+        private boolean setTextSummaryToValue(EditTextPreference editTextPreference, String value) {
+            if (editTextPreference == null) {
+                Log.w(TAG, "Null EditTextPreference");
+                return false;
+            } else {
+                editTextPreference.setSummary(value);
                 return true;
             }
         }

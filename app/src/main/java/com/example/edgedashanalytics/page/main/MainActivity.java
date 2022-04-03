@@ -50,6 +50,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.function.Consumer;
 
 public class MainActivity extends AppCompatActivity implements
         VideoFragment.Listener, ResultsFragment.Listener, NearbyFragment.Listener {
@@ -106,7 +107,7 @@ public class MainActivity extends AppCompatActivity implements
         setUpFragments();
         FileManager.initialiseDirectories();
         storeLogsInFile();
-        DashCam.setFetch(this);
+        DashCam.setup(this);
     }
 
     private void storeLogsInFile() {
@@ -308,6 +309,11 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     @Override
+    public Runnable simulateDownloads(int delay, Consumer<Video> downloadCallback, boolean dualDownload) {
+        return rawFragment.simulateDownloads(delay, downloadCallback, dualDownload);
+    }
+
+    @Override
     public void onListFragmentInteraction(Result result) {
     }
 
@@ -339,5 +345,10 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public void nextTransfer() {
         connectionFragment.nextTransfer();
+    }
+
+    @Override
+    public Runnable getSimulateDownloads(int delay, Consumer<Video> downloadCallback, boolean dualDownload) {
+        return simulateDownloads(delay, downloadCallback, dualDownload);
     }
 }

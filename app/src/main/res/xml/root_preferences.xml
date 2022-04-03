@@ -32,21 +32,34 @@
         android:persistent="true"
         android:title="@string/pose_model_title"
         app:useSimpleSummaryProvider="true" />
-    <SeekBarPreference
+    <EditTextPreference
+        android:id="@+id/test_video_count_preference"
+        android:defaultValue="400"
+        android:key="@string/test_video_count_key"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/test_video_count_title" />
+    <EditTextPreference
         android:id="@+id/download_delay_preference"
         android:defaultValue="1"
         android:key="@string/download_delay_key"
-        android:max="100"
-        android:min="1"
-        android:persistent="true"
-        android:title="@string/download_delay_title"
-        app:showSeekBarValue="true" />
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/download_delay_title" />
     <CheckBoxPreference
-        android:id="@+id/dual_download_preference"
+        android:id="@+id/enable_download_simulation_preference"
         android:defaultValue="false"
-        android:key="@string/dual_download_key"
-        android:summary="@string/dual_download_summary"
-        android:title="@string/dual_download_title" />
+        android:key="@string/enable_download_simulation_key"
+        android:summary="@string/enable_download_simulation_summary"
+        android:title="@string/enable_download_simulation_title" />
+    <EditTextPreference
+        android:id="@+id/simulate_download_delay_preference"
+        android:defaultValue="1"
+        android:dependency="@string/enable_download_simulation_key"
+        android:key="@string/simulation_delay_key"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/download_simulation_delay_title" />
     <CheckBoxPreference
         android:id="@+id/remove_raw_preference"
         android:defaultValue="false"
@@ -54,6 +67,12 @@
         android:persistent="true"
         android:summary="@string/remove_raw_summary"
         android:title="@string/remove_raw_title" />
+    <CheckBoxPreference
+        android:id="@+id/dual_download_preference"
+        android:defaultValue="false"
+        android:key="@string/dual_download_key"
+        android:summary="@string/dual_download_summary"
+        android:title="@string/dual_download_title" />
     <CheckBoxPreference
         android:id="@+id/local_process_preference"
         android:defaultValue="false"
@@ -78,22 +97,6 @@
         android:min="2"
         android:persistent="true"
         android:title="@string/segment_number_title"
-        app:showSeekBarValue="true" />
-    <CheckBoxPreference
-        android:id="@+id/enable_download_simulation_preference"
-        android:defaultValue="false"
-        android:key="@string/enable_download_simulation_key"
-        android:summary="@string/enable_download_simulation_summary"
-        android:title="@string/enable_download_simulation_title" />
-    <SeekBarPreference
-        android:id="@+id/simulate_download_delay_preference"
-        android:defaultValue="15"
-        android:dependency="@string/enable_download_simulation_key"
-        android:key="@string/download_simulation_delay_key"
-        android:max="100"
-        android:min="0"
-        android:persistent="true"
-        android:title="@string/download_simulation_delay_title"
         app:showSeekBarValue="true" />
     <CheckBoxPreference
         android:id="@+id/verbose_output_preference"
