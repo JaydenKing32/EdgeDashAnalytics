@@ -7,6 +7,7 @@ import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.BatteryManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -81,6 +82,7 @@ public class SettingsActivity extends AppCompatActivity {
         int segNum = pref.getInt(c.getString(R.string.segment_number_key), defaultInt);
         int delay = pref.getInt(c.getString(R.string.download_delay_key), defaultInt);
         boolean dualDownload = pref.getBoolean(c.getString(R.string.dual_download_key), defaultBool);
+        boolean isCharging = ((BatteryManager) c.getSystemService(Context.BATTERY_SERVICE)).isCharging();
 
         StringJoiner prefMessage = new StringJoiner("\n  ");
         prefMessage.add("Preferences:");
@@ -96,6 +98,7 @@ public class SettingsActivity extends AppCompatActivity {
         prefMessage.add(String.format("Dual download: %s", dualDownload));
         prefMessage.add(String.format("Wi-Fi: %s", getWifiName(c)));
         prefMessage.add(String.format("Concurrent downloads: %s", DashCam.concurrentDownloads));
+        prefMessage.add(String.format("Charging: %s", isCharging));
 
         Log.i(I_TAG, prefMessage.toString());
 
