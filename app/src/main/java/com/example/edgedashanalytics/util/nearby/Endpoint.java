@@ -17,6 +17,7 @@ public class Endpoint {
 
     boolean connected;
     HardwareInfo hardwareInfo;
+    int sendCount = 0;
     int completeCount = 0;
     int connectionAttempt = 0;
 

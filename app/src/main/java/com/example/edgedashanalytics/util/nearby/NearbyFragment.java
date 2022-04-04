@@ -364,14 +364,17 @@ public abstract class NearbyFragment extends Fragment {
                     .filter(e -> e != fastest)
                     .sorted(Endpoint.compareProcessing())
                     .collect(Collectors.toList());
+            final int skipNum = 2;
 
             // Schedule segments to inactive workers
             for (int i = 0; i < segments.size() && i < remainingEndpoints.size(); i++) {
                 Endpoint endpoint = remainingEndpoints.get(i);
 
-                if (endpoint.isInactive()) {
+                if (endpoint.isInactive() && endpoint.sendCount % skipNum == 0) {
                     sendFile(new Message(segments.remove(i), Command.SEGMENT), endpoint);
                 }
+
+                endpoint.sendCount++;
             }
 
             if (segments.isEmpty()) {
@@ -383,8 +386,8 @@ public abstract class NearbyFragment extends Fragment {
             for (Video segment : segments) {
                 if (analysisFutures.stream().allMatch(Future::isDone)) {
                     analyse(segment, false);
-                } else if (fastest != null && fastest.isInactive()) {
-                    sendFile(new Message(video, Command.SEGMENT), fastest);
+                    // } else if (fastest != null && fastest.isInactive()) {
+                    //     sendFile(new Message(video, Command.SEGMENT), fastest);
                 } else {
                     Log.i(I_TAG, String.format("Skipped %s", segment.getName()));
                     FileManager.makeDummyResult(segment.getName());
@@ -623,7 +626,6 @@ public abstract class NearbyFragment extends Fragment {
         }
 
         sendFile(transferQueue.remove(), selected);
-        transferCount++;
     }
 
     private void sendFile(Message message, Endpoint toEndpoint) {
@@ -669,6 +671,7 @@ public abstract class NearbyFragment extends Fragment {
         // Finally, send the file payload.
         connectionsClient.sendPayload(toEndpoint.id, filePayload);
         toEndpoint.addJob(uri.getLastPathSegment());
+        transferCount++;
     }
 
     private void analyse(File videoFile) {
