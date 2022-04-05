@@ -29,6 +29,7 @@ import com.example.edgedashanalytics.model.Content;
 import com.example.edgedashanalytics.model.Result;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.page.setting.SettingsActivity;
+import com.example.edgedashanalytics.util.TimeManager;
 import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.file.JsonManager;
@@ -506,7 +507,7 @@ public abstract class NearbyFragment extends Fragment {
             EventBus.getDefault().post(new RemoveByNameEvent(videoName, Type.RAW));
             EventBus.getDefault().post(new RemoveByNameEvent(videoName, Type.PROCESSING));
 
-            DashCam.printTurnaroundTime(videoName);
+            TimeManager.printTurnaroundTime(videoName);
             PowerMonitor.printSummary();
         } else {
             Log.v(TAG, String.format("Received a segment of %s", baseName));
@@ -657,7 +658,7 @@ public abstract class NearbyFragment extends Fragment {
 
             if (waitTimes.containsKey(videoName)) {
                 Instant start = waitTimes.remove(videoName);
-                String time = FileManager.getDurationString(start, false);
+                String time = TimeManager.getDurationString(start, false);
 
                 Log.i(I_TAG, String.format("Wait time of %s: %ss", videoName, time));
             } else {
@@ -674,7 +675,7 @@ public abstract class NearbyFragment extends Fragment {
                 EventBus.getDefault().post(new AddResultEvent(result));
 
                 if (master) {
-                    DashCam.printTurnaroundTime(videoName);
+                    TimeManager.printTurnaroundTime(videoName);
                 }
             }
 
@@ -844,7 +845,7 @@ public abstract class NearbyFragment extends Fragment {
 
                 if (startTimes.containsKey(payloadId)) {
                     Instant start = startTimes.remove(payloadId);
-                    time = FileManager.getDurationString(start);
+                    time = TimeManager.getDurationString(start);
                 } else {
                     Log.e(I_TAG, String.format("Could not record transfer time of %s", filename));
                     time = "0.000";
@@ -918,7 +919,7 @@ public abstract class NearbyFragment extends Fragment {
                     String videoName = FileManager.getVideoNameFromResultName(filename);
                     EventBus.getDefault().post(new RemoveByNameEvent(videoName, Type.PROCESSING));
 
-                    DashCam.printTurnaroundTime(videoName);
+                    TimeManager.printTurnaroundTime(videoName);
                 }
             }
         }

@@ -5,6 +5,7 @@ import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 import android.util.Log;
 
 import com.example.edgedashanalytics.model.Result;
+import com.example.edgedashanalytics.util.TimeManager;
 import com.example.edgedashanalytics.util.video.analysis.Frame;
 import com.example.edgedashanalytics.util.video.analysis.InnerFrame;
 import com.example.edgedashanalytics.util.video.analysis.OuterFrame;
@@ -66,7 +67,7 @@ public class JsonManager {
                     getInnerFrames(resultPaths) : getOuterFrames(resultPaths);
             writer.writeValue(new FileOutputStream(outPath), frames);
 
-            String time = FileManager.getDurationString(start);
+            String time = TimeManager.getDurationString(start);
             Log.d(I_TAG, String.format("Merged results of %s in %ss", baseName, time));
 
             return new Result(outPath);

@@ -15,12 +15,9 @@ import com.example.edgedashanalytics.util.video.FfmpegTools;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.time.DurationFormatUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -226,21 +223,5 @@ public class FileManager {
             return null;
         }
         return Arrays.stream(files).map(File::getAbsolutePath).sorted(String::compareTo).collect(Collectors.toList());
-    }
-
-    // Not file-related, should be in a different class
-    public static String getDurationString(Instant start) {
-        return getDurationString(start, true);
-    }
-
-    public static String getDurationString(Instant start, boolean roundUp) {
-        long duration = Duration.between(start, Instant.now()).toMillis();
-        String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
-
-        if (roundUp && time.equals("00.000")) {
-            // Time value is less than one millisecond, round up to one millisecond
-            return "00.001";
-        }
-        return time;
     }
 }

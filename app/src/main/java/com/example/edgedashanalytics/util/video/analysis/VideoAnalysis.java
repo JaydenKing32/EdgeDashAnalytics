@@ -11,7 +11,7 @@ import android.util.Log;
 import androidx.preference.PreferenceManager;
 
 import com.example.edgedashanalytics.R;
-import com.example.edgedashanalytics.util.file.FileManager;
+import com.example.edgedashanalytics.util.TimeManager;
 import com.example.edgedashanalytics.util.file.JsonManager;
 import com.example.edgedashanalytics.util.hardware.HardwareInfo;
 import com.example.edgedashanalytics.util.hardware.PowerMonitor;
@@ -99,7 +99,7 @@ public abstract class VideoAnalysis {
         }
         JsonManager.writeResultsToJson(outPath, frames);
 
-        String time = FileManager.getDurationString(startTime);
+        String time = TimeManager.getDurationString(startTime);
         long powerConsumption = PowerMonitor.getPowerConsumption(startPower);
 
         String endString = String.format(Locale.ENGLISH, "Completed analysis of %s in %ss, %dnW consumed",
