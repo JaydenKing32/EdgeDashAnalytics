@@ -25,6 +25,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.page.main.VideoFragment;
+import com.example.edgedashanalytics.util.TimeManager;
 import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.video.analysis.AnalysisTools;
 
@@ -33,6 +34,9 @@ import org.apache.commons.lang3.time.DurationFormatUtils;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -123,24 +127,19 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
                     downloadCallback.accept(null);
                     return;
                 }
-                toDownload.add(videoList.pop());
+                Video video = videoList.pop();
+                toDownload.add(video);
+                TimeManager.addStartTime(video.getName());
             }
 
-            // Assumes concurrent downloading, all downloads share a single delay instead of each having their own
-            try {
-                // Seems to add to ScheduledExecutorService's delay, set as 500ms, but ended up as 700ms
-                // Try something different from sleep
-                // Also need a simulated version of printTurnaroundTime
-                Thread.sleep(delay);
-            } catch (InterruptedException e) {
-                Log.e(I_TAG, String.format("Simulated download interrupted: \n%s", e.getMessage()));
-            }
-
-            toDownload.forEach((v) -> {
+            // Assumes concurrent downloading, video pairs share a single delay and will complete at the same time
+            ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+            executor.schedule(() -> toDownload.forEach(v -> {
                 String time = DurationFormatUtils.formatDuration(delay, "ss.SSS");
-                Log.i(I_TAG, String.format("Successfully downloaded %s in %ss", v.getName(), time));
+                Log.i(I_TAG, String.format("Successfully downloaded %s in %ss, 0nW consumed", v.getName(), time));
                 downloadCallback.accept(v);
-            });
+            }), delay, TimeUnit.MILLISECONDS);
+            executor.shutdown();
         };
     }
 

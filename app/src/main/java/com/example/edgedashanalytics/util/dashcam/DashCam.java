@@ -16,6 +16,7 @@ import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.event.video.AddEvent;
 import com.example.edgedashanalytics.event.video.Type;
 import com.example.edgedashanalytics.model.Video;
+import com.example.edgedashanalytics.util.TimeManager;
 import com.example.edgedashanalytics.util.file.FileManager;
 import com.example.edgedashanalytics.util.hardware.PowerMonitor;
 import com.example.edgedashanalytics.util.video.VideoManager;
@@ -70,7 +71,6 @@ public class DashCam {
     private static final String videoDirUrl = baseUrl;
     // Video stream: rtsp://192.168.1.254
     private static final Set<String> downloads = new HashSet<>();
-    private static final SimpleArrayMap<String, Instant> downloadStarts = new SimpleArrayMap<>();
     private static final SimpleArrayMap<String, Long> downloadPowers = new SimpleArrayMap<>();
 
     private static Fetch fetch = null;
@@ -218,7 +218,7 @@ public class DashCam {
         }
         downloads.add(filename);
 
-        String time = FileManager.getDurationString(start);
+        String time = TimeManager.getDurationString(start);
         Log.i(I_TAG, String.format("Successfully downloaded %s in %ss", filename, time));
         downloadCallback.accept(video);
     }
@@ -302,7 +302,7 @@ public class DashCam {
         Runnable downloadRunnable = () -> {
             if (!popTestDownload()) {
                 downloadExecutor.shutdown();
-                String time = FileManager.getDurationString(start);
+                String time = TimeManager.getDurationString(start);
                 Log.i(TAG, String.format("All test videos scheduled for download in %ss", time));
             }
             if (dualDownload) {
@@ -333,17 +333,6 @@ public class DashCam {
         fetch.addListener(getFetchListener(context, downloadCallback));
     }
 
-    public static void printTurnaroundTime(String filename) {
-        Instant start = downloadStarts.remove(filename);
-
-        if (start == null) {
-            Log.w(I_TAG, String.format("Could not calculate the turnaround time of %s", filename));
-        } else {
-            String time = FileManager.getDurationString(start);
-            Log.i(I_TAG, String.format("Turnaround time of %s: %ss", filename, time));
-        }
-    }
-
     // public static Bitmap getLiveBitmap() {
     //     FFmpegMediaMetadataRetriever retriever = new FFmpegMediaMetadataRetriever();
     //     retriever.setDataSource("rtsp://192.168.1.254");
@@ -356,7 +345,7 @@ public class DashCam {
             public void onStarted(@NonNull Download d, @NonNull List<? extends DownloadBlock> list, int i) {
                 String filename = FileManager.getFilenameFromPath(d.getFile());
 
-                downloadStarts.put(filename, Instant.now());
+                TimeManager.addStartTime(filename);
                 downloadPowers.put(filename, PowerMonitor.getTotalPowerConsumption());
                 Log.v(TAG, String.format("Started download: %s", filename));
             }
@@ -369,9 +358,10 @@ public class DashCam {
                 String time;
                 long power;
 
-                if (downloadStarts.containsKey(videoName)) {
-                    Instant start = downloadStarts.get(videoName);
-                    time = FileManager.getDurationString(start);
+                Instant start = TimeManager.getStartTime(videoName);
+
+                if (start != null) {
+                    time = TimeManager.getDurationString(start);
                 } else {
                     Log.e(I_TAG, String.format("Could not record download time of %s", videoName));
                     time = "0.000";
