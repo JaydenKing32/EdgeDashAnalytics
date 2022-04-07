@@ -15,6 +15,8 @@ import com.example.edgedashanalytics.util.file.FileManager;
 
 import org.apache.commons.io.FilenameUtils;
 
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -104,16 +106,14 @@ public class FfmpegTools {
         }
         String baseName = FilenameUtils.getBaseName(filePath);
 
+        double segTime = FfmpegTools.getDuration(filePath) / segNum;
         // Round segment time up to ensure that the number of split videos doesn't exceed segNum
-        int segTime = (int) Math.ceil(FfmpegTools.getDuration(filePath) / segNum);
-
-        if (segTime < 1) {
-            Log.w(TAG, String.format("Segment time (%ds) too low, aborting split", segTime));
-            return;
-        }
+        DecimalFormat df = new DecimalFormat("#.##");
+        df.setRoundingMode(RoundingMode.CEILING);
+        String segTimeString = df.format(segTime);
 
         String outDir = FileManager.getSegmentDirPath(baseName);
-        Log.v(TAG, String.format("Splitting %s with %ds long segments", filePath, segTime));
+        Log.v(TAG, String.format("Splitting %s with %ss long segments", filePath, segTimeString));
 
         ArrayList<String> ffmpegArgs = new ArrayList<>(Arrays.asList(
                 "-y",
@@ -123,7 +123,7 @@ public class FfmpegTools {
                 "-f", "segment",
                 "-reset_timestamps", "1",
                 "-g", "0",
-                "-segment_time", String.valueOf(segTime),
+                "-segment_time", segTimeString,
                 String.format(Locale.ENGLISH, "%s/%s%c%%03d%c%d.%s",
                         outDir,
                         baseName,
