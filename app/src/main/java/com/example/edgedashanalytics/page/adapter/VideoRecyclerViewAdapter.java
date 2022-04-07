@@ -25,6 +25,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.page.main.VideoFragment;
+import com.example.edgedashanalytics.util.TimeManager;
 import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.video.analysis.AnalysisTools;
 
@@ -126,7 +127,9 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
                     downloadCallback.accept(null);
                     return;
                 }
-                toDownload.add(videoList.pop());
+                Video video = videoList.pop();
+                toDownload.add(video);
+                TimeManager.addStartTime(video.getName());
             }
 
             // Assumes concurrent downloading, video pairs share a single delay and will complete at the same time
