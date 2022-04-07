@@ -340,11 +340,36 @@ public abstract class NearbyFragment extends Fragment {
             stopDashDownload();
             return;
         }
-        if (isConnected()) {
-            EventBus.getDefault().post(new AddEvent(video, Type.RAW));
+
+        if (!isConnected()) {
+            analyse(video, false);
+            return;
+        }
+
+        Context context = getContext();
+        if (context == null) {
+            Log.e(TAG, "No context");
+            return;
+        }
+
+        EventBus.getDefault().post(new AddEvent(video, Type.RAW));
+
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        boolean segmentationEnabled = pref.getBoolean(getString(R.string.enable_segment_key), false);
+        int segNum = pref.getInt(getString(R.string.segment_number_key), 0);
+
+        if (!segmentationEnabled) {
+            addVideo(video);
+            nextTransfer();
+            return;
+        }
+
+        if (segNum < 2) {
+            // Dynamic segmentation
             evenSegmentation(video);
         } else {
-            analyse(video, false);
+            // Static segmentation
+            splitAndQueue(video.getData(), segNum);
         }
     }
 
@@ -352,7 +377,7 @@ public abstract class NearbyFragment extends Fragment {
         List<Endpoint> endpoints = getConnectedEndpoints();
         Endpoint fastest = endpoints.stream().max(Endpoint.compareProcessing()).orElse(null);
 
-        // if (endpoints.size() % 2 == 0) {
+        // if (endpoints.size() % 2 == 0)
         if (video.isOuter()) {
             // Send a whole video to the fastest worker
             sendFile(new Message(video, Command.ANALYSE), fastest);
@@ -472,25 +497,6 @@ public abstract class NearbyFragment extends Fragment {
     }
 
     public void addVideo(Video video) {
-        Context context = getContext();
-        if (context == null) {
-            Log.e(TAG, "No context");
-            return;
-        }
-
-        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-        boolean segmentationEnabled = pref.getBoolean(getString(R.string.enable_segment_key), false);
-        int segNum = pref.getInt(getString(R.string.segment_number_key), -1);
-
-        if (segmentationEnabled) {
-            if (segNum > 1) {
-                splitAndQueue(video.getData(), segNum);
-                return;
-            } else {
-                Log.i(TAG, String.format("Segmentation count too low (%d), analysing whole video instead", segNum));
-            }
-        }
-
         queueVideo(video, Command.ANALYSE);
     }
 
