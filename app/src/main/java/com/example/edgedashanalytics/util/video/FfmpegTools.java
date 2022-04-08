@@ -26,13 +26,19 @@ import java.util.Locale;
 public class FfmpegTools {
     private static final String TAG = FfmpegTools.class.getSimpleName();
     private static final char SEGMENT_SEPARATOR = '!';
+    private static Double duration = null;
 
     private static void executeFfmpeg(ArrayList<String> ffmpegArgs) {
         Log.i(TAG, String.format("Running ffmpeg with:\n  %s", TextUtils.join(" ", ffmpegArgs)));
         FFmpegKit.executeWithArguments(ffmpegArgs.toArray(new String[0]));
     }
 
-    private static double getDuration(String filePath) {
+    private static void setDuration(String filePath) {
+        // Assume that all videos are of equal length, only need to set once
+        if (duration != null) {
+            return;
+        }
+
         Log.v(TAG, String.format("Retrieving duration of %s", filePath));
 
         MediaInformationSession session = FFprobeKit.getMediaInformation(filePath);
@@ -40,11 +46,10 @@ public class FfmpegTools {
         String durationString = info.getDuration();
 
         try {
-            return Double.parseDouble(durationString);
+            duration = Double.parseDouble(durationString);
         } catch (NumberFormatException e) {
             Log.e(I_TAG, String.format("ffmpeg-mobile error, could not retrieve duration of %s:\n%s",
                     filePath, e.getMessage()));
-            return -1.0;
         }
     }
 
@@ -105,8 +110,9 @@ public class FfmpegTools {
             return;
         }
         String baseName = FilenameUtils.getBaseName(filePath);
+        setDuration(filePath);
 
-        double segTime = FfmpegTools.getDuration(filePath) / segNum;
+        double segTime = duration / segNum;
         // Round segment time up to ensure that the number of split videos doesn't exceed segNum
         DecimalFormat df = new DecimalFormat("#.##");
         df.setRoundingMode(RoundingMode.CEILING);
@@ -133,6 +139,6 @@ public class FfmpegTools {
                         FilenameUtils.getExtension(filePath)
                 )
         ));
-        FfmpegTools.executeFfmpeg(ffmpegArgs);
+        executeFfmpeg(ffmpegArgs);
     }
 }
