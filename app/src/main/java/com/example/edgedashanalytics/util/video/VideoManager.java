@@ -3,7 +3,10 @@ package com.example.edgedashanalytics.util.video;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Build;
+import android.provider.MediaStore;
+import android.provider.MediaStore.Files;
 import android.provider.MediaStore.Video.Media;
 import android.util.Log;
 
@@ -78,16 +81,24 @@ public class VideoManager {
             return null;
         }
         String[] projection = {
-                Media._ID,
-                Media.DATA,
-                Media.DISPLAY_NAME,
-                Media.SIZE,
-                Media.MIME_TYPE
+                Files.FileColumns._ID,
+                Files.FileColumns.DATA,
+                Files.FileColumns.DISPLAY_NAME,
+                Files.FileColumns.SIZE,
+                Files.FileColumns.MIME_TYPE
         };
-        String selection = Media.DATA + "=?";
+        String selection = Files.FileColumns.DATA + "=?";
         String[] selectionArgs = new String[]{file.getAbsolutePath()};
-        Cursor videoCursor = context.getContentResolver().query(Media.EXTERNAL_CONTENT_URI,
-                projection, selection, selectionArgs, Media.DEFAULT_SORT_ORDER);
+
+        Uri uri;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            uri = Files.getContentUri(MediaStore.VOLUME_EXTERNAL);
+        } else {
+            uri = Media.EXTERNAL_CONTENT_URI;
+        }
+
+        Cursor videoCursor = context.getContentResolver().query(
+                uri, projection, selection, selectionArgs, Media.DEFAULT_SORT_ORDER);
 
         if (videoCursor == null || !videoCursor.moveToFirst()) {
             // Log.d(TAG, "videoCursor is null");
@@ -110,17 +121,21 @@ public class VideoManager {
         if (video != null) {
             return video;
         } else {
+            Uri uri;
             ContentValues values = new ContentValues();
-            values.put(Media.TITLE, FilenameUtils.getBaseName(path));
-            values.put(Media.MIME_TYPE, MIME_TYPE);
-            values.put(Media.DISPLAY_NAME, "player");
-            values.put(Media.DESCRIPTION, "");
-            values.put(Media.DATE_ADDED, System.currentTimeMillis());
+
+            values.put(Files.FileColumns.TITLE, FilenameUtils.getBaseName(path));
+            values.put(Files.FileColumns.MIME_TYPE, MIME_TYPE);
+            values.put(Files.FileColumns.DISPLAY_NAME, "player");
+            values.put(Files.FileColumns.DATE_ADDED, System.currentTimeMillis());
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                values.put(Media.DATE_TAKEN, System.currentTimeMillis());
+                values.put(Files.FileColumns.DATE_TAKEN, System.currentTimeMillis());
+                uri = Files.getContentUri(MediaStore.VOLUME_EXTERNAL);
+            } else {
+                uri = Media.EXTERNAL_CONTENT_URI;
             }
-            values.put(Media.DATA, path);
-            context.getContentResolver().insert(Media.EXTERNAL_CONTENT_URI, values);
+            values.put(Files.FileColumns.DATA, path);
+            context.getContentResolver().insert(uri, values);
 
             return getVideoFromFile(context, new File(path));
         }
@@ -168,10 +183,10 @@ public class VideoManager {
     private static Video videoFromCursor(Cursor cursor) {
         Video video = null;
         try {
-            int idIndex = cursor.getColumnIndex(Media._ID);
-            int nameIndex = cursor.getColumnIndex(Media.DISPLAY_NAME);
-            int dataIndex = cursor.getColumnIndex(Media.DATA);
-            int sizeIndex = cursor.getColumnIndex(Media.SIZE);
+            int idIndex = cursor.getColumnIndex(Files.FileColumns._ID);
+            int nameIndex = cursor.getColumnIndex(Files.FileColumns.DISPLAY_NAME);
+            int dataIndex = cursor.getColumnIndex(Files.FileColumns.DATA);
+            int sizeIndex = cursor.getColumnIndex(Files.FileColumns.SIZE);
 
             if (idIndex < 0 || nameIndex < 0 || dataIndex < 0 || sizeIndex < 0) {
                 Log.w(TAG, "videoFromCursor error: index is below zero");

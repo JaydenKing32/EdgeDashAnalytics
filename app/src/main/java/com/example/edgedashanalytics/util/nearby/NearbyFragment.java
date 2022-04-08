@@ -944,12 +944,15 @@ public abstract class NearbyFragment extends Fragment {
 
                 if (Message.isAnalyse(command)) {
                     waitTimes.put(filename, Instant.now());
-                    File videoDest = new File(FileManager.getRawDirPath(), filename);
 
-                    try {
-                        Files.move(payloadFile.toPath(), videoDest.toPath(), REPLACE_EXISTING);
-                    } catch (IOException e) {
-                        Log.e(I_TAG, String.format("Could not move %s:\n%s", filename, e.getMessage()));
+                    // Video needs to be in a video directory for it to be scanned on Android version 28 and below
+                    File videoDest = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) ?
+                            new File(payloadFile.getParentFile(), filename) :
+                            new File(FileManager.getRawDirPath(), filename);
+
+                    boolean rename = payloadFile.renameTo(videoDest);
+                    if (!rename) {
+                        Log.e(I_TAG, String.format("Could not rename %s", filename));
                         return;
                     }
 
