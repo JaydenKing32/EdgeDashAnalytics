@@ -129,7 +129,7 @@ public abstract class VideoAnalysis {
             final Bitmap bitmap = retriever.getFrameAtIndex(i);
             final int k = i;
 
-            if (skipFrame != 0 && i % skipFrame == 0) {
+            if (shouldSkip(i, skipFrame)) {
                 continue;
             }
 
@@ -137,5 +137,16 @@ public abstract class VideoAnalysis {
                     Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, false), k, scaleFactor)
             ));
         }
+    }
+
+    // If below 11, skip every nth, else skip all except every (n - 10)th
+    private boolean shouldSkip(int i, int n) {
+        if (n < 1) {
+            return false;
+        }
+        if (n < 11) {
+            return i % n == 0;
+        }
+        return i % (n - 10) != 0;
     }
 }

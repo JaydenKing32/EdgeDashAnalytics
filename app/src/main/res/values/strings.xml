@@ -66,7 +66,7 @@
     <string name="test_video_count_key">test_download_count</string>
     <string name="test_video_count_title">Test video count</string>
     <string name="skip_frame_key">skip_frame</string>
-    <string name="skip_frame_title">Skip every nth frame</string>
+    <string name="skip_frame_title">Skip frames</string>
 
     <!-- Models -->
     <string name="default_object_model_key" tools:ignore="Typos">@string/mobilenet_v1_key</string>
