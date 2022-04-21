@@ -89,6 +89,7 @@ public class SettingsActivity extends AppCompatActivity {
         boolean sim = pref.getBoolean(c.getString(R.string.enable_download_simulation_key), defaultBool);
         int simDelay = Integer.parseInt(pref.getString(c.getString(R.string.simulation_delay_key), defaultString));
         int testVideoCount = DashCam.getTestVideoCount();
+        int skipFrame = Integer.parseInt(pref.getString(c.getString(R.string.skip_frame_key), defaultString));
 
         StringJoiner prefMessage = new StringJoiner("\n  ");
         prefMessage.add("Preferences:");
@@ -108,6 +109,7 @@ public class SettingsActivity extends AppCompatActivity {
         prefMessage.add(String.format("Simulated downloads: %s", sim));
         prefMessage.add(String.format("Simulated delay: %s", simDelay));
         prefMessage.add(String.format("Test video count: %s", testVideoCount));
+        prefMessage.add(String.format("Skipped frames: %s", skipFrame));
 
         Log.i(I_TAG, prefMessage.toString());
 
@@ -157,12 +159,10 @@ public class SettingsActivity extends AppCompatActivity {
                 posButton.invalidate();
             });
 
-            EditTextPreference downloadDelay = findPreference(getString(R.string.download_delay_key));
-            setupTextPreference(downloadDelay);
-            EditTextPreference simDelay = findPreference(getString(R.string.simulation_delay_key));
-            setupTextPreference(simDelay);
-            EditTextPreference testVideoCount = findPreference(getString(R.string.test_video_count_key));
-            setupTextPreference(testVideoCount);
+            setupTextPreference(findPreference(getString(R.string.download_delay_key)));
+            setupTextPreference(findPreference(getString(R.string.simulation_delay_key)));
+            setupTextPreference(findPreference(getString(R.string.test_video_count_key)));
+            setupTextPreference(findPreference(getString(R.string.skip_frame_key)));
         }
 
         private boolean clearLogsPrompt() {

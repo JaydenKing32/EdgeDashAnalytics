@@ -29,12 +29,14 @@ import java.util.concurrent.TimeUnit;
 public abstract class VideoAnalysis {
     private static final String TAG = VideoAnalysis.class.getSimpleName();
     private static final boolean DEFAULT_VERBOSE = false;
+    private static final String DEFAULT_SKIP = "0";
 
     final static int TF_THREAD_NUM = 4;
     final static int THREAD_NUM = 2;
 
     final int bufferSize;
     final boolean verbose;
+    private final int skipFrame;
 
     /**
      * Set up default parameters
@@ -46,6 +48,7 @@ public abstract class VideoAnalysis {
 
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         this.verbose = pref.getBoolean(context.getString(R.string.verbose_output_key), DEFAULT_VERBOSE);
+        this.skipFrame = Integer.parseInt(pref.getString(context.getString(R.string.skip_frame_key), DEFAULT_SKIP));
     }
 
     abstract Frame processFrame(Bitmap bitmap, int frameIndex, float scaleFactor);
@@ -125,6 +128,11 @@ public abstract class VideoAnalysis {
         for (int i = 0; i < totalFrames; i++) {
             final Bitmap bitmap = retriever.getFrameAtIndex(i);
             final int k = i;
+
+            if (skipFrame != 0 && i % skipFrame == 0) {
+                continue;
+            }
+
             executor.submit(() -> frames.add(processFrame(
                     Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, false), k, scaleFactor)
             ));
