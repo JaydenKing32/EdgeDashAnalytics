@@ -33,7 +33,7 @@ public class FfmpegTools {
         FFmpegKit.executeWithArguments(ffmpegArgs.toArray(new String[0]));
     }
 
-    private static void setDuration(String filePath) {
+    public static void setDuration(String filePath) {
         // Assume that all videos are of equal length, only need to set once
         if (duration != null) {
             return;
@@ -51,6 +51,10 @@ public class FfmpegTools {
             Log.e(I_TAG, String.format("ffmpeg-mobile error, could not retrieve duration of %s:\n%s",
                     filePath, e.getMessage()));
         }
+    }
+
+    public static double getDuration() {
+        return duration;
     }
 
     // Get base video name from split segment's name
@@ -112,7 +116,7 @@ public class FfmpegTools {
         String baseName = FilenameUtils.getBaseName(filePath);
         setDuration(filePath);
 
-        double segTime = duration / segNum;
+        double segTime = getDuration() / segNum;
         // Round segment time up to ensure that the number of split videos doesn't exceed segNum
         DecimalFormat df = new DecimalFormat("#.##");
         df.setRoundingMode(RoundingMode.CEILING);

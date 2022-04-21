@@ -15,6 +15,7 @@ import com.example.edgedashanalytics.util.TimeManager;
 import com.example.edgedashanalytics.util.file.JsonManager;
 import com.example.edgedashanalytics.util.hardware.HardwareInfo;
 import com.example.edgedashanalytics.util.hardware.PowerMonitor;
+import com.example.edgedashanalytics.util.video.FfmpegTools;
 
 import java.io.File;
 import java.time.Instant;
@@ -35,6 +36,7 @@ public abstract class VideoAnalysis {
 
     final int bufferSize;
     final boolean verbose;
+    private Long durationMillis = null;
 
     /**
      * Set up default parameters
@@ -87,15 +89,19 @@ public abstract class VideoAnalysis {
         executor.shutdown();
         boolean complete = false;
 
+        if (durationMillis == null) {
+            FfmpegTools.setDuration(inPath);
+            durationMillis = (long) FfmpegTools.getDuration() / 1000;
+        }
+
         try {
-            complete = executor.awaitTermination(20, TimeUnit.MINUTES);
+            complete = executor.awaitTermination(durationMillis / 2, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Log.e(I_TAG, String.format("Interrupted analysis of %s:\n  %s", videoName, e.getMessage()));
         }
 
         if (!complete) {
-            Log.e(I_TAG, "Could not complete processing in time");
-            return;
+            Log.e(I_TAG, String.format("Stopped processing early at %s frames", frames.size()));
         }
         JsonManager.writeResultsToJson(outPath, frames);
 
