@@ -323,10 +323,12 @@ public class DashCam {
         int suffixA = Integer.parseInt(StringUtils.substringBetween(videoA, "_", "."));
         int suffixB = Integer.parseInt(StringUtils.substringBetween(videoB, "_", "."));
 
+        // Order sequentially based on suffix index
         if (suffixA != suffixB) {
             return suffixA - suffixB;
         }
-        return prefixA.compareTo(prefixB);
+        // Order "out" before "inn"
+        return -prefixA.compareTo(prefixB);
     }
 
     public static void setDownloadCallback(Context context, Consumer<Video> downloadCallback) {

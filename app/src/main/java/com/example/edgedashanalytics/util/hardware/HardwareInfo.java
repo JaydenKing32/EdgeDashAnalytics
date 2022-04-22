@@ -17,6 +17,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.Comparator;
 
 public class HardwareInfo {
     private static final String TAG = HardwareInfo.class.getSimpleName();
@@ -143,6 +144,12 @@ public class HardwareInfo {
 
     public static HardwareInfo fromJson(String json) {
         return (HardwareInfo) JsonManager.readFromString(json, HardwareInfo.class);
+    }
+
+    public static Comparator<HardwareInfo> compareProcessing() {
+        return Comparator.comparing((HardwareInfo hwi) -> hwi.cpuFreq)
+                .thenComparing(hwi -> hwi.cpuCores)
+                .thenComparing(hwi -> hwi.totalRam);
     }
 }
 

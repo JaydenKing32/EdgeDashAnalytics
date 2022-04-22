@@ -116,6 +116,7 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
     public Runnable simulateDownloads(int delay, Consumer<Video> downloadCallback, boolean dualDownload) {
         LinkedList<Video> videoList = videos.stream()
                 .sorted((v1, v2) -> DashCam.testVideoComparator(v1.getName(), v2.getName()))
+                .limit(DashCam.getTestVideoCount())
                 .collect(Collectors.toCollection(LinkedList::new));
         int downloadCount = dualDownload ? 2 : 1;
 
