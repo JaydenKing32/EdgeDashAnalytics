@@ -595,9 +595,8 @@ public abstract class NearbyFragment extends Fragment {
 
         List<Endpoint> endpoints = getConnectedEndpoints();
         boolean localFree = analysisFutures.stream().allMatch(Future::isDone);
-        boolean anyFreeEndpoint = endpoints.stream().anyMatch(Endpoint::isInactive);
 
-        if (localProcess && localFree && !anyFreeEndpoint) {
+        if (localProcess && localFree) {
             Video video = (Video) transferQueue.remove().content;
             Log.d(I_TAG, String.format("Processing %s locally", video.getName()));
             analyse(video, false);
