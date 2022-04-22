@@ -105,6 +105,7 @@ public abstract class NearbyFragment extends Fragment {
     private Listener listener;
     private boolean verbose;
     private boolean master = false;
+    private boolean isMasterFastest = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -316,6 +317,10 @@ public abstract class NearbyFragment extends Fragment {
         boolean simDownload = pref.getBoolean(context.getString(R.string.enable_download_simulation_key), false);
         int simDelay = Integer.parseInt(pref.getString(context.getString(R.string.simulation_delay_key), defaultDelay));
         boolean dualDownload = pref.getBoolean(context.getString(R.string.dual_download_key), false);
+
+        Endpoint fastest = getConnectedEndpoints().stream().max(Endpoint.compareProcessing()).orElse(null);
+        isMasterFastest = fastest != null &&
+                HardwareInfo.compareProcessing().compare(new HardwareInfo(context), fastest.hardwareInfo) > 0;
 
         if (simDownload) {
             downloadTaskExecutor.scheduleWithFixedDelay(listener.getSimulateDownloads(simDelay,
@@ -595,8 +600,9 @@ public abstract class NearbyFragment extends Fragment {
 
         List<Endpoint> endpoints = getConnectedEndpoints();
         boolean localFree = analysisFutures.stream().allMatch(Future::isDone);
+        boolean anyFreeEndpoint = endpoints.stream().anyMatch(Endpoint::isInactive);
 
-        if (localProcess && localFree) {
+        if (localProcess && localFree && (isMasterFastest || !anyFreeEndpoint)) {
             Video video = (Video) transferQueue.remove().content;
             Log.d(I_TAG, String.format("Processing %s locally", video.getName()));
             analyse(video, false);
