@@ -664,16 +664,18 @@ public abstract class NearbyFragment extends Fragment {
             Log.e(I_TAG, String.format("Could not create file payload for %s", message.content));
             return;
         }
-        Log.i(I_TAG, String.format("Sending %s to %s", message.content.getName(), toEndpoint.name));
+        String vidName = message.content.getName();
+        Log.i(I_TAG, String.format("Sending %s to %s", vidName, toEndpoint.name));
+        filePayload.setFileName(vidName);
+        filePayload.setParentFolder(FileManager.getNearbyDirName());
 
         // Construct a message mapping the ID of the file payload to the desired filename and command.
         String bytesMessage = String.join(MESSAGE_SEPARATOR, message.command.toString(),
-                Long.toString(filePayload.getId()), uri.getLastPathSegment());
+                Long.toString(filePayload.getId()), vidName);
 
-        // Send the filename message as a bytes payload.
-        // Master will send to all workers, workers will just send to master
-        Payload filenameBytesPayload = Payload.fromBytes(bytesMessage.getBytes(UTF_8));
-        connectionsClient.sendPayload(toEndpoint.id, filenameBytesPayload);
+        // Send the filename and command message as a bytes payload.
+        Payload commandBytesPayload = Payload.fromBytes(bytesMessage.getBytes(UTF_8));
+        connectionsClient.sendPayload(toEndpoint.id, commandBytesPayload);
 
         // Finally, send the file payload.
         connectionsClient.sendPayload(toEndpoint.id, filePayload);
@@ -946,18 +948,20 @@ public abstract class NearbyFragment extends Fragment {
                     waitTimes.put(filename, Instant.now());
 
                     // Video needs to be in a video directory for it to be scanned on Android version 28 and below
-                    File videoDest = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) ?
-                            new File(payloadFile.getParentFile(), filename) :
-                            new File(FileManager.getRawDirPath(), filename);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        MediaScannerConnection.scanFile(getContext(), new String[]{payloadFile.getAbsolutePath()}, null,
+                                (path, uri) -> analyse(payloadFile));
+                    } else {
+                        File videoDest = new File(FileManager.getRawDirPath(), filename);
+                        boolean rename = payloadFile.renameTo(videoDest);
 
-                    boolean rename = payloadFile.renameTo(videoDest);
-                    if (!rename) {
-                        Log.e(I_TAG, String.format("Could not rename %s", filename));
-                        return;
+                        if (!rename) {
+                            Log.e(I_TAG, String.format("Could not rename %s", filename));
+                            return;
+                        }
+                        MediaScannerConnection.scanFile(getContext(), new String[]{videoDest.getAbsolutePath()}, null,
+                                (path, uri) -> analyse(videoDest));
                     }
-
-                    MediaScannerConnection.scanFile(getContext(), new String[]{videoDest.getAbsolutePath()}, null,
-                            (path, uri) -> analyse(videoDest));
 
                 } else if (command.equals(Command.RETURN)) {
                     String resultName = FileManager.getResultNameFromVideoName(filename);

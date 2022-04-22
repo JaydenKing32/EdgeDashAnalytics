@@ -56,6 +56,10 @@ public class FileManager {
         return RESULTS_DIR.getAbsolutePath();
     }
 
+    public static String getNearbyDirName() {
+        return NEARBY_DIR_NAME;
+    }
+
     public static String getNearbyDirPath() {
         return NEARBY_DIR.getAbsolutePath();
     }
