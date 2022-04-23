@@ -30,6 +30,7 @@ public abstract class VideoAnalysis {
     private static final String TAG = VideoAnalysis.class.getSimpleName();
     private static final boolean DEFAULT_VERBOSE = false;
     private static final String DEFAULT_SKIP = "0";
+    private static final int SKIP_BREAKPOINT = 10;
 
     final static int TF_THREAD_NUM = 4;
     final static int THREAD_NUM = 2;
@@ -124,12 +125,15 @@ public abstract class VideoAnalysis {
 
         setup(scaledWidth, scaledHeight);
 
+        boolean reachedBreakpoint = skipFrame >= SKIP_BREAKPOINT;
+        int increment = reachedBreakpoint ? 1 : skipFrame;
+
         // MediaMetadataRetriever is inconsistent, seems to only reliably with x264, may fail with other codecs
-        for (int i = 0; i < totalFrames; i++) {
+        for (int i = 0; i < totalFrames; i += increment) {
             final Bitmap bitmap = retriever.getFrameAtIndex(i);
             final int k = i;
 
-            if (shouldSkip(i, skipFrame)) {
+            if (!reachedBreakpoint && shouldSkip(i, skipFrame)) {
                 continue;
             }
 
