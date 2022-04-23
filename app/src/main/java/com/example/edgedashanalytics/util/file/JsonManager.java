@@ -29,6 +29,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class JsonManager {
     private static final String TAG = JsonManager.class.getSimpleName();
@@ -43,7 +45,10 @@ public class JsonManager {
 
     public static void writeResultsToJson(String jsonFilePath, List<Frame> frames) {
         try {
-            frames.sort(Comparator.comparingInt(o -> o.frame));
+            frames = frames.stream()
+                    .filter(Objects::nonNull)
+                    .sorted(Comparator.comparingInt(f -> f.frame))
+                    .collect(Collectors.toList());
             writer.writeValue(new FileOutputStream(jsonFilePath), frames);
         } catch (Exception e) {
             Log.e(I_TAG, String.format("Failed to write results file:\n  %s", e.getMessage()));

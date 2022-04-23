@@ -84,24 +84,29 @@ public abstract class VideoAnalysis {
 
         final List<Frame> frames = Collections.synchronizedList(new ArrayList<>(totalFrames));
 
-        ExecutorService executor = Executors.newFixedThreadPool(THREAD_NUM);
-        processFramesLoop(retriever, totalFrames, frames, executor);
-        executor.shutdown();
+        ExecutorService frameExecutor = Executors.newFixedThreadPool(THREAD_NUM);
+        ExecutorService loopExecutor = Executors.newSingleThreadExecutor();
+        loopExecutor.submit(processFramesLoop(retriever, totalFrames, frames, frameExecutor));
+
+        loopExecutor.shutdown();
         boolean complete = false;
 
         if (durationMillis == null) {
             FfmpegTools.setDuration(inPath);
-            durationMillis = (long) FfmpegTools.getDuration() / 1000;
+            durationMillis = (long) (FfmpegTools.getDuration() * 1000) / 2;
         }
 
         try {
-            complete = executor.awaitTermination(durationMillis / 2, TimeUnit.MILLISECONDS);
+            complete = loopExecutor.awaitTermination(durationMillis, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Log.e(I_TAG, String.format("Interrupted analysis of %s:\n  %s", videoName, e.getMessage()));
         }
 
         if (!complete) {
-            Log.e(I_TAG, String.format("Stopped processing early at %s frames", frames.size()));
+            frameExecutor.shutdownNow();
+            int completedFrames = frames.size();
+            Log.e(I_TAG, String.format("Stopped processing early at %s frames, %s remaining",
+                    completedFrames, totalFrames - completedFrames));
         }
         JsonManager.writeResultsToJson(outPath, frames);
 
@@ -114,26 +119,28 @@ public abstract class VideoAnalysis {
         PowerMonitor.printSummary();
     }
 
-    private void processFramesLoop(MediaMetadataRetriever retriever, int totalFrames,
-                                   List<Frame> frames, ExecutorService executor) {
-        String videoWidthString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH);
-        String videoHeightString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT);
-        int videoWidth = Integer.parseInt(videoWidthString);
-        int videoHeight = Integer.parseInt(videoHeightString);
+    private Runnable processFramesLoop(MediaMetadataRetriever retriever, int totalFrames,
+                                       List<Frame> frames, ExecutorService executor) {
+        return () -> {
+            String videoWidthString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH);
+            String videoHeightString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT);
+            int videoWidth = Integer.parseInt(videoWidthString);
+            int videoHeight = Integer.parseInt(videoHeightString);
 
-        float scaleFactor = getScaleFactor(videoWidth);
-        int scaledWidth = (int) (videoWidth / scaleFactor);
-        int scaledHeight = (int) (videoHeight / scaleFactor);
+            float scaleFactor = getScaleFactor(videoWidth);
+            int scaledWidth = (int) (videoWidth / scaleFactor);
+            int scaledHeight = (int) (videoHeight / scaleFactor);
 
-        setup(scaledWidth, scaledHeight);
+            setup(scaledWidth, scaledHeight);
 
-        // MediaMetadataRetriever is inconsistent, seems to only reliably with x264, may fail with other codecs
-        for (int i = 0; i < totalFrames; i++) {
-            final Bitmap bitmap = retriever.getFrameAtIndex(i);
-            final int k = i;
-            executor.submit(() -> frames.add(processFrame(
-                    Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, false), k, scaleFactor)
-            ));
-        }
+            // MediaMetadataRetriever is inconsistent, seems to only reliably with x264, may fail with other codecs
+            for (int i = 0; i < totalFrames; i++) {
+                final Bitmap bitmap = retriever.getFrameAtIndex(i);
+                final int k = i;
+                executor.submit(() -> frames.add(processFrame(
+                        Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, false), k, scaleFactor)
+                ));
+            }
+        };
     }
 }
