@@ -30,13 +30,16 @@ import java.util.concurrent.TimeUnit;
 public abstract class VideoAnalysis {
     private static final String TAG = VideoAnalysis.class.getSimpleName();
     private static final boolean DEFAULT_VERBOSE = false;
+    private static final String DEFAULT_STOP_DIVISOR = "0";
 
     final static int TF_THREAD_NUM = 4;
     final static int THREAD_NUM = 2;
 
     final int bufferSize;
     final boolean verbose;
-    private Long durationMillis = null;
+
+    private final double stopDivisor;
+    private static Long durationMillis = null;
 
     /**
      * Set up default parameters
@@ -48,6 +51,8 @@ public abstract class VideoAnalysis {
 
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         this.verbose = pref.getBoolean(context.getString(R.string.verbose_output_key), DEFAULT_VERBOSE);
+        this.stopDivisor = Double.parseDouble(pref.getString(
+                context.getString(R.string.early_stop_divisor_key), DEFAULT_STOP_DIVISOR));
     }
 
     abstract Frame processFrame(Bitmap bitmap, int frameIndex, float scaleFactor);
@@ -92,8 +97,13 @@ public abstract class VideoAnalysis {
         boolean complete = false;
 
         if (durationMillis == null) {
-            FfmpegTools.setDuration(inPath);
-            durationMillis = (long) (FfmpegTools.getDuration() * 1000) / 2;
+            if (stopDivisor <= 0) {
+                // Ten minutes in milliseconds
+                durationMillis = 600000L;
+            } else {
+                FfmpegTools.setDuration(inPath);
+                durationMillis = (long) ((FfmpegTools.getDuration() * 1000) / stopDivisor);
+            }
         }
 
         try {

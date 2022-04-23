@@ -60,6 +60,13 @@
         android:selectAllOnFocus="true"
         android:singleLine="true"
         android:title="@string/download_simulation_delay_title" />
+    <EditTextPreference
+        android:id="@+id/early_stop_preference"
+        android:defaultValue="0"
+        android:key="@string/early_stop_divisor_key"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/early_stop_divisor_title" />
     <CheckBoxPreference
         android:id="@+id/remove_raw_preference"
         android:defaultValue="false"

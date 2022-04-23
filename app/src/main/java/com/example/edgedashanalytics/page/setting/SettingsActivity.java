@@ -30,6 +30,7 @@ import com.example.edgedashanalytics.util.nearby.Algorithm.AlgorithmKey;
 import com.example.edgedashanalytics.util.video.analysis.InnerAnalysis;
 import com.example.edgedashanalytics.util.video.analysis.OuterAnalysis;
 
+import java.util.Locale;
 import java.util.StringJoiner;
 
 public class SettingsActivity extends AppCompatActivity {
@@ -89,6 +90,7 @@ public class SettingsActivity extends AppCompatActivity {
         boolean sim = pref.getBoolean(c.getString(R.string.enable_download_simulation_key), defaultBool);
         int simDelay = Integer.parseInt(pref.getString(c.getString(R.string.simulation_delay_key), defaultString));
         int testVideoCount = DashCam.getTestVideoCount();
+        double stopDivisor = Double.parseDouble(pref.getString(c.getString(R.string.early_stop_divisor_key), "0"));
 
         StringJoiner prefMessage = new StringJoiner("\n  ");
         prefMessage.add("Preferences:");
@@ -108,6 +110,7 @@ public class SettingsActivity extends AppCompatActivity {
         prefMessage.add(String.format("Simulated downloads: %s", sim));
         prefMessage.add(String.format("Simulated delay: %s", simDelay));
         prefMessage.add(String.format("Test video count: %s", testVideoCount));
+        prefMessage.add(String.format(Locale.ENGLISH, "Early stop divisor: %.4f", stopDivisor));
 
         Log.i(I_TAG, prefMessage.toString());
 
@@ -158,11 +161,13 @@ public class SettingsActivity extends AppCompatActivity {
             });
 
             EditTextPreference downloadDelay = findPreference(getString(R.string.download_delay_key));
-            setupTextPreference(downloadDelay);
+            setupTextPreference(downloadDelay, InputType.TYPE_CLASS_NUMBER);
             EditTextPreference simDelay = findPreference(getString(R.string.simulation_delay_key));
-            setupTextPreference(simDelay);
+            setupTextPreference(simDelay, InputType.TYPE_CLASS_NUMBER);
             EditTextPreference testVideoCount = findPreference(getString(R.string.test_video_count_key));
-            setupTextPreference(testVideoCount);
+            setupTextPreference(testVideoCount, InputType.TYPE_CLASS_NUMBER);
+            EditTextPreference earlyStopDivisor = findPreference(getString(R.string.early_stop_divisor_key));
+            setupTextPreference(earlyStopDivisor, InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         }
 
         private boolean clearLogsPrompt() {
@@ -175,13 +180,13 @@ public class SettingsActivity extends AppCompatActivity {
             }
         }
 
-        private void setupTextPreference(EditTextPreference editTextPreference) {
+        private void setupTextPreference(EditTextPreference editTextPreference, int inputType) {
             if (editTextPreference != null) {
                 setTextSummaryToValue(editTextPreference, editTextPreference.getText());
                 editTextPreference.setOnPreferenceChangeListener((preference, newValue) ->
                         setTextSummaryToValue((EditTextPreference) preference, (String) newValue));
                 editTextPreference.setOnBindEditTextListener(editText -> {
-                    editText.setInputType(InputType.TYPE_CLASS_NUMBER);
+                    editText.setInputType(inputType);
                     editText.selectAll();
                 });
             }
