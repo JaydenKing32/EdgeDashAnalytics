@@ -45,13 +45,14 @@ public class JsonManager {
 
     public static void writeResultsToJson(String jsonFilePath, List<Frame> frames) {
         try {
-            frames = frames.stream()
-                    .filter(Objects::nonNull)
-                    .sorted(Comparator.comparingInt(f -> f.frame))
-                    .collect(Collectors.toList());
-            writer.writeValue(new FileOutputStream(jsonFilePath), frames);
+            writer.writeValue(new FileOutputStream(jsonFilePath),
+                    frames.stream()
+                            .filter(Objects::nonNull)
+                            .sorted(Comparator.comparingInt(f -> f.frame))
+                            .collect(Collectors.toList()));
         } catch (Exception e) {
-            Log.e(I_TAG, String.format("Failed to write results file:\n  %s", e.getMessage()));
+            Log.e(I_TAG, String.format("Failed to write results file: %s\n  %s",
+                    e.getClass().getSimpleName(), e.getMessage()));
         }
     }
 
