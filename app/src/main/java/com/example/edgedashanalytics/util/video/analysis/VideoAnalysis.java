@@ -115,8 +115,8 @@ public abstract class VideoAnalysis {
         if (!complete) {
             frameExecutor.shutdownNow();
             int completedFrames = frames.size();
-            Log.e(I_TAG, String.format("Stopped processing early at %s frames, %s remaining",
-                    completedFrames, totalFrames - completedFrames));
+            Log.w(I_TAG, String.format("Stopped processing early for %s at %s frames, %s remaining",
+                    videoName, completedFrames, totalFrames - completedFrames));
         }
         JsonManager.writeResultsToJson(outPath, frames);
 
