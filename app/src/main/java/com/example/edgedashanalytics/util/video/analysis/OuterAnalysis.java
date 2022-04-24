@@ -199,7 +199,6 @@ public class OuterAnalysis extends VideoAnalysis {
     public void printParameters() {
         StringJoiner paramMessage = new StringJoiner("\n  ");
         paramMessage.add("Outer analysis parameters:");
-        paramMessage.add(String.format("bufferSize: %s", bufferSize));
         paramMessage.add(String.format("MAX_DETECTIONS: %s", MAX_DETECTIONS));
         paramMessage.add(String.format("MIN_SCORE: %s", MIN_SCORE));
         paramMessage.add(String.format("TensorFlow Threads: %s", TF_THREAD_NUM));

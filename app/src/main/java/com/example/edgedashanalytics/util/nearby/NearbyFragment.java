@@ -320,7 +320,7 @@ public abstract class NearbyFragment extends Fragment {
 
         Endpoint fastest = getConnectedEndpoints().stream().max(Endpoint.compareProcessing()).orElse(null);
         isMasterFastest = fastest != null &&
-                HardwareInfo.compareProcessing().compare(new HardwareInfo(context), fastest.hardwareInfo) > 0;
+                HardwareInfo.compareProcessing(new HardwareInfo(context), fastest.hardwareInfo) > 0;
 
         if (simDownload) {
             downloadTaskExecutor.scheduleWithFixedDelay(listener.getSimulateDownloads(simDelay,
@@ -634,6 +634,9 @@ public abstract class NearbyFragment extends Fragment {
                 break;
             case highest_battery:
                 selected = Algorithm.getMaxBatteryEndpoint(endpoints);
+                break;
+            case max_capacity:
+                selected = Algorithm.getMaxCapacityEndpoint(endpoints);
                 break;
         }
 

@@ -12,7 +12,8 @@ public class Algorithm {
         most_cpu_cores,
         most_ram,
         most_storage,
-        highest_battery
+        highest_battery,
+        max_capacity
     }
 
     public static final AlgorithmKey DEFAULT_ALGORITHM = AlgorithmKey.fastest;
@@ -202,5 +203,20 @@ public class Algorithm {
         }
 
         return result;
+    }
+
+    static Endpoint getMaxCapacityEndpoint(List<Endpoint> endpoints) {
+        Endpoint fastest = endpoints.stream()
+                .filter(Endpoint::isInactive)
+                .max(Endpoint.compareProcessing())
+                .orElse(null);
+
+        if (fastest != null) {
+            return fastest;
+        }
+
+        return endpoints.stream()
+                .max(Endpoint.compareProcessing().thenComparing(Endpoint::getJobCount))
+                .orElse(null);
     }
 }

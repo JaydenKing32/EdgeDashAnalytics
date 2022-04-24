@@ -17,13 +17,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.Comparator;
 
 public class HardwareInfo {
     private static final String TAG = HardwareInfo.class.getSimpleName();
 
-    public final long cpuFreq;
     public final int cpuCores;
+    public final long cpuFreq;
     public final long totalRam;
     public final long availRam;
     public final long totalStorage;
@@ -31,15 +30,14 @@ public class HardwareInfo {
     public final int batteryLevel;
 
     @JsonCreator
-    public HardwareInfo(@JsonProperty("cpuFreq") long cpuFreq,
-                        @JsonProperty("cpuCores") int cpuCores,
+    public HardwareInfo(@JsonProperty("cpuCores") int cpuCores, @JsonProperty("cpuFreq") long cpuFreq,
                         @JsonProperty("totalRam") long totalRam,
                         @JsonProperty("availRam") long availRam,
                         @JsonProperty("totalStorage") long totalStorage,
                         @JsonProperty("availStorage") long availStorage,
                         @JsonProperty("batteryLevel") int batteryLevel) {
-        this.cpuFreq = cpuFreq;
         this.cpuCores = cpuCores;
+        this.cpuFreq = cpuFreq;
         this.totalRam = totalRam;
         this.availRam = availRam;
         this.totalStorage = totalStorage;
@@ -48,8 +46,8 @@ public class HardwareInfo {
     }
 
     public HardwareInfo(Context context) {
-        cpuFreq = getCpuFreq();
         cpuCores = getCpuCoreCount();
+        cpuFreq = getCpuFreq();
         totalRam = getTotalRam(context);
         availRam = getAvailRam(context);
         totalStorage = getTotalStorage();
@@ -61,19 +59,26 @@ public class HardwareInfo {
      * @return CPU clock speed in Hz
      */
     private long getCpuFreq() {
-        int freq = -1;
-        try {
-            RandomAccessFile raf = new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq", "r");
-            String line = raf.readLine();
+        long maxFreq = -1;
 
-            if (line != null) {
-                return Long.parseLong(line);
+        for (int i = 0; i < cpuCores; i++) {
+            try {
+                String filepath = "/sys/devices/system/cpu/cpu" + i + "/cpufreq/cpuinfo_max_freq";
+                RandomAccessFile raf = new RandomAccessFile(filepath, "r");
+                String line = raf.readLine();
+
+                if (line != null) {
+                    long freq = Long.parseLong(line);
+                    if (freq > maxFreq) {
+                        maxFreq = freq;
+                    }
+                }
+            } catch (IOException e) {
+                Log.e(TAG, String.format("Could not retrieve CPU frequency: \n%s", e.getMessage()));
             }
-        } catch (IOException e) {
-            Log.e(TAG, String.format("Could not retrieve CPU frequency: \n%s", e.getMessage()));
         }
 
-        return freq;
+        return maxFreq;
     }
 
     private int getCpuCoreCount() {
@@ -146,10 +151,29 @@ public class HardwareInfo {
         return (HardwareInfo) JsonManager.readFromString(json, HardwareInfo.class);
     }
 
-    public static Comparator<HardwareInfo> compareProcessing() {
-        return Comparator.comparing((HardwareInfo hwi) -> hwi.cpuFreq)
-                .thenComparing(hwi -> hwi.cpuCores)
-                .thenComparing(hwi -> hwi.totalRam);
+    public static int compareProcessing(HardwareInfo hwi1, HardwareInfo hwi2) {
+        int cpuFreqComp = Long.compare(hwi1.cpuFreq, hwi2.cpuFreq);
+        int cpuCoreComp = Integer.compare(hwi1.cpuCores, hwi2.cpuCores);
+        int ramComp = Long.compare(hwi1.totalRam, hwi2.totalRam);
+
+        double cpuDiff = Math.abs(hwi1.cpuFreq - hwi2.cpuFreq);
+
+        // First check if max CPU frequencies are within 1% of each other
+        if ((cpuDiff / hwi1.cpuFreq) < 0.01) {
+            if (cpuCoreComp != 0) {
+                return cpuCoreComp;
+            } else {
+                return ramComp;
+            }
+        } else {
+            if (cpuFreqComp != 0) {
+                return cpuFreqComp;
+            } else if (cpuCoreComp != 0) {
+                return cpuCoreComp;
+            } else {
+                return ramComp;
+            }
+        }
     }
 }
 
