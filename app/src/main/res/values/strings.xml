@@ -103,4 +103,6 @@
     <string name="most_storage_algorithm_key">most_storage</string>
     <string name="highest_battery_algorithm_title">Highest battery</string>
     <string name="highest_battery_algorithm_key">highest_battery</string>
+    <string name="max_capacity_algorithm_title">Max capacity</string>
+    <string name="max_capacity_algorithm_key">max_capacity</string>
 </resources>

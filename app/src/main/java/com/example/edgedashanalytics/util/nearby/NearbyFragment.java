@@ -635,6 +635,9 @@ public abstract class NearbyFragment extends Fragment {
             case highest_battery:
                 selected = Algorithm.getMaxBatteryEndpoint(endpoints);
                 break;
+            case max_capacity:
+                selected = Algorithm.getMaxCapacityEndpoint(endpoints);
+                break;
         }
 
         sendFile(transferQueue.remove(), selected);
