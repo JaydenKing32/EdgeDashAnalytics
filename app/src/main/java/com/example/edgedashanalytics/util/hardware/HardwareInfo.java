@@ -17,7 +17,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.Comparator;
 
 public class HardwareInfo {
     private static final String TAG = HardwareInfo.class.getSimpleName();
@@ -152,10 +151,29 @@ public class HardwareInfo {
         return (HardwareInfo) JsonManager.readFromString(json, HardwareInfo.class);
     }
 
-    public static Comparator<HardwareInfo> compareProcessing() {
-        return Comparator.comparing((HardwareInfo hwi) -> hwi.cpuFreq)
-                .thenComparing(hwi -> hwi.cpuCores)
-                .thenComparing(hwi -> hwi.totalRam);
+    public static int compareProcessing(HardwareInfo hwi1, HardwareInfo hwi2) {
+        int cpuFreqComp = Long.compare(hwi1.cpuFreq, hwi2.cpuFreq);
+        int cpuCoreComp = Integer.compare(hwi1.cpuCores, hwi2.cpuCores);
+        int ramComp = Long.compare(hwi1.totalRam, hwi2.totalRam);
+
+        double cpuDiff = Math.abs(hwi1.cpuFreq - hwi2.cpuFreq);
+
+        // First check if max CPU frequencies are within 5% of each other
+        if ((cpuDiff / hwi1.cpuFreq) < 0.05) {
+            if (cpuCoreComp != 0) {
+                return cpuCoreComp;
+            } else {
+                return ramComp;
+            }
+        } else {
+            if (cpuFreqComp != 0) {
+                return cpuFreqComp;
+            } else if (cpuCoreComp != 0) {
+                return cpuCoreComp;
+            } else {
+                return ramComp;
+            }
+        }
     }
 }
 
