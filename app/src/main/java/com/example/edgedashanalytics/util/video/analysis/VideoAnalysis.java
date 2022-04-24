@@ -62,10 +62,17 @@ public abstract class VideoAnalysis {
 
     private void processVideo(String inPath, String outPath) {
         File videoFile = new File(inPath);
-        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
-        retriever.setDataSource(videoFile.getAbsolutePath());
-
         String videoName = videoFile.getName();
+        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+
+        try {
+            retriever.setDataSource(videoFile.getAbsolutePath());
+        } catch (Exception e) {
+            Log.e(I_TAG, String.format("Failed to set data source for %s: %s\n  %s",
+                    videoName, e.getClass().getSimpleName(), e.getMessage()));
+            return;
+        }
+
         String totalFramesString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_FRAME_COUNT);
 
         if (totalFramesString == null) {
