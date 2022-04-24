@@ -24,21 +24,29 @@ public class AnalysisTools {
     private final static ExecutorService executor = Executors.newSingleThreadExecutor();
     private final static LinkedHashMap<String, Future<?>> analysisFutures = new LinkedHashMap<>();
 
+    private static InnerAnalysis innerAnalysis = null;
+    private static OuterAnalysis outerAnalysis = null;
+
     public static void processVideo(Video video, Context context) {
         Log.d(TAG, String.format("Analysing %s", video.getName()));
 
+        if (innerAnalysis == null || outerAnalysis == null) {
+            innerAnalysis = new InnerAnalysis(context);
+            outerAnalysis = new OuterAnalysis(context);
+        }
+
         final String output = FileManager.getResultPathFromVideoName(video.getName());
 
-        Future<?> future = executor.submit(processRunnable(video, output, context));
+        Future<?> future = executor.submit(processRunnable(video, output));
         analysisFutures.put(video.getData(), future);
 
         EventBus.getDefault().post(new AddEvent(video, Type.PROCESSING));
         EventBus.getDefault().post(new RemoveEvent(video, Type.RAW));
     }
 
-    private static Runnable processRunnable(Video video, String outPath, Context context) {
+    private static Runnable processRunnable(Video video, String outPath) {
         return () -> {
-            VideoAnalysis videoAnalysis = video.isInner() ? new InnerAnalysis(context) : new OuterAnalysis(context);
+            VideoAnalysis videoAnalysis = video.isInner() ? innerAnalysis : outerAnalysis;
             videoAnalysis.analyse(video.getData(), outPath);
 
             analysisFutures.remove(video.getData());

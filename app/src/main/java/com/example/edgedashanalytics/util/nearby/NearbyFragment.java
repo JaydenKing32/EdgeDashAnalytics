@@ -106,6 +106,8 @@ public abstract class NearbyFragment extends Fragment {
     private boolean verbose;
     private boolean master = false;
     private boolean isMasterFastest = false;
+    private InnerAnalysis innerAnalysis;
+    private OuterAnalysis outerAnalysis;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -123,6 +125,9 @@ public abstract class NearbyFragment extends Fragment {
         deviceAdapter = new DeviceListAdapter(listener, activity, discoveredEndpoints);
         connectionsClient = Nearby.getConnectionsClient(activity);
         setLocalName(activity);
+
+        innerAnalysis = new InnerAnalysis(activity);
+        outerAnalysis = new OuterAnalysis(activity);
     }
 
     @Override
@@ -703,23 +708,17 @@ public abstract class NearbyFragment extends Fragment {
             waitTimes.put(video.getName(), Instant.now());
         }
 
-        Context context = getContext();
-        if (context == null) {
-            Log.e(TAG, "No context");
-            return;
-        }
-
         Log.d(TAG, String.format("Analysing %s", video.getName()));
 
         EventBus.getDefault().post(new AddEvent(video, Type.PROCESSING));
         EventBus.getDefault().post(new RemoveEvent(video, Type.RAW));
 
         String outPath = FileManager.getResultPathOrSegmentResPathFromVideoName(video.getName());
-        Future<?> future = analysisExecutor.submit(analysisRunnable(video, outPath, context, returnResult));
+        Future<?> future = analysisExecutor.submit(analysisRunnable(video, outPath, returnResult));
         analysisFutures.add(future);
     }
 
-    private Runnable analysisRunnable(Video video, String outPath, Context context, boolean returnResult) {
+    private Runnable analysisRunnable(Video video, String outPath, boolean returnResult) {
         return () -> {
             String videoName = video.getName();
 
@@ -732,7 +731,7 @@ public abstract class NearbyFragment extends Fragment {
                 Log.e(TAG, String.format("Could not record wait time of %s", videoName));
             }
 
-            VideoAnalysis videoAnalysis = video.isInner() ? new InnerAnalysis(context) : new OuterAnalysis(context);
+            VideoAnalysis videoAnalysis = video.isInner() ? innerAnalysis : outerAnalysis;
             videoAnalysis.analyse(video.getData(), outPath);
 
             Result result = new Result(outPath);
