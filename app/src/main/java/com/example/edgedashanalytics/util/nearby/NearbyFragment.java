@@ -607,6 +607,20 @@ public abstract class NearbyFragment extends Fragment {
         boolean localFree = analysisFutures.stream().allMatch(Future::isDone);
         boolean anyFreeEndpoint = endpoints.stream().anyMatch(Endpoint::isInactive);
 
+        if (localProcess && endpoints.size() == 1 && algorithm.equals(AlgorithmKey.max_capacity)) {
+            Message message = transferQueue.remove();
+            Video video = (Video) message.content;
+            boolean isOuter = video.isOuter();
+
+            if ((isMasterFastest && isOuter) || (!isMasterFastest && !isOuter)) {
+                Log.d(I_TAG, String.format("Processing %s locally", video.getName()));
+                analyse(video, false);
+            } else {
+                sendFile(message, endpoints.get(0));
+            }
+            return;
+        }
+
         if (localProcess && localFree && (isMasterFastest || !anyFreeEndpoint)) {
             Video video = (Video) transferQueue.remove().content;
             Log.d(I_TAG, String.format("Processing %s locally", video.getName()));
