@@ -118,7 +118,10 @@ public abstract class VideoAnalysis {
             Log.w(I_TAG, String.format("Stopped processing early for %s at %s frames, %s remaining",
                     videoName, completedFrames, totalFrames - completedFrames));
         }
-        JsonManager.writeResultsToJson(outPath, frames);
+
+        synchronized (frames) {
+            JsonManager.writeResultsToJson(outPath, frames);
+        }
 
         String time = TimeManager.getDurationString(startTime);
         long powerConsumption = PowerMonitor.getPowerConsumption(startPower);
