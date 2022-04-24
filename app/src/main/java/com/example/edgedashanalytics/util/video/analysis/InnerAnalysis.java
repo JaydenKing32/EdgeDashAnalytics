@@ -304,7 +304,6 @@ public class InnerAnalysis extends VideoAnalysis {
     public void printParameters() {
         StringJoiner paramMessage = new StringJoiner("\n  ");
         paramMessage.add("Inner analysis parameters:");
-        paramMessage.add(String.format("bufferSize: %s", bufferSize));
         paramMessage.add(String.format("MIN_SCORE: %s", MIN_SCORE));
         paramMessage.add(String.format("TensorFlow Threads: %s", TF_THREAD_NUM));
         paramMessage.add(String.format("Analysis Threads: %s", THREAD_NUM));

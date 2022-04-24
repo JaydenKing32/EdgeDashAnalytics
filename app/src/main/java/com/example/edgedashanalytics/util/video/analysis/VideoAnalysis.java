@@ -13,7 +13,6 @@ import androidx.preference.PreferenceManager;
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.util.TimeManager;
 import com.example.edgedashanalytics.util.file.JsonManager;
-import com.example.edgedashanalytics.util.hardware.HardwareInfo;
 import com.example.edgedashanalytics.util.hardware.PowerMonitor;
 
 import java.io.File;
@@ -33,17 +32,12 @@ public abstract class VideoAnalysis {
     final static int TF_THREAD_NUM = 4;
     final static int THREAD_NUM = 2;
 
-    final int bufferSize;
     final boolean verbose;
 
     /**
      * Set up default parameters
      */
     VideoAnalysis(Context context) {
-        // Check if phone has at least (roughly) 2GB of RAM
-        HardwareInfo hwi = new HardwareInfo(context);
-        this.bufferSize = hwi.totalRam < 2000000000L ? 5 : 60;
-
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         this.verbose = pref.getBoolean(context.getString(R.string.verbose_output_key), DEFAULT_VERBOSE);
     }
