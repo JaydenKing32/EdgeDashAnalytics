@@ -4,14 +4,11 @@ import static com.example.edgedashanalytics.page.main.MainActivity.I_TAG;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -162,11 +159,6 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
         return position;
     }
 
-    Bitmap getThumbnail(String id, Context context) {
-        return MediaStore.Video.Thumbnails.getThumbnail(
-                context.getContentResolver(), Integer.parseInt(id), MediaStore.Video.Thumbnails.MICRO_KIND, null);
-    }
-
     public void setVideos(List<Video> videos) {
         this.videos = videos;
         notifyDataSetChanged();
@@ -174,8 +166,6 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
 
 
     public static class VideoViewHolder extends RecyclerView.ViewHolder {
-        final View view;
-        final ImageView thumbnailView;
         final TextView videoFileNameView;
         final Button actionButton;
         Video video;
@@ -183,8 +173,6 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
 
         private VideoViewHolder(View view) {
             super(view);
-            this.view = view;
-            thumbnailView = view.findViewById(R.id.thumbnail);
             videoFileNameView = view.findViewById(R.id.video_name);
             actionButton = view.findViewById(R.id.video_action_button);
             layout = itemView.findViewById(R.id.video_row);

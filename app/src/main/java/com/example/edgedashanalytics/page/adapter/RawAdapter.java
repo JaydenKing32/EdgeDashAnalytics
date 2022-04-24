@@ -18,7 +18,6 @@ public class RawAdapter extends VideoRecyclerViewAdapter {
     @Override
     public void onBindViewHolder(final VideoViewHolder holder, final int position) {
         holder.video = videos.get(position);
-        holder.thumbnailView.setImageBitmap(getThumbnail(videos.get(position).getId(), holder.view.getContext()));
         holder.videoFileNameView.setText(videos.get(position).getName());
         holder.actionButton.setText(BUTTON_TEXT);
 
