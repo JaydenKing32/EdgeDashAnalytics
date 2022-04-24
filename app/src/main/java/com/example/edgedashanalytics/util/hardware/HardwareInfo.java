@@ -158,8 +158,8 @@ public class HardwareInfo {
 
         double cpuDiff = Math.abs(hwi1.cpuFreq - hwi2.cpuFreq);
 
-        // First check if max CPU frequencies are within 5% of each other
-        if ((cpuDiff / hwi1.cpuFreq) < 0.05) {
+        // First check if max CPU frequencies are within 1% of each other
+        if ((cpuDiff / hwi1.cpuFreq) < 0.01) {
             if (cpuCoreComp != 0) {
                 return cpuCoreComp;
             } else {
