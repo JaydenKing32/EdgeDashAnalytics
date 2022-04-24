@@ -14,7 +14,8 @@ algorithms = {
     "most_cpu_cores": "Most-CPU-cores",
     "most_ram": "Most-RAM",
     "most_storage": "Most-storage",
-    "highest_battery": "Highest-battery"
+    "highest_battery": "Highest-battery",
+    "max_capacity": "Max-capacity"
 }
 serial_numbers = {
     "X9BT": "R52R901X9BT",  # Samsung Galaxy Tab S7 FE/SM-T733
