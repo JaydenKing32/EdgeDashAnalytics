@@ -94,7 +94,6 @@ public abstract class VideoAnalysis {
         ExecutorService loopExecutor = Executors.newSingleThreadExecutor();
         loopExecutor.submit(processFramesLoop(retriever, totalFrames, frames, frameExecutor));
 
-        loopExecutor.shutdown();
         boolean complete = false;
 
         if (durationMillis == null) {
@@ -108,13 +107,14 @@ public abstract class VideoAnalysis {
         }
 
         try {
+            loopExecutor.shutdown();
             complete = loopExecutor.awaitTermination(durationMillis, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Log.e(I_TAG, String.format("Interrupted analysis of %s:\n  %s", videoName, e.getMessage()));
         }
 
         if (!complete) {
-            frameExecutor.shutdownNow();
+            frameExecutor.shutdown();
             int completedFrames = frames.size();
             Log.w(I_TAG, String.format("Stopped processing early for %s at %s frames, %s remaining",
                     videoName, completedFrames, totalFrames - completedFrames));
@@ -151,7 +151,7 @@ public abstract class VideoAnalysis {
             for (int i = 0; i < totalFrames; i++) {
                 final Bitmap bitmap = retriever.getFrameAtIndex(i);
                 final int k = i;
-                executor.submit(() -> frames.add(processFrame(
+                executor.execute(() -> frames.add(processFrame(
                         Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, false), k, scaleFactor)
                 ));
             }

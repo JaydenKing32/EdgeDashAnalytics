@@ -99,6 +99,11 @@ public class OuterAnalysis extends VideoAnalysis {
             return null;
         }
 
+        if (detector == null) {
+            Log.w(I_TAG, String.format("Detector for frame %s is null", frameIndex));
+            return null;
+        }
+
         List<Detection> detectionList = detector.detect(TensorImage.fromBitmap(bitmap));
 
         try {

@@ -111,6 +111,11 @@ public class InnerAnalysis extends VideoAnalysis {
             return null;
         }
 
+        if (imageProcessor == null) {
+            Log.w(I_TAG, String.format("Processor for frame %s is null", frameIndex));
+            return null;
+        }
+
         TensorImage inputTensor = imageProcessor.process(TensorImage.fromBitmap(bitmap));
 
         try {
@@ -128,6 +133,11 @@ public class InnerAnalysis extends VideoAnalysis {
             interpreter = interpreterQueue.poll(200, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Log.w(I_TAG, String.format("Cannot acquire interpreter for frame %s:\n  %s", frameIndex, e.getMessage()));
+            return null;
+        }
+
+        if (interpreter == null) {
+            Log.w(I_TAG, String.format("Interpreter for frame %s is null", frameIndex));
             return null;
         }
 
