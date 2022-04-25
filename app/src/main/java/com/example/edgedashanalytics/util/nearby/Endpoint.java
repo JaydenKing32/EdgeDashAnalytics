@@ -44,9 +44,7 @@ public class Endpoint {
     }
 
     static Comparator<Endpoint> compareProcessing() {
-        return Comparator.comparing((Endpoint e) -> e.hardwareInfo.cpuFreq)
-                .thenComparing(e -> e.hardwareInfo.cpuCores)
-                .thenComparing(e -> e.hardwareInfo.totalRam);
+        return (e1, e2) -> HardwareInfo.compareProcessing(e1.hardwareInfo, e2.hardwareInfo);
     }
 
     @Override

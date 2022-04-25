@@ -13,7 +13,6 @@ import androidx.preference.PreferenceManager;
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.util.TimeManager;
 import com.example.edgedashanalytics.util.file.JsonManager;
-import com.example.edgedashanalytics.util.hardware.HardwareInfo;
 import com.example.edgedashanalytics.util.hardware.PowerMonitor;
 
 import java.io.File;
@@ -36,7 +35,6 @@ public abstract class VideoAnalysis {
     final static int TF_THREAD_NUM = 4;
     final static int THREAD_NUM = 2;
 
-    final int bufferSize;
     final boolean verbose;
     private final int skipFrame;
 
@@ -44,10 +42,6 @@ public abstract class VideoAnalysis {
      * Set up default parameters
      */
     VideoAnalysis(Context context) {
-        // Check if phone has at least (roughly) 2GB of RAM
-        HardwareInfo hwi = new HardwareInfo(context);
-        this.bufferSize = hwi.totalRam < 2000000000L ? 5 : 60;
-
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         this.verbose = pref.getBoolean(context.getString(R.string.verbose_output_key), DEFAULT_VERBOSE);
         this.skipFrame = Integer.parseInt(pref.getString(context.getString(R.string.skip_frame_key), DEFAULT_SKIP));
@@ -67,10 +61,17 @@ public abstract class VideoAnalysis {
 
     private void processVideo(String inPath, String outPath) {
         File videoFile = new File(inPath);
-        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
-        retriever.setDataSource(videoFile.getAbsolutePath());
-
         String videoName = videoFile.getName();
+        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+
+        try {
+            retriever.setDataSource(videoFile.getAbsolutePath());
+        } catch (Exception e) {
+            Log.e(I_TAG, String.format("Failed to set data source for %s: %s\n  %s",
+                    videoName, e.getClass().getSimpleName(), e.getMessage()));
+            return;
+        }
+
         String totalFramesString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_FRAME_COUNT);
 
         if (totalFramesString == null) {

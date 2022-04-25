@@ -8,6 +8,7 @@
         <!--<item>@string/most_cpu_cores_algorithm_title</item>-->
         <!--<item>@string/most_storage_algorithm_title</item>-->
         <!--<item>@string/highest_battery_algorithm_title</item>-->
+        <item>@string/max_capacity_algorithm_title</item>
     </string-array>
     <string-array name="algorithm_keys">
         <item>@string/round_robin_algorithm_key</item>
@@ -18,6 +19,7 @@
         <!--<item>@string/most_cpu_cores_algorithm_key</item>-->
         <!--<item>@string/most_storage_algorithm_key</item>-->
         <!--<item>@string/highest_battery_algorithm_key</item>-->
+        <item>@string/max_capacity_algorithm_key</item>
     </string-array>
 
     <string-array name="object_model_titles">
