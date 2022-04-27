@@ -225,6 +225,45 @@ class Device:
                     self.early_divisor = early_divisor
                     return
 
+    def get_totals(self) -> Dict[str, float]:
+        return {
+            "down_time": sum(v.down_time for v in self.videos.values()),
+            "transfer_time": sum(v.transfer_time for v in self.videos.values()),
+            "return_time": sum(v.return_time for v in self.videos.values()),
+            "analysis_time": sum(v.analysis_time for v in self.videos.values()),
+            "wait_time": sum(v.wait_time for v in self.videos.values()),
+            "turnaround_time": sum(v.turnaround_time for v in self.videos.values()),
+            "network_power": sum(v.down_power + v.transfer_power for v in self.videos.values()),
+            "analysis_power": sum(v.analysis_power for v in self.videos.values())
+        }
+
+    def get_averages(self) -> Dict[str, float]:
+        video_count = len(self.videos)
+
+        if video_count == 0:
+            return {
+                "down_time": 0,
+                "transfer_time": 0,
+                "return_time": 0,
+                "analysis_time": 0,
+                "wait_time": 0,
+                "turnaround_time": 0,
+                "network_power": 0,
+                "analysis_power": 0
+            }
+
+        totals = self.get_totals()
+        return {
+            "down_time": totals["down_time"] / video_count,
+            "transfer_time": totals["transfer_time"] / video_count,
+            "return_time": totals["return_time"] / video_count,
+            "analysis_time": totals["analysis_time"] / video_count,
+            "wait_time": totals["wait_time"] / video_count,
+            "turnaround_time": totals["turnaround_time"] / video_count,
+            "network_power": totals["network_power"] / video_count,
+            "analysis_power": totals["analysis_power"] / video_count
+        }
+
     def __str__(self) -> str:
         return self.name
 
@@ -875,37 +914,30 @@ def write_online_run(run: Analysis, writer):
 
             video_count = len(videos)
             if video_count > 1:
-                total_down_time = sum(v.down_time for v in videos)
-                total_transfer_time = sum(v.transfer_time for v in videos)
-                total_return_time = sum(v.return_time for v in videos)
-                total_analysis_time = sum(v.analysis_time for v in videos)
-                total_wait_time = sum(v.wait_time for v in videos)
-                total_turnaround_time = sum(v.turnaround_time for v in videos)
-                total_network_power = sum(v.down_power + v.transfer_power for v in videos)
-                total_analysis_power = sum(v.analysis_power for v in videos)
-
+                totals = device.get_totals()
                 write_row(writer, [
                     "Total",
-                    f"{total_down_time:.3f}",
-                    f"{total_transfer_time:.3f}" if total_transfer_time != 0 else "n/a",
-                    f"{total_return_time:.3f}" if total_return_time != 0 else "n/a",
-                    f"{total_analysis_time:.3f}",
-                    f"{total_wait_time:.3f}",
-                    f"{total_turnaround_time:.3f}",
-                    f"{total_network_power:.3f}",
-                    f"{total_analysis_power:.3f}"
+                    f"{totals['down_time']:.3f}",
+                    f"{totals['transfer_time']:.3f}" if totals["transfer_time"] != 0 else "n/a",
+                    f"{totals['return_time']:.3f}" if totals["return_time"] != 0 else "n/a",
+                    f"{totals['analysis_time']:.3f}",
+                    f"{totals['wait_time']:.3f}",
+                    f"{totals['turnaround_time']:.3f}",
+                    f"{totals['network_power']:.3f}",
+                    f"{totals['analysis_power']:.3f}"
                 ])
 
+                averages = device.get_averages()
                 write_row(writer, [
                     "Average",
-                    f"{total_down_time / video_count:.3f}",
-                    f"{total_transfer_time / video_count:.3f}" if total_transfer_time != 0 else "n/a",
-                    f"{total_return_time / video_count:.3f}" if total_return_time != 0 else "n/a",
-                    f"{total_analysis_time / video_count:.3f}",
-                    f"{total_wait_time / video_count:.3f}",
-                    f"{total_turnaround_time / video_count:.3f}",
-                    f"{total_network_power / video_count:.3f}",
-                    f"{total_analysis_power / video_count:.3f}"
+                    f"{averages['down_time']:.3f}",
+                    f"{averages['transfer_time']:.3f}" if totals["transfer_time"] != 0 else "n/a",
+                    f"{averages['return_time']:.3f}" if totals["return_time"] != 0 else "n/a",
+                    f"{averages['analysis_time']:.3f}",
+                    f"{averages['wait_time']:.3f}",
+                    f"{averages['turnaround_time']:.3f}",
+                    f"{averages['network_power']:.3f}",
+                    f"{averages['analysis_power']:.3f}"
                 ])
 
         if sum(1 for device in run.devices.values() if device) > 1:
