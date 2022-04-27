@@ -779,8 +779,8 @@ def write_offline_runs(runs: List[Analysis], writer):
             f"Pose Model: {run.pose_model}",
             f"Dual: {run.dual_download}",
             f"Skipped: {run.skipped_frames}",
+            f"Videos: {len(videos)}",
             f"MISSING {missed}" if missed else "",
-            "",
             f"Dir: {run.get_sub_log_dir()}",
         ])
         write_row(writer, offline_header)
@@ -828,19 +828,20 @@ def write_online_run(run: Analysis, writer):
         f"Object Model: {run.object_model}",
         f"Pose Model: {run.pose_model}",
         f"Dual: {run.dual_download}",
+        f"Videos: {len(run.videos)}",
         f"MISSING {missed}" if missed else "",
-        "",
         f"Dir: {run.get_sub_log_dir()}"
     ])
 
     # Cannot cleanly separate videos between devices when segmentation is used
     if run.seg_num > 1:
-        write_row(writer, ["Device", "Total Power (mW)", "Network", "Skipped"])
+        write_row(writer, ["Device", "Total Power (mW)", "Network", "Processed", "Skipped"])
         for device_name, device in run.devices.items():
             write_row(writer, [
                 get_device_name(device_name),
                 f"{device.total_power:.3f}",
                 device.network,
+                len(device.videos),
                 device.skipped_frames
             ])
 
@@ -857,6 +858,7 @@ def write_online_run(run: Analysis, writer):
             write_row(writer, [
                 f"Device: {get_device_name(device_name)}",
                 f"Network: {device.network}",
+                f"Processed: {len(device.videos)}",
                 f"Skipped: {device.skipped_frames}"
             ])
 
