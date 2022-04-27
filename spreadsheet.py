@@ -669,7 +669,7 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
                     worker.total_power = parse_power(total_power.group(2), device_name)
                 elif average_power is not None:
                     worker.average_power = parse_power(average_power.group(2), device_name)
-        worker.skipped_frames = sum(v.skipped_frames for v in videos.values())
+        worker.skipped_frames = sum(v.skipped_frames for v in worker.videos.values())
 
 
 def parse_offline_log(log_path: str) -> Analysis:
