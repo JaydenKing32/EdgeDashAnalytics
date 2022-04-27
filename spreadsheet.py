@@ -199,6 +199,7 @@ class Device:
         self.network = ""
         self.early_divisor = 0.0
         self.skipped_frames = 0
+        self.avg_skipped_frames = 0.0
 
     def set_preferences(self, log_path: str):
         line_count = 0
@@ -649,6 +650,9 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
             elif average_power is not None:
                 master.average_power = parse_power(average_power.group(2), master_name)
     master.skipped_frames = sum(v.skipped_frames for v in master.videos.values())
+
+    if len(master.videos) > 0:
+        master.avg_skipped_frames = master.skipped_frames / len(master.videos)
     return videos
 
 
@@ -709,6 +713,8 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
                 elif average_power is not None:
                     worker.average_power = parse_power(average_power.group(2), device_name)
         worker.skipped_frames = sum(v.skipped_frames for v in worker.videos.values())
+        if len(worker.videos):
+            worker.avg_skipped_frames = worker.skipped_frames / len(worker.videos)
 
 
 def parse_offline_log(log_path: str) -> Analysis:
@@ -767,6 +773,8 @@ def parse_offline_log(log_path: str) -> Analysis:
             elif average_power is not None:
                 device.average_power = parse_power(average_power.group(2), device_name)
     device.skipped_frames = sum(v.skipped_frames for v in videos.values())
+    if len(videos) > 0:
+        device.avg_skipped_frames = device.skipped_frames / len(videos)
     return run
 
 
@@ -1037,9 +1045,28 @@ def write_spread_averages(runs: List[Analysis], writer):
     write_row(writer, [])
 
 
+def write_device_averages(device: Device, writer):
+    if len(device.videos) > 0:
+        sub_averages = device.get_averages()
+        write_row(writer, [
+            get_device_name(device.name),
+            f"{sub_averages['transfer_time']:.3f}" if sub_averages["transfer_time"] != 0 else "n/a",
+            f"{sub_averages['return_time']:.3f}" if sub_averages["return_time"] != 0 else "n/a",
+            f"{sub_averages['analysis_time']:.3f}",
+            f"{sub_averages['wait_time']:.3f}",
+            f"{sub_averages['turnaround_time']:.3f}",
+            f"{sub_averages['network_power']:.3f}",
+            f"{sub_averages['analysis_power']:.3f}",
+            f"{device.total_power / len(device.videos):.3f}",
+            f"{device.avg_skipped_frames:.3f}",
+            len(device.videos)
+        ])
+    else:
+        write_row(writer, [get_device_name(device.name)] + ["0"] * 9)
+
+
 def write_tables(runs: List[Analysis], writer):
-    write_row(writer, ["Offline tests"])
-    write_row(writer, [
+    offline_table_header = [
         "Device",
         "Download time (s)",
         "Processing time (s)",
@@ -1049,7 +1076,23 @@ def write_tables(runs: List[Analysis], writer):
         "Processing power (mW)",
         "Total power (mW)",
         "Total time (s)"
-    ])
+    ]
+    online_table_header = [
+        "Device",
+        "Transfer time (s)",
+        "Return time (s)",
+        "Processing time (s)",
+        "Wait time (s)",
+        "Turnaround time (s)",
+        "Network power (mW)",
+        "Processing power (mW)",
+        "Total power (mW)",
+        "Skipped",
+        "Videos"
+    ]
+
+    write_row(writer, ["Offline tests"])
+    write_row(writer, offline_table_header)
     averages_list = []  # type: List[List[float]]
 
     for run in [r for r in runs if r.algorithm == "offline"]:
@@ -1075,18 +1118,7 @@ def write_tables(runs: List[Analysis], writer):
     write_row(writer, [])
 
     write_row(writer, ["Two-node tests"])
-    write_row(writer, [
-        "Worker",
-        "Transfer time (s)",
-        "Return time (s)",
-        "Processing time (s)",
-        "Wait time (s)",
-        "Turnaround time (s)",
-        "Network power (mW)",
-        "Processing power (mW)",
-        "Total power (mW)",
-        "Total time (s)"
-    ])
+    write_row(writer, online_table_header)
     cur_master = ""
     averages_list = []
 
@@ -1105,6 +1137,10 @@ def write_tables(runs: List[Analysis], writer):
                 "Download time (s):", f"{avg_down_time:.3f}"
             ])
 
+        write_row(writer, ["Total time:", run.get_time_seconds_string()])
+        for device in run.devices.values():
+            write_device_averages(device, writer)
+
         averages = [
             run.avg_transfer_time,
             run.avg_return_time,
@@ -1114,39 +1150,25 @@ def write_tables(runs: List[Analysis], writer):
             run.avg_network_power,
             run.avg_analysis_power,
             run.avg_total_power,
-            run.total_time.total_seconds()
+            run.avg_skipped_frames,
+            sum(len(d.videos) for d in run.devices.values()) / len(run.devices)
         ]
         averages_list.append(averages)
 
-        write_row(
-            writer,
-            [run.get_worker_string()] +
-            [f"{a:.3f}" for a in averages[:-1]] +
-            [run.get_time_seconds_string()]
-        )
-    write_row(writer, get_average_row(averages_list))
+        write_row(writer, ["Average"] + [f"{a:.3f}" for a in averages])
+    if len(averages_list) > 1:
+        write_row(writer, get_average_row(averages_list))
     write_row(writer, [])
 
     write_row(writer, ["Three-node tests"])
-    write_row(writer, [
-        "Algorithm",
-        "Transfer time (s)",
-        "Return time (s)",
-        "Processing time (s)",
-        "Wait time (s)",
-        "Turnaround time (s)",
-        "Network power (mW)",
-        "Processing power (mW)",
-        "Total power (mW)",
-        "Total time (s)"
-    ])
+    write_row(writer, online_table_header)
     cur_master = ""
     cur_workers = ""
     averages_list = []
 
     for run in [r for r in runs if len(r.devices) == 3]:
         if run.get_master_full_name() != cur_master or run.get_worker_string() != cur_workers:
-            if averages_list:
+            if len(averages_list) > 1:
                 write_row(writer, get_average_row(averages_list))
                 averages_list = []
             cur_master = run.get_master_full_name()
@@ -1158,9 +1180,12 @@ def write_tables(runs: List[Analysis], writer):
             avg_down_time = sum(t for t in down_times) / len(down_times)
             write_row(writer, [
                 "Master:", cur_master,
-                "Workers:", cur_workers,
                 "Download time (s):", f"{avg_down_time:.3f}"
             ])
+
+        write_row(writer, [run.get_algorithm_name(), "Total time:", run.get_time_seconds_string()])
+        for device in run.devices.values():
+            write_device_averages(device, writer)
 
         averages = [
             run.avg_transfer_time,
@@ -1171,17 +1196,14 @@ def write_tables(runs: List[Analysis], writer):
             run.avg_network_power,
             run.avg_analysis_power,
             run.avg_total_power,
-            run.total_time.total_seconds()
+            run.avg_skipped_frames,
+            sum(len(d.videos) for d in run.devices.values()) / len(run.devices)
         ]
         averages_list.append(averages)
 
-        write_row(
-            writer,
-            [run.get_algorithm_name()] +
-            [f"{a:.3f}" for a in averages[:-1]] +
-            [run.get_time_seconds_string()]
-        )
-    write_row(writer, get_average_row(averages_list))
+        write_row(writer, ["Average"] + [f"{a:.3f}" for a in averages])
+    if len(averages_list) > 1:
+        write_row(writer, get_average_row(averages_list))
 
 
 def make_spreadsheet(root: str, out: str, append: bool, sort: bool, full_results: bool, table: bool):
