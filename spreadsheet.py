@@ -186,6 +186,9 @@ class Video:
                 or (self.transfer_time == 0 and self.return_time > 0)
         )
 
+    def __str__(self) -> str:
+        return self.name
+
 
 class Device:
     def __init__(self, name: str):
@@ -221,6 +224,9 @@ class Device:
                     early_divisor = float(early_divisor_match.group(2))
                     self.early_divisor = early_divisor
                     return
+
+    def __str__(self) -> str:
+        return self.name
 
 
 class Analysis:
