@@ -1055,21 +1055,21 @@ def write_tables(runs: List[Analysis], writer):
         "Total power (mW)",
         "Total time (s)"
     ])
-    prev_master = ""
+    cur_master = ""
     averages_list = []
 
     for run in [r for r in runs if len(r.devices) == 2]:
-        if run.get_master_full_name() != prev_master:
+        if run.get_master_full_name() != cur_master:
             if averages_list:
                 write_row(writer, get_average_row(averages_list))
                 averages_list = []
-            prev_master = run.get_master_full_name()
+            cur_master = run.get_master_full_name()
 
             down_times = [
-                r.avg_down_time for r in runs if r.get_master_full_name() == prev_master and len(r.devices) == 2]
+                r.avg_down_time for r in runs if r.get_master_full_name() == cur_master and len(r.devices) == 2]
             avg_down_time = sum(t for t in down_times) / len(down_times)
             write_row(writer, [
-                "Master:", prev_master,
+                "Master:", cur_master,
                 "Download time (s):", f"{avg_down_time:.3f}"
             ])
 
@@ -1108,25 +1108,25 @@ def write_tables(runs: List[Analysis], writer):
         "Total power (mW)",
         "Total time (s)"
     ])
-    prev_master = ""
-    prev_workers = ""
+    cur_master = ""
+    cur_workers = ""
     averages_list = []
 
     for run in [r for r in runs if len(r.devices) == 3]:
-        if run.get_master_full_name() != prev_master or run.get_worker_string() != prev_workers:
+        if run.get_master_full_name() != cur_master or run.get_worker_string() != cur_workers:
             if averages_list:
                 write_row(writer, get_average_row(averages_list))
                 averages_list = []
-            prev_master = run.get_master_full_name()
-            prev_workers = run.get_worker_string()
+            cur_master = run.get_master_full_name()
+            cur_workers = run.get_worker_string()
 
             down_times = [
                 r.avg_down_time for r in runs if
-                r.get_master_full_name() == prev_master and r.get_worker_string() == prev_workers]
+                r.get_master_full_name() == cur_master and r.get_worker_string() == cur_workers]
             avg_down_time = sum(t for t in down_times) / len(down_times)
             write_row(writer, [
-                "Master:", prev_master,
-                "Workers:", prev_workers,
+                "Master:", cur_master,
+                "Workers:", cur_workers,
                 "Download time (s):", f"{avg_down_time:.3f}"
             ])
 
