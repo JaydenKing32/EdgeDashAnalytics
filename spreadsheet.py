@@ -423,7 +423,7 @@ class Analysis:
         self.analysis_time = sum(v.analysis_time for v in self.videos.values())
         self.wait_time = sum(v.wait_time for v in self.videos.values())
         self.turnaround_time = sum(v.turnaround_time for v in self.videos.values())
-        self.network_power = sum(v.down_power for v in self.videos.values())
+        self.network_power = sum(v.down_power + v.transfer_power for v in self.videos.values())
         self.analysis_power = sum(v.analysis_power for v in self.videos.values())
         self.skipped_frames = sum(v.skipped_frames for v in self.videos.values())
 
