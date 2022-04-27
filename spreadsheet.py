@@ -575,7 +575,6 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
 
                 video = Video(name=video_name, down_time=down_time, down_power=down_power)
                 videos[video_name] = video
-                master.videos[video_name] = video
             elif transfer is not None:
                 video_name = get_video_name(transfer.group(2))
                 return_time = float(transfer.group(5))
@@ -590,6 +589,7 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
 
                 videos[video_name].analysis_time += analysis_time
                 videos[video_name].analysis_power += analysis_power
+                master.videos[video_name] = videos[video_name]
             elif wait is not None:
                 video_name = get_video_name(wait.group(2))
                 wait_time = float(wait.group(3))
@@ -609,7 +609,7 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
                 master.total_power = parse_power(total_power.group(2), master_name)
             elif average_power is not None:
                 master.average_power = parse_power(average_power.group(2), master_name)
-    master.skipped_frames = sum(v.skipped_frames for v in videos.values())
+    master.skipped_frames = sum(v.skipped_frames for v in master.videos.values())
     return videos
 
 
@@ -860,10 +860,7 @@ def write_online_run(run: Analysis, writer):
                 f"Skipped: {device.skipped_frames}"
             ])
 
-            # Master videos list should only contain videos that haven't been transferred
-            videos = [v for v in device.videos.values() if v.transfer_time == 0] \
-                if device_name == run.get_master_short_name() \
-                else list(device.videos.values())
+            videos = list(device.videos.values())
 
             if not videos:
                 write_row(writer, ["Did not analyse any videos"])
