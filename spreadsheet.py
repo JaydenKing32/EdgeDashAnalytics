@@ -111,7 +111,7 @@ online_header = [
     "Wait time (s)",
     "Turn time (s)",
     "Net power (mW)",
-    "Proc power (mW)",
+    "Proc power (mW)"
 ]
 summary_header = [
     "Master",
@@ -827,8 +827,9 @@ def write_offline_runs(runs: List[Analysis], writer):
             f"Dual: {run.dual_download}",
             f"Skipped: {run.skipped_frames}",
             f"Videos: {len(videos)}",
+            f"ESD: {run.devices[run.get_master_short_name()].early_divisor:.2f}",
             f"MISSING {missed}" if missed else "",
-            f"Dir: {run.get_sub_log_dir()}",
+            f"Dir: {run.get_sub_log_dir()}"
         ])
         write_row(writer, offline_header)
 
@@ -882,13 +883,14 @@ def write_online_run(run: Analysis, writer):
 
     # Cannot cleanly separate videos between devices when segmentation is used
     if run.seg_num > 1:
-        write_row(writer, ["Device", "Total Power (mW)", "Network", "Processed", "Skipped"])
+        write_row(writer, ["Device", "Total Power (mW)", "Network", "Processed", "ESD", "Skipped"])
         for device_name, device in run.devices.items():
             write_row(writer, [
                 get_device_name(device_name),
                 f"{device.total_power:.3f}",
                 device.network,
                 len(device.videos),
+                f"{device.early_divisor:.3f}",
                 device.skipped_frames
             ])
 
@@ -906,6 +908,7 @@ def write_online_run(run: Analysis, writer):
                 f"Device: {get_device_name(device_name)}",
                 f"Network: {device.network}",
                 f"Processed: {len(device.videos)}",
+                f"ESD: {device.early_divisor:.2f}",
                 f"Skipped: {device.skipped_frames}"
             ])
 
@@ -1058,11 +1061,12 @@ def write_device_averages(device: Device, writer):
             f"{sub_averages['network_power']:.3f}",
             f"{sub_averages['analysis_power']:.3f}",
             f"{device.total_power / len(device.videos):.3f}",
+            f"{device.early_divisor:.3f}",
             f"{device.avg_skipped_frames:.3f}",
             len(device.videos)
         ])
     else:
-        write_row(writer, [get_device_name(device.name)] + ["0"] * 9)
+        write_row(writer, [get_device_name(device.name)] + ["0"] * 9 + [f"{device.early_divisor:.3f}"])
 
 
 def write_tables(runs: List[Analysis], writer):
@@ -1075,6 +1079,8 @@ def write_tables(runs: List[Analysis], writer):
         "Network power (mW)",
         "Processing power (mW)",
         "Total power (mW)",
+        "ESD",
+        "Skipped",
         "Total time (s)"
     ]
     online_table_header = [
@@ -1087,6 +1093,7 @@ def write_tables(runs: List[Analysis], writer):
         "Network power (mW)",
         "Processing power (mW)",
         "Total power (mW)",
+        "ESD",
         "Skipped",
         "Videos"
     ]
@@ -1096,6 +1103,8 @@ def write_tables(runs: List[Analysis], writer):
     averages_list = []  # type: List[List[float]]
 
     for run in [r for r in runs if r.algorithm == "offline"]:
+        device = run.devices[run.get_master_short_name()]
+
         averages = [
             run.avg_down_time,
             run.avg_analysis_time,
@@ -1104,6 +1113,8 @@ def write_tables(runs: List[Analysis], writer):
             run.avg_network_power,
             run.avg_analysis_power,
             run.avg_total_power,
+            device.early_divisor,
+            device.avg_skipped_frames,
             run.total_time.total_seconds()
         ]
         averages_list.append(averages)
@@ -1111,8 +1122,7 @@ def write_tables(runs: List[Analysis], writer):
         write_row(
             writer,
             [run.get_master_full_name()] +
-            [f"{a:.3f}" for a in averages[:-1]] +
-            [run.get_time_seconds_string()]
+            [f"{a:.3f}" for a in averages]
         )
     write_row(writer, get_average_row(averages_list))
     write_row(writer, [])
@@ -1150,6 +1160,7 @@ def write_tables(runs: List[Analysis], writer):
             run.avg_network_power,
             run.avg_analysis_power,
             run.avg_total_power,
+            sum(d.early_divisor for d in run.devices.values()) / len(run.devices),
             run.avg_skipped_frames,
             sum(len(d.videos) for d in run.devices.values()) / len(run.devices)
         ]
@@ -1196,6 +1207,7 @@ def write_tables(runs: List[Analysis], writer):
             run.avg_network_power,
             run.avg_analysis_power,
             run.avg_total_power,
+            sum(d.early_divisor for d in run.devices.values()) / len(run.devices),
             run.avg_skipped_frames,
             sum(len(d.videos) for d in run.devices.values()) / len(run.devices)
         ]
