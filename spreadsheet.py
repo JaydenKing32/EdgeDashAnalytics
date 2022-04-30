@@ -1291,6 +1291,6 @@ if __name__ == "__main__":
     proper_name = args.names or args.table
 
     if args.pad:
-        max_row_size = 11 if args.table else 17
+        max_row_size = 13 if args.table else 18
 
     make_spreadsheet(args.dir, args.output, args.append, args.sort, args.full_results, args.table)
