@@ -1066,7 +1066,7 @@ def write_device_averages(device: Device, writer):
             len(device.videos)
         ])
     else:
-        write_row(writer, [get_device_name(device.name)] + ["0"] * 9 + [f"{device.early_divisor:.3f}"])
+        write_row(writer, [get_device_name(device.name)] + ["0"] * 8 + [f"{device.early_divisor:.3f}"] + ["0"] * 2)
 
 
 def write_tables(runs: List[Analysis], writer):
