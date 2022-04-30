@@ -1216,6 +1216,7 @@ def write_tables(runs: List[Analysis], writer):
         write_row(writer, ["Average"] + [f"{a:.3f}" for a in averages])
     if len(averages_list) > 1:
         write_row(writer, get_average_row(averages_list))
+    write_row(writer, [])
 
 
 def make_spreadsheet(root: str, out: str, append: bool, sort: bool, full_results: bool, table: bool):
