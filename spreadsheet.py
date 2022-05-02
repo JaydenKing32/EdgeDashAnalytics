@@ -136,6 +136,7 @@ summary_header = [
 excel = False
 proper_name = False
 max_row_size = 0
+seg_sep = '!'
 
 
 class Video:
@@ -515,9 +516,8 @@ def check_errors(runs: List[Analysis]):
 
 
 def get_video_name(name: str) -> str:
-    sep = '!'
-    if sep in name:
-        return name.split(sep)[0]
+    if seg_sep in name:
+        return name.split(seg_sep)[0]
     else:
         return name
 
@@ -589,6 +589,12 @@ def get_average_row(averages_list: List[List[float]]) -> List[str]:
     return ["Average"] + [f"{a:.3f}" for a in [sum(col) / len(col) for col in zip(*averages_list)]]
 
 
+def clean_videos(videos: Dict[str, Video]):
+    to_delete = {get_video_name(video_name) for video_name in videos if seg_sep in video_name}
+    for video_name in to_delete:
+        del videos[video_name]
+
+
 def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: str) -> Dict[str, Video]:
     videos = {}  # type: Dict[str, Video]
     log_path = os.path.join(log_dir, master_filename)
@@ -609,21 +615,32 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
             average_power = re_average_power.match(line)
 
             if down is not None:
-                video_name = get_video_name(down.group(2))
+                video_name = down.group(2)
                 down_time = float(down.group(3))
                 down_power = parse_power(down.group(4), master_name)
 
                 video = Video(name=video_name, down_time=down_time, down_power=down_power)
                 videos[video_name] = video
             elif transfer is not None:
-                video_name = get_video_name(transfer.group(2))
+                video_name = transfer.group(2)
+                base_name = get_video_name(video_name)
                 return_time = float(transfer.group(5))
                 return_power = parse_power(transfer.group(6), master_name)
 
-                videos[video_name].return_time += return_time
-                videos[video_name].transfer_power += return_power
+                if seg_sep in video_name and base_name in videos:
+                    base_video = videos[base_name]
+                    videos[video_name] = Video(
+                        name=video_name,
+                        down_time=base_video.down_time,
+                        down_power=base_video.down_power,
+                        return_time=return_time,
+                        transfer_power=return_power
+                    )
+                else:
+                    videos[video_name].return_time += return_time
+                    videos[video_name].transfer_power += return_power
             elif comp is not None:
-                video_name = get_video_name(comp.group(2))
+                video_name = comp.group(2)
                 analysis_time = float(comp.group(3))
                 analysis_power = parse_power(comp.group(4), master_name)
 
@@ -631,17 +648,27 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
                 videos[video_name].analysis_power += analysis_power
                 master.videos[video_name] = videos[video_name]
             elif wait is not None:
-                video_name = get_video_name(wait.group(2))
+                video_name = wait.group(2)
+                base_name = get_video_name(video_name)
                 wait_time = float(wait.group(3))
 
-                videos[video_name].wait_time += wait_time
+                if seg_sep in video_name and base_name in videos:
+                    base_video = videos[base_name]
+                    videos[video_name] = Video(
+                        name=video_name,
+                        down_time=base_video.down_time,
+                        down_power=base_video.down_power,
+                        wait_time=wait_time
+                    )
+                else:
+                    videos[video_name].wait_time += wait_time
             elif turn is not None:
-                video_name = get_video_name(turn.group(2))
+                video_name = turn.group(2)
                 turn_time = float(turn.group(3))
 
                 videos[video_name].turnaround_time += turn_time
             elif early is not None:
-                video_name = get_video_name(early.group(2))
+                video_name = early.group(2)
                 skipped = int(early.group(4))
 
                 videos[video_name].skipped_frames += skipped
@@ -649,6 +676,7 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
                 master.total_power = parse_power(total_power.group(2), master_name)
             elif average_power is not None:
                 master.average_power = parse_power(average_power.group(2), master_name)
+    clean_videos(videos)
     master.skipped_frames = sum(v.skipped_frames for v in master.videos.values())
 
     if len(master.videos) > 0:
@@ -677,7 +705,7 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
                 average_power = re_average_power.match(line)
 
                 if transfer is not None:
-                    video_name = get_video_name(transfer.group(2))
+                    video_name = transfer.group(2)
                     transfer_time = float(transfer.group(5))
                     transfer_power = parse_power(transfer.group(6), device_name)
 
@@ -687,24 +715,24 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
 
                     worker.videos[video_name] = video
                 elif comp is not None:
-                    video_name = get_video_name(comp.group(2))
+                    video_name = comp.group(2)
                     analysis_time = float(comp.group(3))
                     analysis_power = parse_power(comp.group(4), device_name)
 
                     videos[video_name].analysis_time += analysis_time
                     videos[video_name].analysis_power += analysis_power
                 elif wait is not None:
-                    video_name = get_video_name(wait.group(2))
+                    video_name = wait.group(2)
                     wait_time = float(wait.group(3))
 
                     videos[video_name].wait_time += wait_time
                 elif turn is not None:
-                    video_name = get_video_name(turn.group(2))
+                    video_name = turn.group(2)
                     turn_time = float(turn.group(3))
 
                     videos[video_name].turnaround_time += turn_time
                 elif early is not None:
-                    video_name = get_video_name(early.group(2))
+                    video_name = early.group(2)
                     skipped = int(early.group(4))
 
                     videos[video_name].skipped_frames += skipped
@@ -741,30 +769,30 @@ def parse_offline_log(log_path: str) -> Analysis:
             average_power = re_average_power.match(line)
 
             if down is not None:
-                video_name = get_video_name(down.group(2))
+                video_name = down.group(2)
                 down_time = float(down.group(3))
                 down_power = parse_power(down.group(4), device_name)
 
                 videos[video_name] = Video(name=video_name, down_time=down_time, down_power=down_power)
             elif comp is not None:
-                video_name = get_video_name(comp.group(2))
+                video_name = comp.group(2)
                 analysis_time = float(comp.group(3))
                 analysis_power = parse_power(comp.group(4), device_name)
 
                 videos[video_name].analysis_time = analysis_time
                 videos[video_name].analysis_power = analysis_power
             elif wait is not None:
-                video_name = get_video_name(wait.group(2))
+                video_name = wait.group(2)
                 wait_time = float(wait.group(3))
 
                 videos[video_name].wait_time = wait_time
             elif turn is not None:
-                video_name = get_video_name(turn.group(2))
+                video_name = turn.group(2)
                 turn_time = float(turn.group(3))
 
                 videos[video_name].turnaround_time = turn_time
             elif early is not None:
-                video_name = get_video_name(early.group(2))
+                video_name = early.group(2)
                 skipped = int(early.group(4))
 
                 videos[video_name].skipped_frames = skipped
@@ -881,79 +909,57 @@ def write_online_run(run: Analysis, writer):
         f"Dir: {run.get_sub_log_dir()}"
     ])
 
-    # Cannot cleanly separate videos between devices when segmentation is used
-    if run.seg_num > 1:
-        write_row(writer, ["Device", "Total Power (mW)", "Network", "Processed", "ESD", "Skipped"])
-        for device_name, device in run.devices.items():
-            write_row(writer, [
-                get_device_name(device_name),
-                f"{device.total_power:.3f}",
-                device.network,
-                len(device.videos),
-                f"{device.early_divisor:.3f}",
-                device.skipped_frames
-            ])
+    for device_name, device in run.devices.items():
+        write_row(writer, [
+            f"Device: {get_device_name(device_name)}",
+            f"Network: {device.network}",
+            f"Processed: {len(device.videos)}",
+            f"ESD: {device.early_divisor:.2f}",
+            f"Skipped: {device.skipped_frames}"
+        ])
 
-        write_row(writer, online_header)
+        videos = list(device.videos.values())
 
-        for video in run.videos.values():
+        if not videos:
+            write_row(writer, ["Did not analyse any videos"])
+            continue
+
+        write_row(writer, online_header + ["Total total power", f"{device.total_power:.3f}"])
+
+        for video in videos:
             write_row(writer, video.get_stats())
 
-        write_row(writer, ["Total"] + run.get_total_stats())
-        write_row(writer, ["Average"] + run.get_average_stats())
-
-    else:
-        for device_name, device in run.devices.items():
+        video_count = len(videos)
+        if video_count > 1:
+            totals = device.get_totals()
             write_row(writer, [
-                f"Device: {get_device_name(device_name)}",
-                f"Network: {device.network}",
-                f"Processed: {len(device.videos)}",
-                f"ESD: {device.early_divisor:.2f}",
-                f"Skipped: {device.skipped_frames}"
+                "Total",
+                f"{totals['down_time']:.3f}",
+                f"{totals['transfer_time']:.3f}" if totals["transfer_time"] != 0 else "n/a",
+                f"{totals['return_time']:.3f}" if totals["return_time"] != 0 else "n/a",
+                f"{totals['analysis_time']:.3f}",
+                f"{totals['wait_time']:.3f}",
+                f"{totals['turnaround_time']:.3f}",
+                f"{totals['network_power']:.3f}",
+                f"{totals['analysis_power']:.3f}"
             ])
 
-            videos = list(device.videos.values())
+            averages = device.get_averages()
+            write_row(writer, [
+                "Average",
+                f"{averages['down_time']:.3f}",
+                f"{averages['transfer_time']:.3f}" if totals["transfer_time"] != 0 else "n/a",
+                f"{averages['return_time']:.3f}" if totals["return_time"] != 0 else "n/a",
+                f"{averages['analysis_time']:.3f}",
+                f"{averages['wait_time']:.3f}",
+                f"{averages['turnaround_time']:.3f}",
+                f"{averages['network_power']:.3f}",
+                f"{averages['analysis_power']:.3f}"
+            ])
 
-            if not videos:
-                write_row(writer, ["Did not analyse any videos"])
-                continue
-
-            write_row(writer, online_header + ["Total total power", f"{device.total_power:.3f}"])
-
-            for video in videos:
-                write_row(writer, video.get_stats())
-
-            video_count = len(videos)
-            if video_count > 1:
-                totals = device.get_totals()
-                write_row(writer, [
-                    "Total",
-                    f"{totals['down_time']:.3f}",
-                    f"{totals['transfer_time']:.3f}" if totals["transfer_time"] != 0 else "n/a",
-                    f"{totals['return_time']:.3f}" if totals["return_time"] != 0 else "n/a",
-                    f"{totals['analysis_time']:.3f}",
-                    f"{totals['wait_time']:.3f}",
-                    f"{totals['turnaround_time']:.3f}",
-                    f"{totals['network_power']:.3f}",
-                    f"{totals['analysis_power']:.3f}"
-                ])
-
-                averages = device.get_averages()
-                write_row(writer, [
-                    "Average",
-                    f"{averages['down_time']:.3f}",
-                    f"{averages['transfer_time']:.3f}" if totals["transfer_time"] != 0 else "n/a",
-                    f"{averages['return_time']:.3f}" if totals["return_time"] != 0 else "n/a",
-                    f"{averages['analysis_time']:.3f}",
-                    f"{averages['wait_time']:.3f}",
-                    f"{averages['turnaround_time']:.3f}",
-                    f"{averages['network_power']:.3f}",
-                    f"{averages['analysis_power']:.3f}"
-                ])
-
-        if sum(1 for device in run.devices.values() if device) > 1:
-            write_row(writer, ["Combined total"] + run.get_total_stats())
-            write_row(writer, ["Combined average"] + run.get_average_stats())
+    if sum(1 for device in run.devices.values() if device) > 1:
+        write_row(writer, ["Combined total"] + run.get_total_stats())
+        write_row(writer, ["Combined average"] + run.get_average_stats())
 
     write_row(writer, [
         "Total total time", run.get_time_string(),
