@@ -557,7 +557,13 @@ public abstract class NearbyFragment extends Fragment {
     }
 
     private void handleSegment(String resultName) {
+        String segmentName = FileManager.getVideoNameFromResultName(resultName);
         String baseName = FfmpegTools.getBaseName(resultName);
+        String parentName = String.format("%s.%s", baseName, FilenameUtils.getExtension(resultName));
+        String videoName = FileManager.getVideoNameFromResultName(parentName);
+
+        TimeManager.printTurnaroundTime(videoName, segmentName);
+
         List<Result> results = FileManager.getResultsFromDir(FileManager.getSegmentResSubDirPath(resultName));
         int resultTotal = FfmpegTools.getSegmentCount(resultName);
 
@@ -568,15 +574,13 @@ public abstract class NearbyFragment extends Fragment {
 
         if (results.size() == resultTotal) {
             Log.d(TAG, String.format("Received all result segments of %s", baseName));
-            String parentName = String.format("%s.%s", baseName, FilenameUtils.getExtension(resultName));
             Result result = JsonManager.mergeResults(parentName);
 
-            String videoName = FileManager.getVideoNameFromResultName(parentName);
             EventBus.getDefault().post(new AddResultEvent(result));
             EventBus.getDefault().post(new RemoveByNameEvent(videoName, Type.RAW));
             EventBus.getDefault().post(new RemoveByNameEvent(videoName, Type.PROCESSING));
 
-            TimeManager.printTurnaroundTime(videoName);
+            // TimeManager.printTurnaroundTime(videoName);
             PowerMonitor.printSummary();
         } else {
             Log.v(TAG, String.format("Received a segment of %s", baseName));

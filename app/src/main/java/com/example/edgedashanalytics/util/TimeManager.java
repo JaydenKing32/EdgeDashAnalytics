@@ -38,13 +38,17 @@ public class TimeManager {
     }
 
     public static void printTurnaroundTime(String filename) {
-        Instant start = startTimes.remove(filename);
+        printTurnaroundTime(filename, filename);
+    }
+
+    public static void printTurnaroundTime(String originalName, String newName) {
+        Instant start = startTimes.get(originalName);
 
         if (start == null) {
-            Log.w(I_TAG, String.format("Could not calculate the turnaround time of %s", filename));
+            Log.w(I_TAG, String.format("Could not calculate the turnaround time of %s", newName));
         } else {
             String time = getDurationString(start);
-            Log.i(I_TAG, String.format("Turnaround time of %s: %ss", filename, time));
+            Log.i(I_TAG, String.format("Turnaround time of %s: %ss", newName, time));
         }
     }
 }
