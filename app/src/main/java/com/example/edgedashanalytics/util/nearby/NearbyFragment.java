@@ -394,9 +394,12 @@ public abstract class NearbyFragment extends Fragment {
             } else {
                 // Split video and send to workers
                 List<Video> segments = FfmpegTools.splitAndReturn(getContext(), video.getData(), endpoints.size());
+                List<Endpoint> sortedEndpoints = endpoints.stream()
+                        .sorted(Endpoint.compareProcessing())
+                        .collect(Collectors.toList());
 
-                for (int i = 0; i < segments.size() && i < endpoints.size(); i++) {
-                    sendFile(new Message(segments.get(i), Command.SEGMENT), endpoints.get(i));
+                for (int i = 0; i < segments.size() && i < sortedEndpoints.size(); i++) {
+                    sendFile(new Message(segments.get(i), Command.SEGMENT), sortedEndpoints.get(i));
                 }
             }
         } else {
