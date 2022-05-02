@@ -374,7 +374,7 @@ public abstract class NearbyFragment extends Fragment {
             return;
         }
 
-        if (segNum < 2) {
+        if (segNum < 2 && getConnectedEndpoints().size() > 1) {
             // Dynamic segmentation
             evenSegmentation(video);
         } else {
@@ -385,49 +385,39 @@ public abstract class NearbyFragment extends Fragment {
 
     private void evenSegmentation(Video video) {
         List<Endpoint> endpoints = getConnectedEndpoints();
-        Endpoint fastest = endpoints.stream().max(Endpoint.compareProcessing()).orElse(null);
 
-        // if (endpoints.size() % 2 == 0)
-        if (video.isOuter()) {
-            // Send a whole video to the fastest worker
-            sendFile(new Message(video, Command.ANALYSE), fastest);
-        } else {
-            List<Video> segments = FfmpegTools.splitAndReturn(getContext(), video.getData(), endpoints.size());
-            // Master will locally process one segment
-            analyse(segments.remove(0), false);
+        if (isMasterFastest) {
+            if (video.isOuter()) {
+                // Process whole video locally
+                Log.d(I_TAG, String.format("Processing %s locally", video.getName()));
+                analyse(video, false);
+            } else {
+                // Split video and send to workers
+                List<Video> segments = FfmpegTools.splitAndReturn(getContext(), video.getData(), endpoints.size());
 
-            List<Endpoint> remainingEndpoints = endpoints.stream()
-                    .filter(e -> e != fastest)
-                    .sorted(Endpoint.compareProcessing())
-                    .collect(Collectors.toList());
-            final int skipNum = 2;
-
-            // Schedule segments to inactive workers
-            for (int i = 0; i < segments.size() && i < remainingEndpoints.size(); i++) {
-                Endpoint endpoint = remainingEndpoints.get(i);
-
-                if (endpoint.isInactive() && endpoint.sendCount % skipNum == 0) {
-                    sendFile(new Message(segments.remove(i), Command.SEGMENT), endpoint);
+                for (int i = 0; i < segments.size() && i < endpoints.size(); i++) {
+                    sendFile(new Message(segments.get(i), Command.SEGMENT), endpoints.get(i));
                 }
-
-                endpoint.sendCount++;
             }
+        } else {
+            Endpoint fastest = endpoints.stream().max(Endpoint.compareProcessing()).orElse(null);
 
-            if (segments.isEmpty()) {
-                // All segments scheduled
-                return;
-            }
+            if (video.isOuter()) {
+                // Send whole video to the fastest worker
+                sendFile(new Message(video, Command.ANALYSE), fastest);
+            } else {
+                // Master will locally process one segment
+                List<Video> segments = FfmpegTools.splitAndReturn(getContext(), video.getData(), endpoints.size());
+                analyse(segments.remove(0), false);
 
-            // Some segments remain, try re-scheduling or designate as skipped
-            for (Video segment : segments) {
-                if (analysisFutures.stream().allMatch(Future::isDone)) {
-                    analyse(segment, false);
-                    // } else if (fastest != null && fastest.isInactive()) {
-                    //     sendFile(new Message(video, Command.SEGMENT), fastest);
-                } else {
-                    Log.i(I_TAG, String.format("Skipped %s", segment.getName()));
-                    FileManager.makeDummyResult(segment.getName());
-                    handleSegment(segment.getName());
+                // Send remaining segments to non-fastest workers
+                List<Endpoint> remainingEndpoints = endpoints.stream()
+                        .filter(e -> e != fastest)
+                        .sorted(Endpoint.compareProcessing())
+                        .collect(Collectors.toList());
+
+                for (int i = 0; i < segments.size() && i < remainingEndpoints.size(); i++) {
+                    sendFile(new Message(segments.get(i), Command.SEGMENT), remainingEndpoints.get(i));
                 }
             }
         }
