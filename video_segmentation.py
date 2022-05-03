@@ -2,7 +2,20 @@
 import os
 import platform
 import subprocess
+from argparse import ArgumentParser
 from pathlib import Path
+
+parser = ArgumentParser(description="Splits videos into segments of equal length")
+parser.add_argument("-f", "--fps", type=int, default=30, help="frames per second of videos")
+parser.add_argument("-s", "--seconds", type=float, default=2, help="length of segments in seconds")
+parser.add_argument("-p", "--prefix", default="out", help="prefix for segment filenames")
+parser.add_argument("-d", "--dir", default="./", help="directory of videos")
+parser.add_argument("-e", "--encoding", default="-an -crf 22 -g 30", help="encoding settings")
+parser.add_argument("-v", "--verbose", action="store_true", help="enable verbose output")
+args = parser.parse_args()
+
+fps = args.fps
+frames_per_vid = int(fps * args.seconds)
 
 frame_dir = Path("./frames")
 out_dir = Path("./out")
@@ -11,20 +24,19 @@ map_file = Path("./filename_mapping.txt")
 frame_dir.mkdir(parents=True, exist_ok=True)
 out_dir.mkdir(parents=True, exist_ok=True)
 
-segment_template = "out_{:04}.mp4"
-# segment_template = "inn_{:04}.mp4"
+segment_template = f"{args.prefix}_{{:04}}.mp4"
 frame_glob = f"{frame_dir}/%04d.png"
-ffmpeg = ["ffmpeg", "-v", "warning", "-threads", "1"]
+ffmpeg = ["ffmpeg", "-threads", "1"]
+encoding = args.encoding.split()
 
-fps = 30
-seconds_per_vid = 2
-frames_per_vid = int(fps * seconds_per_vid)
+if not args.verbose:
+    ffmpeg += ["-v", "warning"]
+
 video_count = 1
-verbose = False
 
 
 def run_ffmpeg(command: list[str]):
-    if verbose:
+    if args.verbose:
         print("Running:", " ".join(map(str, command)))
 
     if platform.system() == "Windows":
@@ -34,7 +46,7 @@ def run_ffmpeg(command: list[str]):
         subprocess.run(command)
 
 
-for video in Path("./").glob("./*.mp4"):
+for video in Path(args.dir).glob("./*.mp4"):
     segment_name = segment_template.format(video_count)
     first_segment = segment_name
 
@@ -55,14 +67,10 @@ for video in Path("./").glob("./*.mp4"):
             "-start_number", str(i),
             "-i", frame_glob,
             "-vframes", str(frames_per_vid),
-            "-an",
             "-c:v", "libx264",
             "-vf", f"fps={fps}",
-            '-crf', "22",
-            "-pix_fmt", "yuv420p",
-            "-g", "30",
-            out_dir.joinpath(segment_name)
-        ]
+            "-pix_fmt", "yuv420p"
+        ] + encoding + [str(out_dir.joinpath(segment_name))]
 
         run_ffmpeg(ffmpeg_command)
         video_count += 1
