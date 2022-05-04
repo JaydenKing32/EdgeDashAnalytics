@@ -753,6 +753,7 @@ def parse_offline_log(log_path: str) -> Analysis:
         device_name = device_sn[-4:]
         device = Device(device_name)
         device.set_preferences(log_path)
+        device.videos = videos
 
         parent_path = os.path.dirname(log_path)
         run = Analysis(parent_path, device_sn, {device_name: device}, videos)
