@@ -92,6 +92,7 @@ re_average_power = re.compile(timestamp + r"D PowerMonitor:\s+Average: -?(\d+)\.
 re_master = re.compile(timestamp + r"I Important:\s+Master: (\w+)" + trailing_whitespace)
 re_network = re.compile(timestamp + r"I Important:\s+Wi-Fi: (\w+)" + trailing_whitespace)
 re_early_divisor = re.compile(timestamp + r"I Important:\s+Early stop divisor: (\d+\.\d+)" + trailing_whitespace)
+re_frames = re.compile(timestamp + r"D Important:\s+Starting analysis of (.*)\.mp4, (\d+) frames" + trailing_whitespace)
 
 offline_header = [
     "Filename",
@@ -127,6 +128,7 @@ summary_header = [
     "Proc power (mW)",
     "Total power (mW)",
     "Skipped",
+    "Skip rate",
     "Total time (s)",
     "Human time",
     "Network",
@@ -142,7 +144,7 @@ seg_sep = '!'
 class Video:
     def __init__(self, name: str, down_time: float = 0, transfer_time: float = 0, analysis_time: float = 0,
                  wait_time: float = 0, return_time: float = 0, down_power: float = 0, transfer_power: float = 0,
-                 analysis_power: float = 0, turnaround_time: float = 0, skipped_frames: int = 0):
+                 analysis_power: float = 0, turnaround_time: float = 0, frames: int = 0, skipped_frames: int = 0):
         self.name = name
         self.down_time = down_time
         self.transfer_time = transfer_time
@@ -153,7 +155,9 @@ class Video:
         self.down_power = down_power
         self.transfer_power = transfer_power
         self.analysis_power = analysis_power
+        self.frames = frames
         self.skipped_frames = skipped_frames
+        self.skip_rate = 0.0
 
     def get_stats(self) -> List[str]:
         return [
@@ -251,7 +255,8 @@ class Device:
                 "turnaround_time": 0,
                 "network_power": 0,
                 "analysis_power": 0,
-                "skipped_frames": 0
+                "skipped_frames": 0,
+                "skip_rate": 0
             }
 
         totals = self.get_totals()
@@ -264,7 +269,8 @@ class Device:
             "turnaround_time": totals["turnaround_time"] / video_count,
             "network_power": totals["network_power"] / video_count,
             "analysis_power": totals["analysis_power"] / video_count,
-            "skipped_frames": totals["skipped_frames"] / video_count
+            "skipped_frames": totals["skipped_frames"] / video_count,
+            "skip_rate": sum(v.skip_rate for v in self.videos.values()) / video_count
         }
 
     def __str__(self) -> str:
@@ -309,6 +315,7 @@ class Analysis:
         self.avg_analysis_power = 0.0
         self.avg_total_power = 0.0
         self.avg_skipped_frames = 0.0
+        self.avg_skip_rate = 0.0
 
         self.parse_preferences()
 
@@ -359,6 +366,7 @@ class Analysis:
         self.avg_analysis_power = self.analysis_power / video_count
         self.avg_total_power = self.get_total_power() / video_count
         self.avg_skipped_frames = self.skipped_frames / video_count
+        self.avg_skip_rate = sum(d.get_averages()["skip_rate"] for d in self.devices.values()) / len(self.devices)
 
     def get_average_stats(self) -> List[str]:
         return [
@@ -611,6 +619,7 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
             comp = re_comp.match(line)
             wait = re_wait.match(line)
             turn = re_turnaround.match(line)
+            frames = re_frames.match(line)
             early = re_early.match(line)
             total_power = re_total_power.match(line)
             average_power = re_average_power.match(line)
@@ -668,11 +677,17 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
                 turn_time = float(turn.group(3))
 
                 videos[video_name].turnaround_time += turn_time
+            elif frames is not None:
+                video_name = frames.group(2)
+                frame_count = int(frames.group(3))
+
+                videos[video_name].frames = frame_count
             elif early is not None:
                 video_name = early.group(2)
                 skipped = int(early.group(4))
 
                 videos[video_name].skipped_frames += skipped
+                videos[video_name].skip_rate = skipped / frame_count
             elif total_power is not None:
                 master.total_power = parse_power(total_power.group(2), master_name)
             elif average_power is not None:
@@ -697,6 +712,7 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
                 comp = re_comp.match(line)
                 wait = re_wait.match(line)
                 turn = re_turnaround.match(line)
+                frames = re_frames.match(line)
                 early = re_early.match(line)
                 total_power = re_total_power.match(line)
                 average_power = re_average_power.match(line)
@@ -728,11 +744,17 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
                     turn_time = float(turn.group(3))
 
                     videos[video_name].turnaround_time += turn_time
+                elif frames is not None:
+                    video_name = frames.group(2)
+                    frame_count = int(frames.group(3))
+
+                    videos[video_name].frames = frame_count
                 elif early is not None:
                     video_name = early.group(2)
                     skipped = int(early.group(4))
 
                     videos[video_name].skipped_frames += skipped
+                    videos[video_name].skip_rate = skipped / frame_count
                 elif total_power is not None:
                     worker.total_power = parse_power(total_power.group(2), device_name)
                 elif average_power is not None:
@@ -759,6 +781,7 @@ def parse_offline_log(log_path: str) -> Analysis:
             comp = re_comp.match(line)
             wait = re_wait.match(line)
             turn = re_turnaround.match(line)
+            frames = re_frames.match(line)
             early = re_early.match(line)
             total_power = re_total_power.match(line)
             average_power = re_average_power.match(line)
@@ -786,11 +809,17 @@ def parse_offline_log(log_path: str) -> Analysis:
                 turn_time = float(turn.group(3))
 
                 videos[video_name].turnaround_time = turn_time
+            elif frames is not None:
+                video_name = frames.group(2)
+                frame_count = int(frames.group(3))
+
+                videos[video_name].frames = frame_count
             elif early is not None:
                 video_name = early.group(2)
                 skipped = int(early.group(4))
 
                 videos[video_name].skipped_frames = skipped
+                videos[video_name].skip_rate = skipped / frame_count
             elif total_power is not None:
                 device.total_power = parse_power(total_power.group(2), device_name)
             elif average_power is not None:
@@ -981,6 +1010,7 @@ def write_spread_totals(runs: List[Analysis], writer):
             f"{run.analysis_power:.3f}",
             f"{run.get_total_power():.3f}",
             str(run.skipped_frames),
+            f"{run.avg_skip_rate:.3f}",  # Using average as it doesn't make sense to have a "total" skip rate
             run.get_time_seconds_string(),
             excel_format(run.get_time_human_string()),
             run.get_network(),
@@ -998,6 +1028,7 @@ def write_spread_totals(runs: List[Analysis], writer):
         f"{sum(run.network_power for run in runs):.3f}",
         f"{sum(run.analysis_power for run in runs):.3f}",
         f"{sum(run.get_total_power() for run in runs):.3f}",
+        f"{sum(run.avg_skip_rate for run in runs) / len(runs):.3f}",
         f"{sum(run.skipped_frames for run in runs):.3f}",
         f"{sum(run.total_time.total_seconds() for run in runs):.3f}",
         excel_format(format_timedelta(time))
@@ -1023,6 +1054,7 @@ def write_spread_averages(runs: List[Analysis], writer):
             f"{run.avg_analysis_power:.3f}",
             f"{run.avg_total_power:.3f}",
             f"{run.avg_skipped_frames:.3f}",
+            f"{run.avg_skip_rate:.3f}",
             run.get_time_seconds_string(),
             excel_format(run.get_time_human_string()),
             run.get_network(),
@@ -1041,6 +1073,7 @@ def write_spread_averages(runs: List[Analysis], writer):
         f"{sum(run.avg_analysis_power for run in runs) / len(runs):.3f}",
         f"{sum(run.get_total_power() for run in runs) / len(runs):.3f}",
         f"{sum(run.avg_skipped_frames for run in runs) / len(runs):.3f}",
+        f"{sum(run.avg_skip_rate for run in runs) / len(runs):.3f}",
         f"{sum(run.total_time.total_seconds() for run in runs) / len(runs):.3f}",
         excel_format(format_timedelta(time))
     ])
@@ -1062,10 +1095,11 @@ def write_device_averages(device: Device, writer):
             f"{device.total_power / len(device.videos):.3f}",
             f"{device.early_divisor:.3f}",
             f"{sub_averages['skipped_frames']:.3f}",
+            f"{sub_averages['skip_rate']:.3f}",
             len(device.videos)
         ])
     else:
-        write_row(writer, [get_device_name(device.name)] + ["0"] * 8 + [f"{device.early_divisor:.3f}"] + ["0"] * 2)
+        write_row(writer, [get_device_name(device.name)] + ["0"] * 8 + [f"{device.early_divisor:.3f}"] + ["0"] * 3)
 
 
 def write_tables(runs: List[Analysis], writer):
@@ -1080,6 +1114,7 @@ def write_tables(runs: List[Analysis], writer):
         "Total power (mW)",
         "ESD",
         "Skipped",
+        "Skip rate",
         "Total time (s)"
     ]
     online_table_header = [
@@ -1094,6 +1129,7 @@ def write_tables(runs: List[Analysis], writer):
         "Total power (mW)",
         "ESD",
         "Skipped",
+        "Skip rate",
         "Videos"
     ]
 
@@ -1103,6 +1139,7 @@ def write_tables(runs: List[Analysis], writer):
 
     for run in [r for r in runs if r.algorithm == "offline"]:
         device = run.devices[run.get_master_short_name()]
+        average_dict = device.get_averages()
 
         averages = [
             run.avg_down_time,
@@ -1113,7 +1150,8 @@ def write_tables(runs: List[Analysis], writer):
             run.avg_analysis_power,
             run.avg_total_power,
             device.early_divisor,
-            device.get_averages()["skipped_frames"],
+            average_dict["skipped_frames"],
+            average_dict["skip_rate"],
             run.total_time.total_seconds()
         ]
         averages_list.append(averages)
@@ -1161,6 +1199,7 @@ def write_tables(runs: List[Analysis], writer):
             run.avg_total_power,
             sum(d.early_divisor for d in run.devices.values()) / len(run.devices),
             run.avg_skipped_frames,
+            run.avg_skip_rate,
             sum(len(d.videos) for d in run.devices.values()) / len(run.devices)
         ]
         averages_list.append(averages)
@@ -1208,6 +1247,7 @@ def write_tables(runs: List[Analysis], writer):
             run.avg_total_power,
             sum(d.early_divisor for d in run.devices.values()) / len(run.devices),
             run.avg_skipped_frames,
+            run.avg_skip_rate,
             sum(len(d.videos) for d in run.devices.values()) / len(run.devices)
         ]
         averages_list.append(averages)
@@ -1294,3 +1334,4 @@ if __name__ == "__main__":
         max_row_size = 13 if args.table else 18
 
     make_spreadsheet(args.dir, args.output, args.append, args.sort, args.full_results, args.table)
+    # make_spreadsheet("./1s/", args.output, args.append, args.sort, args.full_results, True)
