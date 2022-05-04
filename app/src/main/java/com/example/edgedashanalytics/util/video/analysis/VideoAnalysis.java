@@ -84,9 +84,8 @@ public abstract class VideoAnalysis {
 
         Instant startTime = Instant.now();
         long startPower = PowerMonitor.getTotalPowerConsumption();
-        String startString = String.format("Starting analysis of %s", videoName);
+        String startString = String.format("Starting analysis of %s, %s frames", videoName, totalFrames);
         Log.d(I_TAG, startString);
-        Log.d(TAG, String.format("Total frames of %s: %d", videoName, totalFrames));
 
         final List<Frame> frames = Collections.synchronizedList(new ArrayList<>(totalFrames));
 
