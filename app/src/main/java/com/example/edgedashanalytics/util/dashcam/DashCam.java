@@ -34,6 +34,7 @@ import com.tonyodev.fetch2core.Downloader;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.greenrobot.eventbus.EventBus;
 import org.jsoup.Jsoup;
@@ -232,8 +233,9 @@ public class DashCam {
         request.setPriority(Priority.HIGH);
         request.setNetworkType(NetworkType.ALL);
         request.setEnqueueAction(EnqueueAction.REPLACE_EXISTING);
-        fetch.enqueue(request, updatedRequest -> Log.v(TAG, String.format("Enqueued %s", request)),
-                error -> Log.v(TAG, String.format("Enqueueing error: %s", error)));
+        fetch.enqueue(request,
+                updatedRequest -> Log.d(I_TAG, String.format("Enqueued %s", FilenameUtils.getName(request.getFile()))),
+                error -> Log.d(I_TAG, String.format("Enqueueing error: %s", error)));
     }
 
     public static Runnable downloadLatestVideos(Consumer<Video> downloadCallback, Context context) {
@@ -349,7 +351,7 @@ public class DashCam {
 
                 TimeManager.addStartTime(filename);
                 downloadPowers.put(filename, PowerMonitor.getTotalPowerConsumption());
-                Log.v(TAG, String.format("Started download: %s", filename));
+                Log.d(I_TAG, String.format("Started download: %s", filename));
             }
 
             @Override
