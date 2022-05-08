@@ -93,6 +93,8 @@ re_master = re.compile(timestamp + r"I Important:\s+Master: (\w+)" + trailing_wh
 re_network = re.compile(timestamp + r"I Important:\s+Wi-Fi: (\w+)" + trailing_whitespace)
 re_early_divisor = re.compile(timestamp + r"I Important:\s+Early stop divisor: (\d+\.\d+)" + trailing_whitespace)
 re_frames = re.compile(timestamp + r"D Important:\s+Starting analysis of (.*)\.mp4, (\d+) frames" + trailing_whitespace)
+re_enqueue = re.compile(timestamp + r"D Important:\s+Enqueued (.*)\.mp4" + trailing_whitespace)
+re_start = re.compile(timestamp + r"D Important:\s+Started download: (.*)\.mp4" + trailing_whitespace)
 
 offline_header = [
     "Filename",
@@ -118,6 +120,7 @@ summary_header = [
     "Master",
     "Workers",
     "Algorithm",
+    "Enqu time (s)",
     "Down time (s)",
     "Tran time (s)",
     "Ret time (s)",
@@ -146,6 +149,7 @@ class Video:
                  wait_time: float = 0, return_time: float = 0, down_power: float = 0, transfer_power: float = 0,
                  analysis_power: float = 0, turnaround_time: float = 0, frames: int = 0, skipped_frames: int = 0):
         self.name = name
+        self.enqueue_time = 0.0
         self.down_time = down_time
         self.transfer_time = transfer_time
         self.analysis_time = analysis_time
@@ -231,6 +235,7 @@ class Device:
 
     def get_totals(self) -> Dict[str, float]:
         return {
+            "enqueue_time": sum(v.enqueue_time for v in self.videos.values()),
             "down_time": sum(v.down_time for v in self.videos.values()),
             "transfer_time": sum(v.transfer_time for v in self.videos.values()),
             "return_time": sum(v.return_time for v in self.videos.values()),
@@ -247,6 +252,7 @@ class Device:
 
         if video_count == 0:
             return {
+                "enqueue_time": 0,
                 "down_time": 0,
                 "transfer_time": 0,
                 "return_time": 0,
@@ -261,6 +267,7 @@ class Device:
 
         totals = self.get_totals()
         return {
+            "enqueue_time": totals["enqueue_time"] / video_count,
             "down_time": totals["down_time"] / video_count,
             "transfer_time": totals["transfer_time"] / video_count,
             "return_time": totals["return_time"] / video_count,
@@ -294,6 +301,7 @@ class Analysis:
         self.local = False
         self.dual_download = False
 
+        self.enqueue_time = -1.0
         self.down_time = -1.0
         self.transfer_time = -1.0
         self.return_time = -1.0
@@ -305,6 +313,7 @@ class Analysis:
         self.skipped_frames = 0
         self.total_time = get_total_time(self.master_path)
 
+        self.avg_enqueue_time = 0.0
         self.avg_down_time = 0.0
         self.avg_transfer_time = 0.0
         self.avg_return_time = 0.0
@@ -356,6 +365,7 @@ class Analysis:
     def set_average_stats(self):
         video_count = len(self.videos)
 
+        self.avg_enqueue_time = self.enqueue_time / video_count
         self.avg_down_time = self.down_time / video_count
         self.avg_transfer_time = self.transfer_time / video_count
         self.avg_return_time = self.return_time / video_count
@@ -428,6 +438,7 @@ class Analysis:
                     self.dual_download = dual_download
                     break
 
+        self.enqueue_time = sum(v.enqueue_time for v in self.videos.values())
         self.down_time = sum(v.down_time for v in self.videos.values())
         self.transfer_time = sum(v.transfer_time for v in self.videos.values())
         self.return_time = sum(v.return_time for v in self.videos.values())
@@ -606,6 +617,7 @@ def clean_videos(videos: Dict[str, Video]):
 
 def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: str) -> Dict[str, Video]:
     videos = {}  # type: Dict[str, Video]
+    enqueue_times = {}  # type: Dict[str, datetime]
     log_path = os.path.join(log_dir, master_filename)
 
     with open(log_path, 'r', encoding="utf-8") as master_log:
@@ -614,6 +626,8 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
         master.set_preferences(log_path)
 
         for line in master_log:
+            enqueue = re_enqueue.match(line)
+            start = re_start.match(line)
             down = re_down.match(line)
             transfer = re_transfer.match(line)
             comp = re_comp.match(line)
@@ -624,13 +638,27 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
             total_power = re_total_power.match(line)
             average_power = re_average_power.match(line)
 
-            if down is not None:
+            if enqueue is not None:
+                video_name = enqueue.group(2)
+
+                videos[video_name] = Video(video_name)
+                enqueue_times[video_name] = timestamp_to_datetime(line)
+            elif start is not None:
+                video_name = start.group(2)
+                start = enqueue_times[video_name]
+                end = timestamp_to_datetime(line)
+
+                videos[video_name].enqueue_time = (end - start).total_seconds()
+            elif down is not None:
                 video_name = down.group(2)
                 down_time = float(down.group(3))
                 down_power = parse_power(down.group(4), master_name)
 
-                video = Video(name=video_name, down_time=down_time, down_power=down_power)
-                videos[video_name] = video
+                if video_name in videos:
+                    videos[video_name].down_time = down_time
+                    videos[video_name].down_power = down_power
+                else:
+                    videos[video_name] = Video(name=video_name, down_time=down_time, down_power=down_power)
             elif transfer is not None:
                 video_name = transfer.group(2)
                 base_name = get_video_name(video_name)
@@ -763,6 +791,7 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
 
 def parse_offline_log(log_path: str) -> Device:
     videos = {}  # type: Dict[str, Video]
+    enqueue_times = {}  # type: Dict[str, datetime]
 
     with open(log_path, 'r', encoding="utf-8") as offline_log:
         device_sn = get_basename_sans_ext(log_path)
@@ -772,6 +801,8 @@ def parse_offline_log(log_path: str) -> Device:
         device.videos = videos
 
         for line in offline_log:
+            enqueue = re_enqueue.match(line)
+            start = re_start.match(line)
             down = re_down.match(line)
             comp = re_comp.match(line)
             wait = re_wait.match(line)
@@ -781,12 +812,27 @@ def parse_offline_log(log_path: str) -> Device:
             total_power = re_total_power.match(line)
             average_power = re_average_power.match(line)
 
-            if down is not None:
+            if enqueue is not None:
+                video_name = enqueue.group(2)
+
+                videos[video_name] = Video(video_name)
+                enqueue_times[video_name] = timestamp_to_datetime(line)
+            elif start is not None:
+                video_name = start.group(2)
+                start = enqueue_times[video_name]
+                end = timestamp_to_datetime(line)
+
+                videos[video_name].enqueue_time = (end - start).total_seconds()
+            elif down is not None:
                 video_name = down.group(2)
                 down_time = float(down.group(3))
                 down_power = parse_power(down.group(4), device_name)
 
-                videos[video_name] = Video(name=video_name, down_time=down_time, down_power=down_power)
+                if video_name in videos:
+                    videos[video_name].down_time = down_time
+                    videos[video_name].down_power = down_power
+                else:
+                    videos[video_name] = Video(name=video_name, down_time=down_time, down_power=down_power)
             elif comp is not None:
                 video_name = comp.group(2)
                 analysis_time = float(comp.group(3))
@@ -987,6 +1033,7 @@ def write_spread_totals(runs: List[Analysis], writer):
             run.get_master_full_name(),
             excel_format(run.get_worker_string()),
             "Duo" if len(run.devices) == 2 else run.get_algorithm_name(),
+            f"{run.enqueue_time:.3f}",
             f"{run.down_time:.3f}",
             f"{run.transfer_time:.3f}" if run.transfer_time > 0 else "n/a",
             f"{run.return_time:.3f}" if run.transfer_time > 0 else "n/a",
@@ -1006,6 +1053,7 @@ def write_spread_totals(runs: List[Analysis], writer):
 
     time = timedelta(seconds=sum(run.total_time.total_seconds() for run in runs))
     write_row(writer, ["Total"] + ['', ''] + [
+        f"{sum(run.enqueue_time for run in runs):.3f}",
         f"{sum(run.down_time for run in runs):.3f}",
         f"{sum(run.transfer_time for run in runs):.3f}",
         f"{sum(run.return_time for run in runs):.3f}",
@@ -1031,6 +1079,7 @@ def write_spread_averages(runs: List[Analysis], writer):
             run.get_master_full_name(),
             excel_format(run.get_worker_string()),
             "Duo" if len(run.devices) == 2 else run.get_algorithm_name(),
+            f"{run.avg_enqueue_time:.3f}",
             f"{run.avg_down_time:.3f}",
             f"{run.avg_transfer_time:.3f}" if run.avg_transfer_time > 0 else "n/a",
             f"{run.avg_return_time:.3f}" if run.avg_transfer_time > 0 else "n/a",
@@ -1050,6 +1099,7 @@ def write_spread_averages(runs: List[Analysis], writer):
 
     time = timedelta(seconds=sum(run.total_time.total_seconds() for run in runs) / len(runs))
     write_row(writer, ["Average"] + ['', ''] + [
+        f"{sum(run.avg_enqueue_time for run in runs) / len(runs):.3f}",
         f"{sum(run.avg_down_time for run in runs) / len(runs):.3f}",
         f"{sum(run.avg_transfer_time for run in runs) / len(runs):.3f}",
         f"{sum(run.avg_return_time for run in runs) / len(runs):.3f}",
@@ -1092,6 +1142,7 @@ def write_device_averages(device: Device, writer):
 def write_tables(runs: List[Analysis], writer):
     offline_table_header = [
         "Device",
+        "Enqueue time (s)",
         "Download time (s)",
         "Processing time (s)",
         "Wait time (s)",
@@ -1129,6 +1180,7 @@ def write_tables(runs: List[Analysis], writer):
         average_dict = device.get_averages()
 
         averages = [
+            run.enqueue_time,
             run.avg_down_time,
             run.avg_analysis_time,
             run.avg_wait_time,
@@ -1171,7 +1223,10 @@ def write_tables(runs: List[Analysis], writer):
                 "Download time (s):", f"{avg_down_time:.3f}"
             ])
 
-        write_row(writer, ["Total time:", run.get_time_seconds_string()])
+        write_row(writer, [
+            "Total time:", run.get_time_seconds_string(),
+            "Enqueue time:", f"{run.avg_enqueue_time:.3f}"
+        ])
         for device in run.devices.values():
             write_device_averages(device, writer)
 
@@ -1219,7 +1274,11 @@ def write_tables(runs: List[Analysis], writer):
                 "Download time (s):", f"{avg_down_time:.3f}"
             ])
 
-        write_row(writer, [run.get_algorithm_name(), "Total time:", run.get_time_seconds_string()])
+        write_row(writer, [
+            run.get_algorithm_name(),
+            "Total time:", run.get_time_seconds_string(),
+            "Enqueue time:", f"{run.avg_enqueue_time:.3f}"
+        ])
         for device in run.devices.values():
             write_device_averages(device, writer)
 
@@ -1318,7 +1377,6 @@ if __name__ == "__main__":
     proper_name = args.names or args.table
 
     if args.pad:
-        max_row_size = 13 if args.table else 18
+        max_row_size = 14 if args.table else 20
 
     make_spreadsheet(args.dir, args.output, args.append, args.sort, args.full_results, args.table)
-    # make_spreadsheet("./1s/", args.output, args.append, args.sort, args.full_results, True)
