@@ -761,7 +761,7 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
                     worker.average_power = parse_power(average_power.group(2), device_name)
 
 
-def parse_offline_log(log_path: str) -> Analysis:
+def parse_offline_log(log_path: str) -> Device:
     videos = {}  # type: Dict[str, Video]
 
     with open(log_path, 'r', encoding="utf-8") as offline_log:
@@ -770,11 +770,6 @@ def parse_offline_log(log_path: str) -> Analysis:
         device = Device(device_name)
         device.set_preferences(log_path)
         device.videos = videos
-
-        parent_path = os.path.dirname(log_path)
-        run = Analysis(parent_path, device_sn, {device_name: device}, videos)
-        run.local = False
-        run.algorithm = "offline"
 
         for line in offline_log:
             down = re_down.match(line)
@@ -824,7 +819,7 @@ def parse_offline_log(log_path: str) -> Analysis:
                 device.total_power = parse_power(total_power.group(2), device_name)
             elif average_power is not None:
                 device.average_power = parse_power(average_power.group(2), device_name)
-    return run
+    return device
 
 
 def parse_offline_logs(log_dir: str, runs: List[Analysis]):
@@ -839,25 +834,17 @@ def parse_offline_logs(log_dir: str, runs: List[Analysis]):
                 continue
 
             log_path = os.path.join(path, log)
-            run = parse_offline_log(log_path)
+            device = parse_offline_log(log_path)
 
-            total_down_time = sum(v.down_time for v in run.videos.values())
-            total_analysis_time = sum(v.analysis_time for v in run.videos.values())
-            total_wait_time = sum(v.wait_time for v in run.videos.values())
-            total_turnaround_time = sum(v.turnaround_time for v in run.videos.values())
-            total_network_power = sum(v.down_power for v in run.videos.values())
-            total_analysis_power = sum(v.analysis_power for v in run.videos.values())
-            total_skipped = sum(v.skipped_frames for v in run.videos.values())
+            parent_path = os.path.dirname(log_path)
+            device_sn = get_basename_sans_ext(log_path)
+            device_name = device_sn[-4:]
 
-            run.down_time = total_down_time
-            run.analysis_time = total_analysis_time
-            run.wait_time = total_wait_time
-            run.turnaround_time = total_turnaround_time
-            run.network_power = total_network_power
-            run.analysis_power = total_analysis_power
-            run.skipped_frames = total_skipped
+            run = Analysis(parent_path, device_sn, {device_name: device}, device.videos)
+            run.local = False
+            run.algorithm = "offline"
+
             run.set_average_stats()
-
             runs.append(run)
 
 
