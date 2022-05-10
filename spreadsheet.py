@@ -262,7 +262,8 @@ class Device:
                 "network_power": 0,
                 "analysis_power": 0,
                 "skipped_frames": 0,
-                "skip_rate": 0
+                "skip_rate": 0,
+                "total_power": 0
             }
 
         totals = self.get_totals()
@@ -277,7 +278,8 @@ class Device:
             "network_power": totals["network_power"] / video_count,
             "analysis_power": totals["analysis_power"] / video_count,
             "skipped_frames": totals["skipped_frames"] / video_count,
-            "skip_rate": sum(v.skip_rate for v in self.videos.values()) / video_count
+            "skip_rate": sum(v.skip_rate for v in self.videos.values()) / video_count,
+            "total_power": self.total_power / video_count
         }
 
     def __str__(self) -> str:
@@ -1127,16 +1129,15 @@ def write_device_averages(device: Device, writer):
             f"{sub_averages['analysis_time']:.3f}",
             f"{sub_averages['wait_time']:.3f}",
             f"{sub_averages['turnaround_time']:.3f}",
-            f"{sub_averages['network_power']:.3f}",
-            f"{sub_averages['analysis_power']:.3f}",
-            f"{device.total_power / len(device.videos):.3f}",
+            f"{device.total_power:.3f}",
+            f"{sub_averages['total_power']:.3f}",
             f"{device.early_divisor:.3f}",
             f"{sub_averages['skipped_frames']:.3f}",
             f"{sub_averages['skip_rate']:.3f}",
             len(device.videos)
         ])
     else:
-        write_row(writer, [get_device_name(device.name)] + ["0"] * 8 + [f"{device.early_divisor:.3f}"] + ["0"] * 3)
+        write_row(writer, [get_device_name(device.name)] + ["0"] * 7 + [f"{device.early_divisor:.3f}"] + ["0"] * 4)
 
 
 def write_tables(runs: List[Analysis], writer):
@@ -1147,9 +1148,8 @@ def write_tables(runs: List[Analysis], writer):
         "Processing time (s)",
         "Wait time (s)",
         "Turnaround time (s)",
-        "Network power (mW)",
-        "Processing power (mW)",
         "Total power (mW)",
+        "Average power (mW)",
         "ESD",
         "Skipped",
         "Skip rate",
@@ -1162,9 +1162,8 @@ def write_tables(runs: List[Analysis], writer):
         "Processing time (s)",
         "Wait time (s)",
         "Turnaround time (s)",
-        "Network power (mW)",
-        "Processing power (mW)",
         "Total power (mW)",
+        "Average power (mW)",
         "ESD",
         "Skipped",
         "Skip rate",
@@ -1180,14 +1179,13 @@ def write_tables(runs: List[Analysis], writer):
         average_dict = device.get_averages()
 
         averages = [
-            run.enqueue_time,
-            run.avg_down_time,
-            run.avg_analysis_time,
-            run.avg_wait_time,
-            run.avg_turnaround_time,
-            run.avg_network_power,
-            run.avg_analysis_power,
-            run.avg_total_power,
+            average_dict["enqueue_time"],
+            average_dict["down_time"],
+            average_dict["analysis_time"],
+            average_dict["wait_time"],
+            average_dict["turnaround_time"],
+            device.total_power,
+            average_dict["total_power"],
             device.early_divisor,
             average_dict["skipped_frames"],
             average_dict["skip_rate"],
@@ -1236,8 +1234,7 @@ def write_tables(runs: List[Analysis], writer):
             run.avg_analysis_time,
             run.avg_wait_time,
             run.avg_turnaround_time,
-            run.avg_network_power,
-            run.avg_analysis_power,
+            run.get_total_power(),
             run.avg_total_power,
             sum(d.early_divisor for d in run.devices.values()) / len(run.devices),
             run.avg_skipped_frames,
@@ -1288,8 +1285,7 @@ def write_tables(runs: List[Analysis], writer):
             run.avg_analysis_time,
             run.avg_wait_time,
             run.avg_turnaround_time,
-            run.avg_network_power,
-            run.avg_analysis_power,
+            run.get_total_power(),
             run.avg_total_power,
             sum(d.early_divisor for d in run.devices.values()) / len(run.devices),
             run.avg_skipped_frames,
