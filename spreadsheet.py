@@ -140,6 +140,7 @@ summary_header = [
 
 excel = False
 proper_name = False
+short = False
 max_row_size = 0
 seg_sep = '!'
 
@@ -1141,34 +1142,70 @@ def write_device_averages(device: Device, writer):
 
 
 def write_tables(runs: List[Analysis], writer):
-    offline_table_header = [
-        "Device",
-        "Enqueue time (s)",
-        "Download time (s)",
-        "Processing time (s)",
-        "Wait time (s)",
-        "Turnaround time (s)",
-        "Total power (mW)",
-        "Average power (mW)",
-        "ESD",
-        "Skipped",
-        "Skip rate",
-        "Total time (s)"
-    ]
-    online_table_header = [
-        "Device",
-        "Transfer time (s)",
-        "Return time (s)",
-        "Processing time (s)",
-        "Wait time (s)",
-        "Turnaround time (s)",
-        "Total power (mW)",
-        "Average power (mW)",
-        "ESD",
-        "Skipped",
-        "Skip rate",
-        "Videos"
-    ]
+    if short:
+        offline_table_header = [
+            "Device",
+            "Enqueue",
+            "Download",
+            "Processing",
+            "Wait",
+            "Turnaround",
+            "Total power",
+            "Average power",
+            "ESD",
+            "Skipped",
+            "Skip rate",
+            "Total time"
+        ]
+        online_table_header = [
+            "Device",
+            "Transfer",
+            "Return",
+            "Processing",
+            "Wait",
+            "Turnaround",
+            "Total power",
+            "Average power",
+            "ESD",
+            "Skipped",
+            "Skip rate",
+            "Videos"
+        ]
+        download_time_label = "Download:"
+        total_time_label = "Total time:"
+        enqueue_time_label = "Enqueue:"
+    else:
+        offline_table_header = [
+            "Device",
+            "Enqueue time (s)",
+            "Download time (s)",
+            "Processing time (s)",
+            "Wait time (s)",
+            "Turnaround time (s)",
+            "Total power (mW)",
+            "Average power (mW)",
+            "ESD",
+            "Skipped",
+            "Skip rate",
+            "Total time (s)"
+        ]
+        online_table_header = [
+            "Device",
+            "Transfer time (s)",
+            "Return time (s)",
+            "Processing time (s)",
+            "Wait time (s)",
+            "Turnaround time (s)",
+            "Total power (mW)",
+            "Average power (mW)",
+            "ESD",
+            "Skipped",
+            "Skip rate",
+            "Videos"
+        ]
+        download_time_label = "Download time (s):"
+        total_time_label = "Total time (s):"
+        enqueue_time_label = "Enqueue time (s):"
 
     write_row(writer, ["Offline tests"])
     write_row(writer, offline_table_header)
@@ -1218,12 +1255,12 @@ def write_tables(runs: List[Analysis], writer):
             avg_down_time = sum(t for t in down_times) / len(down_times)
             write_row(writer, [
                 "Master:", cur_master,
-                "Download time (s):", f"{avg_down_time:.3f}"
+                download_time_label, f"{avg_down_time:.3f}"
             ])
 
         write_row(writer, [
-            "Total time:", run.get_time_seconds_string(),
-            "Enqueue time:", f"{run.avg_enqueue_time:.3f}"
+            total_time_label, run.get_time_seconds_string(),
+            enqueue_time_label, f"{run.avg_enqueue_time:.3f}"
         ])
         for device in run.devices.values():
             write_device_averages(device, writer)
@@ -1268,13 +1305,13 @@ def write_tables(runs: List[Analysis], writer):
             avg_down_time = sum(t for t in down_times) / len(down_times)
             write_row(writer, [
                 "Master:", cur_master,
-                "Download time (s):", f"{avg_down_time:.3f}"
+                download_time_label, f"{avg_down_time:.3f}"
             ])
 
         write_row(writer, [
             run.get_algorithm_name(),
-            "Total time:", run.get_time_seconds_string(),
-            "Enqueue time:", f"{run.avg_enqueue_time:.3f}"
+            total_time_label, run.get_time_seconds_string(),
+            enqueue_time_label, f"{run.avg_enqueue_time:.3f}"
         ])
         for device in run.devices.values():
             write_device_averages(device, writer)
@@ -1367,12 +1404,14 @@ if __name__ == "__main__":
     parser.add_argument("-f", "--full-results", action="store_true", help="full results instead of just summaries")
     parser.add_argument("-t", "--table", action="store_true", help="structure results in summary tables")
     parser.add_argument("-p", "--pad", action="store_true", help="ensure all rows have the same number of commas")
+    parser.add_argument("--short", action="store_true", help="use short headers for tables")
     args = parser.parse_args()
 
     excel = args.excel
     proper_name = args.names or args.table
+    short = args.short
 
     if args.pad:
-        max_row_size = 14 if args.table else 20
+        max_row_size = 13 if args.table else 20
 
     make_spreadsheet(args.dir, args.output, args.append, args.sort, args.full_results, args.table)
