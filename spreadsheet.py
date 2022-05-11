@@ -608,8 +608,8 @@ def get_total_time(master_log_file: str) -> timedelta:
     return timestamp_to_datetime(end) - timestamp_to_datetime(start)
 
 
-def get_average_row(averages_list: List[List[float]]) -> List[str]:
-    return ["Average"] + [f"{a:.3f}" for a in [sum(col) / len(col) for col in zip(*averages_list)]]
+def get_average_row(averages_list: List[List[float]], label: str = "Average") -> List[str]:
+    return [label] + [f"{a:.3f}" for a in [sum(col) / len(col) for col in zip(*averages_list)]]
 
 
 def clean_videos(videos: Dict[str, Video]):
@@ -1240,23 +1240,10 @@ def write_tables(runs: List[Analysis], writer):
 
     write_row(writer, ["Two-node tests"])
     write_row(writer, online_table_header)
-    cur_master = ""
     averages_list = []
 
     for run in [r for r in runs if len(r.devices) == 2]:
-        if run.get_master_full_name() != cur_master:
-            if averages_list:
-                write_row(writer, get_average_row(averages_list))
-                averages_list = []
-            cur_master = run.get_master_full_name()
-
-            down_times = [
-                r.avg_down_time for r in runs if r.get_master_full_name() == cur_master and len(r.devices) == 2]
-            avg_down_time = sum(t for t in down_times) / len(down_times)
-            write_row(writer, [
-                "Master:", cur_master,
-                download_time_label, f"{avg_down_time:.3f}"
-            ])
+        write_row(writer, ["Master:", run.get_master_full_name(), download_time_label, f"{run.avg_down_time:.3f}"])
 
         write_row(writer, [
             total_time_label, run.get_time_seconds_string(),
@@ -1282,31 +1269,15 @@ def write_tables(runs: List[Analysis], writer):
 
         write_row(writer, ["Average"] + [f"{a:.3f}" for a in averages])
     if len(averages_list) > 1:
-        write_row(writer, get_average_row(averages_list))
+        write_row(writer, get_average_row(averages_list, "Combined Average"))
     write_row(writer, [])
 
     write_row(writer, ["Three-node tests"])
     write_row(writer, online_table_header)
-    cur_master = ""
-    cur_workers = ""
     averages_list = []
 
     for run in [r for r in runs if len(r.devices) == 3]:
-        if run.get_master_full_name() != cur_master or run.get_worker_string() != cur_workers:
-            if len(averages_list) > 1:
-                write_row(writer, get_average_row(averages_list))
-                averages_list = []
-            cur_master = run.get_master_full_name()
-            cur_workers = run.get_worker_string()
-
-            down_times = [
-                r.avg_down_time for r in runs if
-                r.get_master_full_name() == cur_master and r.get_worker_string() == cur_workers]
-            avg_down_time = sum(t for t in down_times) / len(down_times)
-            write_row(writer, [
-                "Master:", cur_master,
-                download_time_label, f"{avg_down_time:.3f}"
-            ])
+        write_row(writer, ["Master:", run.get_master_full_name(), download_time_label, f"{run.avg_down_time:.3f}"])
 
         write_row(writer, [
             run.get_algorithm_name(),
@@ -1333,7 +1304,7 @@ def write_tables(runs: List[Analysis], writer):
 
         write_row(writer, ["Average"] + [f"{a:.3f}" for a in averages])
     if len(averages_list) > 1:
-        write_row(writer, get_average_row(averages_list))
+        write_row(writer, get_average_row(averages_list, "Combined Average"))
     write_row(writer, [])
 
 
