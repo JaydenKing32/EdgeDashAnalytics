@@ -1141,9 +1141,9 @@ def write_device_averages(device: Device, writer):
         write_row(writer, [get_device_name(device.name)] + ["0"] * 7 + [f"{device.early_divisor:.3f}"] + ["0"] * 4)
 
 
-def write_tables(runs: List[Analysis], writer):
+def write_offline_table(writer, runs: List[Analysis]):
     if short:
-        offline_table_header = [
+        table_header = [
             "Device",
             "Enqueue",
             "Download",
@@ -1157,25 +1157,8 @@ def write_tables(runs: List[Analysis], writer):
             "Skip rate",
             "Total time"
         ]
-        online_table_header = [
-            "Device",
-            "Transfer",
-            "Return",
-            "Processing",
-            "Wait",
-            "Turnaround",
-            "Total power",
-            "Average power",
-            "ESD",
-            "Skipped",
-            "Skip rate",
-            "Videos"
-        ]
-        download_time_label = "Download:"
-        total_time_label = "Total time:"
-        enqueue_time_label = "Enqueue:"
     else:
-        offline_table_header = [
+        table_header = [
             "Device",
             "Enqueue time (s)",
             "Download time (s)",
@@ -1189,29 +1172,11 @@ def write_tables(runs: List[Analysis], writer):
             "Skip rate",
             "Total time (s)"
         ]
-        online_table_header = [
-            "Device",
-            "Transfer time (s)",
-            "Return time (s)",
-            "Processing time (s)",
-            "Wait time (s)",
-            "Turnaround time (s)",
-            "Total power (mW)",
-            "Average power (mW)",
-            "ESD",
-            "Skipped",
-            "Skip rate",
-            "Videos"
-        ]
-        download_time_label = "Download time (s):"
-        total_time_label = "Total time (s):"
-        enqueue_time_label = "Enqueue time (s):"
-
     write_row(writer, ["Offline tests"])
-    write_row(writer, offline_table_header)
+    write_row(writer, table_header)
     averages_list = []  # type: List[List[float]]
 
-    for run in [r for r in runs if r.algorithm == "offline"]:
+    for run in runs:
         device = run.devices[run.get_master_short_name()]
         average_dict = device.get_averages()
 
@@ -1238,11 +1203,50 @@ def write_tables(runs: List[Analysis], writer):
     write_row(writer, get_average_row(averages_list))
     write_row(writer, [])
 
-    write_row(writer, ["Two-node tests"])
-    write_row(writer, online_table_header)
-    averages_list = []
 
-    for run in [r for r in runs if len(r.devices) == 2]:
+def write_online_table(writer, runs: List[Analysis], title: str):
+    if short:
+        table_header = [
+            "Device",
+            "Transfer",
+            "Return",
+            "Processing",
+            "Wait",
+            "Turnaround",
+            "Total power",
+            "Average power",
+            "ESD",
+            "Skipped",
+            "Skip rate",
+            "Videos"
+        ]
+        download_time_label = "Download:"
+        total_time_label = "Total time:"
+        enqueue_time_label = "Enqueue:"
+    else:
+        table_header = [
+            "Device",
+            "Transfer time (s)",
+            "Return time (s)",
+            "Processing time (s)",
+            "Wait time (s)",
+            "Turnaround time (s)",
+            "Total power (mW)",
+            "Average power (mW)",
+            "ESD",
+            "Skipped",
+            "Skip rate",
+            "Videos"
+        ]
+        download_time_label = "Download time (s):"
+        total_time_label = "Total time (s):"
+        enqueue_time_label = "Enqueue time (s):"
+
+    write_row(writer, [title])
+    write_row(writer, table_header)
+    averages_list = []  # type: List[List[float]]
+
+    for run in runs:
         write_row(writer, [
             "Master:", run.get_master_full_name(),
             download_time_label, f"{run.avg_down_time:.3f}",
@@ -1272,39 +1276,11 @@ def write_tables(runs: List[Analysis], writer):
         write_row(writer, get_average_row(averages_list, "Combined Average"))
     write_row(writer, [])
 
-    write_row(writer, ["Three-node tests"])
-    write_row(writer, online_table_header)
-    averages_list = []
 
-    for run in [r for r in runs if len(r.devices) == 3]:
-        write_row(writer, [
-            "Master:", run.get_master_full_name(),
-            download_time_label, f"{run.avg_down_time:.3f}",
-            enqueue_time_label, f"{run.avg_enqueue_time:.3f}",
-            total_time_label, run.get_time_seconds_string()
-        ])
-        for device in run.devices.values():
-            write_device_averages(device, writer)
-
-        averages = [
-            run.avg_transfer_time,
-            run.avg_return_time,
-            run.avg_analysis_time,
-            run.avg_wait_time,
-            run.avg_turnaround_time,
-            run.get_total_power(),
-            run.avg_total_power,
-            sum(d.early_divisor for d in run.devices.values()) / len(run.devices),
-            run.avg_skipped_frames,
-            run.avg_skip_rate,
-            sum(len(d.videos) for d in run.devices.values()) / len(run.devices)
-        ]
-        averages_list.append(averages)
-
-        write_row(writer, ["Average"] + [f"{a:.3f}" for a in averages])
-    if len(averages_list) > 1:
-        write_row(writer, get_average_row(averages_list, "Combined Average"))
-    write_row(writer, [])
+def write_tables(runs: List[Analysis], writer):
+    write_offline_table(writer, [r for r in runs if r.algorithm == "offline"])
+    write_online_table(writer, [r for r in runs if len(r.devices) == 2], "Two-node tests")
+    write_online_table(writer, [r for r in runs if len(r.devices) == 3], "Three-node tests")
 
 
 def make_spreadsheet(root: str, out: str, append: bool, sort: bool, full_results: bool, table: bool):
