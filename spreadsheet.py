@@ -1243,11 +1243,11 @@ def write_tables(runs: List[Analysis], writer):
     averages_list = []
 
     for run in [r for r in runs if len(r.devices) == 2]:
-        write_row(writer, ["Master:", run.get_master_full_name(), download_time_label, f"{run.avg_down_time:.3f}"])
-
         write_row(writer, [
-            total_time_label, run.get_time_seconds_string(),
-            enqueue_time_label, f"{run.avg_enqueue_time:.3f}"
+            "Master:", run.get_master_full_name(),
+            download_time_label, f"{run.avg_down_time:.3f}",
+            enqueue_time_label, f"{run.avg_enqueue_time:.3f}",
+            total_time_label, run.get_time_seconds_string()
         ])
         for device in run.devices.values():
             write_device_averages(device, writer)
@@ -1277,12 +1277,11 @@ def write_tables(runs: List[Analysis], writer):
     averages_list = []
 
     for run in [r for r in runs if len(r.devices) == 3]:
-        write_row(writer, ["Master:", run.get_master_full_name(), download_time_label, f"{run.avg_down_time:.3f}"])
-
         write_row(writer, [
-            run.get_algorithm_name(),
-            total_time_label, run.get_time_seconds_string(),
-            enqueue_time_label, f"{run.avg_enqueue_time:.3f}"
+            "Master:", run.get_master_full_name(),
+            download_time_label, f"{run.avg_down_time:.3f}",
+            enqueue_time_label, f"{run.avg_enqueue_time:.3f}",
+            total_time_label, run.get_time_seconds_string()
         ])
         for device in run.devices.values():
             write_device_averages(device, writer)
