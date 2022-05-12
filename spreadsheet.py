@@ -39,7 +39,7 @@ device_names = {
     "9c8f": "Nexus 5X",
     "1825": "Nexus 5"
 }
-milliamp_devices = ["2802", "X9BT", "43e2"]
+milliamp_devices = ["2802", "X9BT", "43e2", "dd83"]
 models = {
     "lite-model_ssd_mobilenet_v1_1_metadata_2.tflite": "MNV1",  # MobileNetV1
     "lite-model_efficientdet_lite0_detection_metadata_1.tflite": "EDL0",  # EfficientDet-Lite0
