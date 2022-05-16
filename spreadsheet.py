@@ -18,26 +18,26 @@ algorithms = {
     "max_capacity": "Max-capacity"
 }
 serial_numbers = {
-    "X9BT": "R52R901X9BT",  # Samsung Galaxy Tab S7 FE/SM-T733
-    "01BK": "18121FDF6001BK",  # Pixel 6
-    "JRQY": "8A1X0JRQY",  # Pixel 3
-    "43e2": "105a43e2",  # OPPO Find X2 Pro/CPH2025
-    "dd83": "4885dd83",  # OnePlus 8/IN2013
-    "2802": "ce12171c8a14c72802",  # Samsung Galaxy S8/SM-G950F
+    "1825": "0b3b6fd50c371825",  # Nexus 5
     "34d8": "00a6a4630f4e34d8",  # Nexus 5X
     "9c8f": "00b7a59265959c8f",  # Nexus 5X
-    "1825": "0b3b6fd50c371825"  # Nexus 5
+    "2802": "ce12171c8a14c72802",  # Samsung Galaxy S8/SM-G950F
+    "JRQY": "8A1X0JRQY",  # Pixel 3
+    "01BK": "18121FDF6001BK",  # Pixel 6
+    "X9BT": "R52R901X9BT",  # Samsung Galaxy Tab S7 FE/SM-T733
+    "dd83": "4885dd83",  # OnePlus 8/IN2013
+    "43e2": "105a43e2"  # OPPO Find X2 Pro/CPH2025
 }
 device_names = {
-    "X9BT": "Tab S7 FE",
-    "01BK": "Pixel 6",
-    "JRQY": "Pixel 3",
-    "43e2": "Find X2 Pro",
-    "dd83": "OnePlus 8",
-    "2802": "Galaxy S8",
+    "1825": "Nexus 5",
     "34d8": "Nexus 5X",
     "9c8f": "Nexus 5X",
-    "1825": "Nexus 5"
+    "2802": "Galaxy S8",
+    "JRQY": "Pixel 3",
+    "01BK": "Pixel 6",
+    "X9BT": "Tab S7 FE",
+    "dd83": "OnePlus 8",
+    "43e2": "Find X2 Pro"
 }
 milliamp_devices = ["2802", "X9BT", "43e2", "dd83"]
 models = {
@@ -1278,7 +1278,8 @@ def write_online_table(writer, runs: List[Analysis], title: str):
 
 
 def write_tables(runs: List[Analysis], writer):
-    write_offline_table(writer, [r for r in runs if r.algorithm == "offline"])
+    write_offline_table(writer, sorted([r for r in runs if r.algorithm == "offline"],
+                                       key=lambda run: list(device_names.keys()).index(run.get_master_short_name())))
     write_online_table(writer, [r for r in runs if len(r.devices) == 2], "Two-node tests")
     write_online_table(writer, [r for r in runs if len(r.devices) == 3], "Three-node tests")
 
