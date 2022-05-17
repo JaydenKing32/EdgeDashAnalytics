@@ -74,11 +74,11 @@
     <string name="efficientdet_lite0_title">EfficientDet-Lite0</string>
     <string name="efficientdet_lite0_key">lite-model_efficientdet_lite0_detection_metadata_1.tflite</string>
     <string name="efficientdet_lite1_title" tools:ignore="Typos">EfficientDet-Lite1</string>
-    <string name="efficientdet_lite1_key" tools:ignore="Typos">lite-model_efficientdet_lite1_detection_metadata_2.tflite</string>
+    <string name="efficientdet_lite1_key" tools:ignore="Typos">lite-model_efficientdet_lite1_detection_metadata_1.tflite</string>
     <string name="efficientdet_lite2_title">EfficientDet-Lite2</string>
-    <string name="efficientdet_lite2_key">lite-model_efficientdet_lite2_detection_metadata_2.tflite</string>
+    <string name="efficientdet_lite2_key">lite-model_efficientdet_lite2_detection_metadata_1.tflite</string>
     <string name="efficientdet_lite3_title">EfficientDet-Lite3</string>
-    <string name="efficientdet_lite3_key">lite-model_efficientdet_lite3_detection_metadata_2.tflite</string>
+    <string name="efficientdet_lite3_key">lite-model_efficientdet_lite3_detection_metadata_1.tflite</string>
     <string name="efficientdet_lite4_title">EfficientDet-Lite4</string>
     <string name="efficientdet_lite4_key">lite-model_efficientdet_lite4_detection_metadata_2.tflite</string>
     <string name="default_pose_model_key">@string/movenet_lightning_key</string>
