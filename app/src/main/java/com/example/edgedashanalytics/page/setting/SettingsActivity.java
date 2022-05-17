@@ -167,7 +167,8 @@ public class SettingsActivity extends AppCompatActivity {
             EditTextPreference testVideoCount = findPreference(getString(R.string.test_video_count_key));
             setupTextPreference(testVideoCount, InputType.TYPE_CLASS_NUMBER);
             EditTextPreference earlyStopDivisor = findPreference(getString(R.string.early_stop_divisor_key));
-            setupTextPreference(earlyStopDivisor, InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            setupTextPreference(earlyStopDivisor,
+                    InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
         }
 
         private boolean clearLogsPrompt() {

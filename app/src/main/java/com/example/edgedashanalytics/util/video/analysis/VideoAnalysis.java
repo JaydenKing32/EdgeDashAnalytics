@@ -108,6 +108,13 @@ public abstract class VideoAnalysis {
         try {
             loopExecutor.shutdown();
             complete = loopExecutor.awaitTermination(durationMillis, TimeUnit.MILLISECONDS);
+
+            if (stopDivisor < 0) {
+                // Guarantee complete processing
+                frameExecutor.shutdown();
+                //noinspection ResultOfMethodCallIgnored
+                frameExecutor.awaitTermination(durationMillis * 60, TimeUnit.MILLISECONDS);
+            }
         } catch (InterruptedException e) {
             Log.e(I_TAG, String.format("Interrupted analysis of %s:\n  %s", videoName, e.getMessage()));
         }
@@ -122,6 +129,8 @@ public abstract class VideoAnalysis {
         synchronized (frames) {
             JsonManager.writeResultsToJson(outPath, frames);
         }
+
+        frameExecutor.shutdownNow();
 
         String time = TimeManager.getDurationString(startTime);
         long powerConsumption = PowerMonitor.getPowerConsumption(startPower);
