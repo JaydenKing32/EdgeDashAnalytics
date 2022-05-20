@@ -265,7 +265,8 @@ class Device:
                 "analysis_power": 0,
                 "skipped_frames": 0,
                 "skip_rate": 0,
-                "total_power": 0
+                "total_power": 0,
+                "power_per_frame": 0
             }
 
         totals = self.get_totals()
@@ -281,7 +282,11 @@ class Device:
             "analysis_power": totals["analysis_power"] / video_count,
             "skipped_frames": totals["skipped_frames"] / video_count,
             "skip_rate": sum(v.skip_rate for v in self.videos.values()) / video_count,
-            "total_power": self.total_power / video_count
+            "total_power": self.total_power / video_count,
+            "power_per_frame": sum(
+                v.analysis_power / (v.frames - v.skipped_frames) for v in self.videos.values()
+                if (v.frames - v.skipped_frames) > 0
+            ) / video_count
         }
 
     def __str__(self) -> str:
@@ -329,6 +334,7 @@ class Analysis:
         self.avg_total_power = 0.0
         self.avg_skipped_frames = 0.0
         self.avg_skip_rate = 0.0
+        self.avg_power_per_frame = 0.0
 
         self.parse_preferences()
 
@@ -369,6 +375,8 @@ class Analysis:
     def set_average_stats(self):
         video_count = len(self.videos)
 
+        device_averages = [d.get_averages() for d in self.devices.values()]
+
         self.avg_enqueue_time = self.enqueue_time / video_count
         self.avg_down_time = self.down_time / video_count
         self.avg_transfer_time = self.transfer_time / video_count
@@ -380,7 +388,8 @@ class Analysis:
         self.avg_analysis_power = self.analysis_power / video_count
         self.avg_total_power = self.get_total_power() / video_count
         self.avg_skipped_frames = self.skipped_frames / video_count
-        self.avg_skip_rate = sum(d.get_averages()["skip_rate"] for d in self.devices.values()) / len(self.devices)
+        self.avg_skip_rate = sum(averages["skip_rate"] for averages in device_averages) / len(self.devices)
+        self.avg_power_per_frame = sum(averages["power_per_frame"] for averages in device_averages) / len(self.devices)
 
     def get_average_stats(self) -> List[str]:
         return [
@@ -1136,10 +1145,11 @@ def write_device_averages(device: Device, writer):
             f"{device.early_divisor:.3f}",
             f"{sub_averages['skipped_frames']:.3f}",
             f"{sub_averages['skip_rate']:.3f}",
-            len(device.videos)
+            len(device.videos),
+            f"{sub_averages['power_per_frame']:.3f}"
         ])
     else:
-        write_row(writer, [get_device_name(device.name)] + ["0"] * 7 + [f"{device.early_divisor:.3f}"] + ["0"] * 4)
+        write_row(writer, [get_device_name(device.name)] + ["0"] * 7 + [f"{device.early_divisor:.3f}"] + ["0"] * 5)
 
 
 def write_offline_table(writer, runs: List[Analysis]):
@@ -1156,7 +1166,8 @@ def write_offline_table(writer, runs: List[Analysis]):
             "ESD",
             "Skipped",
             "Skip rate",
-            "Total time"
+            "Total time",
+            "mW per frame"
         ]
     else:
         table_header = [
@@ -1171,7 +1182,8 @@ def write_offline_table(writer, runs: List[Analysis]):
             "ESD",
             "Skipped",
             "Skip rate",
-            "Total time (s)"
+            "Total time (s)",
+            "mW per frame"
         ]
     write_row(writer, ["Offline tests"])
     write_row(writer, table_header)
@@ -1192,7 +1204,8 @@ def write_offline_table(writer, runs: List[Analysis]):
             device.early_divisor,
             average_dict["skipped_frames"],
             average_dict["skip_rate"],
-            run.total_time.total_seconds()
+            run.total_time.total_seconds(),
+            average_dict["power_per_frame"]
         ]
         averages_list.append(averages)
 
@@ -1219,7 +1232,8 @@ def write_online_table(writer, runs: List[Analysis], title: str):
             "ESD",
             "Skipped",
             "Skip rate",
-            "Videos"
+            "Videos",
+            "mW per frame"
         ]
         download_time_label = "Download:"
         total_time_label = "Total time:"
@@ -1237,7 +1251,8 @@ def write_online_table(writer, runs: List[Analysis], title: str):
             "ESD",
             "Skipped",
             "Skip rate",
-            "Videos"
+            "Videos",
+            "mW per frame"
         ]
         download_time_label = "Download time (s):"
         total_time_label = "Total time (s):"
@@ -1268,7 +1283,8 @@ def write_online_table(writer, runs: List[Analysis], title: str):
             sum(d.early_divisor for d in run.devices.values()) / len(run.devices),
             run.avg_skipped_frames,
             run.avg_skip_rate,
-            sum(len(d.videos) for d in run.devices.values()) / len(run.devices)
+            sum(len(d.videos) for d in run.devices.values()) / len(run.devices),
+            run.avg_power_per_frame
         ]
         averages_list.append(averages)
 
@@ -1364,6 +1380,6 @@ if __name__ == "__main__":
     short = args.short
 
     if args.pad:
-        max_row_size = 13 if args.table else 20
+        max_row_size = 14 if args.table else 20
 
     make_spreadsheet(args.dir, args.output, args.append, args.sort, args.full_results, args.table)
