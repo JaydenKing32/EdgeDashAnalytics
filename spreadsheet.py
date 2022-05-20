@@ -194,6 +194,7 @@ class Video:
                 or self.analysis_time == 0
                 or (self.transfer_time > 0 and self.return_time == 0)
                 or (self.transfer_time == 0 and self.return_time > 0)
+                or self.frames == 0
         )
 
     def __str__(self) -> str:
