@@ -1317,6 +1317,10 @@ def make_spreadsheet(root: str, out: str, append: bool, sort: bool, full_results
             if not table and full_results:
                 write_online_run(run, writer)
 
+        if len(runs) == 0:
+            print("No logs found")
+            return
+
         if sort:
             runs.sort(key=lambda r: (
                 r.nodes,
