@@ -124,7 +124,7 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     public static class SettingsFragment extends PreferenceFragmentCompat {
-        AlertDialog clearDialog = null;
+        private AlertDialog clearDialog = null;
 
         @Override
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {

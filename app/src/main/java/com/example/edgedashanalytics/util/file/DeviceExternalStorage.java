@@ -3,7 +3,7 @@ package com.example.edgedashanalytics.util.file;
 import android.os.Environment;
 
 public class DeviceExternalStorage {
-    public static boolean externalStorageIsWritable() {
+    static boolean externalStorageIsWritable() {
         String state = Environment.getExternalStorageState();
         return Environment.MEDIA_MOUNTED.equals(state);
     }

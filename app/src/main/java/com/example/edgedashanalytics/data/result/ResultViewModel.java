@@ -13,7 +13,7 @@ public class ResultViewModel extends ViewModel {
     private final ResultRepository repository;
     private final LiveData<List<Result>> liveData;
 
-    public ResultViewModel(Application application, ResultRepository resultRepository) {
+    ResultViewModel(Application application, ResultRepository resultRepository) {
         super();
         repository = resultRepository;
         liveData = repository.getResults();

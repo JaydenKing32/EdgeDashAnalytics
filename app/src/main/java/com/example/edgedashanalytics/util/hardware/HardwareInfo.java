@@ -22,9 +22,9 @@ public class HardwareInfo {
 
     public final int cpuCores;
     public final long cpuFreq;
-    public final long totalRam;
+    private final long totalRam;
     public final long availRam;
-    public final long totalStorage;
+    private final long totalStorage;
     public final long availStorage;
     public final int batteryLevel;
 

@@ -108,8 +108,8 @@ public class VideoFragment extends Fragment {
     public VideoFragment() {
     }
 
-    public static VideoFragment newInstance(ActionButton actionButton, VideoEventHandler handler,
-                                            Function<Listener, VideoRecyclerViewAdapter> adapterCreator) {
+    static VideoFragment newInstance(ActionButton actionButton, VideoEventHandler handler,
+                                     Function<Listener, VideoRecyclerViewAdapter> adapterCreator) {
         VideoFragment fragment = new VideoFragment();
         Bundle args = new Bundle();
         int columnCount = 1;
@@ -220,7 +220,7 @@ public class VideoFragment extends Fragment {
         listener = null;
     }
 
-    public void setRepository(VideosRepository repository) {
+    void setRepository(VideosRepository repository) {
         this.repository = repository;
     }
 

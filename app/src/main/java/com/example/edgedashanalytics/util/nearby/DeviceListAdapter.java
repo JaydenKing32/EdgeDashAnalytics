@@ -69,6 +69,7 @@ public class DeviceListAdapter extends RecyclerView.Adapter<DeviceListAdapter.De
     }
 
     static class DeviceViewHolder extends RecyclerView.ViewHolder {
+        @SuppressWarnings({"FieldCanBeLocal", "unused"})
         private final DeviceListAdapter adapter;
         private final TextView deviceName;
         private final ImageView connectionStatus;

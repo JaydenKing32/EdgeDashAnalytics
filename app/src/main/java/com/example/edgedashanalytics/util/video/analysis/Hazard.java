@@ -7,7 +7,6 @@ import androidx.annotation.NonNull;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@SuppressWarnings({"FieldCanBeLocal", "unused"})
 class Hazard {
     private final String category;
     private final float score;

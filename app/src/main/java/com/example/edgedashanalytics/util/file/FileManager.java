@@ -155,14 +155,12 @@ public class FileManager {
         }
     }
 
-    public static boolean clearLogs() {
+    public static void clearLogs() {
         try {
             Log.v(TAG, "Clearing logs");
             FileUtils.deleteDirectory(LOG_DIR);
-            return true;
         } catch (IOException e) {
             Log.e(TAG, String.format("Failed to clear logs: \n%s", e.getMessage()));
-            return false;
         }
     }
 

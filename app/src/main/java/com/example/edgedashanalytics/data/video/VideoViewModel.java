@@ -13,7 +13,7 @@ public class VideoViewModel extends ViewModel {
     private final VideosRepository repository;
     private final LiveData<List<Video>> videos;
 
-    public VideoViewModel(Application application, VideosRepository videosRepository) {
+    VideoViewModel(Application application, VideosRepository videosRepository) {
         super();
         repository = videosRepository;
         videos = repository.getVideos();

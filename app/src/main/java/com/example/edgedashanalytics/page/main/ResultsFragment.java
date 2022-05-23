@@ -50,7 +50,7 @@ public class ResultsFragment extends Fragment {
     public ResultsFragment() {
     }
 
-    public static ResultsFragment newInstance(ActionButton actionButton, ResultEventHandler handler) {
+    static ResultsFragment newInstance(ActionButton actionButton, ResultEventHandler handler) {
         ResultsFragment fragment = new ResultsFragment();
         Bundle args = new Bundle();
         int columnCount = 1;
@@ -125,7 +125,7 @@ public class ResultsFragment extends Fragment {
         listener = null;
     }
 
-    public void setRepository(ResultRepository repository) {
+    void setRepository(ResultRepository repository) {
         this.repository = repository;
     }
 
@@ -157,6 +157,7 @@ public class ResultsFragment extends Fragment {
      * >Communicating with Other Fragments</a> for more information.
      */
     public interface Listener {
+        @SuppressWarnings({"unused", "EmptyMethod"})
         void onListFragmentInteraction(Result result);
     }
 }
