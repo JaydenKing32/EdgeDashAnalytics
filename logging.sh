@@ -111,6 +111,8 @@ for ((i = 0; i < ${#log_times[@]}; i++)); do
         pcre2grep '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w Important' "${verbose_log}" >"${short_log}"
         # Append the last PowerMonitor message from verbose logs
         pcre2grep -M '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w PowerMonitor: Power usage:\n.*\n.*\n.*' "${verbose_log}" | tail -4 >>"${short_log}"
+        # Append the last battery level message from verbose logs
+        pcre2grep '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+ \w PowerMonitor: Battery level: \d+%' "${verbose_log}" | tail -1 >>"${short_log}"
     done
 done
 
