@@ -868,7 +868,7 @@ public abstract class NearbyFragment extends Fragment {
                         PowerMonitor.printBatteryLevel(getContext());
                         break;
                     case COMPLETE:
-                        requestHardwareInfo(endpointId);
+                        // requestHardwareInfo(endpointId);
                         videoName = parts[1];
                         Log.d(TAG, String.format("%s has finished downloading %s", fromEndpoint, videoName));
 
