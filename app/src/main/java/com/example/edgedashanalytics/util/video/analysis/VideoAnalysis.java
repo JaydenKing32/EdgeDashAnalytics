@@ -130,7 +130,7 @@ public abstract class VideoAnalysis {
             JsonManager.writeResultsToJson(outPath, frames);
         }
 
-        frameExecutor.shutdownNow();
+        frameExecutor.shutdown();
 
         String time = TimeManager.getDurationString(startTime);
         long powerConsumption = PowerMonitor.getPowerConsumption(startPower);
