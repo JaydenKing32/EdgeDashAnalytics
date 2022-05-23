@@ -61,6 +61,7 @@ public class ConnectionFragment extends NearbyFragment {
                 startAdvertising(buttonView.getContext());
             } else {
                 Log.v(TAG, "Advertisement switch unchecked");
+                stopAdvertising();
             }
         });
 
