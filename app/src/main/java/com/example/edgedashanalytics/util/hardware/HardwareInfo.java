@@ -1,10 +1,9 @@
 package com.example.edgedashanalytics.util.hardware;
 
-import static android.content.Context.BATTERY_SERVICE;
+import static com.example.edgedashanalytics.util.hardware.PowerMonitor.getBatteryLevel;
 
 import android.app.ActivityManager;
 import android.content.Context;
-import android.os.BatteryManager;
 import android.os.Environment;
 import android.os.StatFs;
 import android.util.Log;
@@ -119,14 +118,6 @@ public class HardwareInfo {
     private long getAvailStorage() {
         StatFs stat = new StatFs(Environment.getExternalStorageDirectory().getPath());
         return stat.getBlockSizeLong() * stat.getAvailableBlocksLong();
-    }
-
-    /**
-     * @return percentage of battery level as an integer
-     */
-    private int getBatteryLevel(Context context) {
-        BatteryManager batteryManager = (BatteryManager) context.getSystemService(BATTERY_SERVICE);
-        return batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
     }
 
     @NonNull

@@ -109,4 +109,16 @@ public class PowerMonitor {
 
         Log.d(TAG, message.toString());
     }
+
+    public static void printBatteryLevel(Context context) {
+        Log.d(TAG, String.format(Locale.ENGLISH, "Battery level: %d%%", getBatteryLevel(context)));
+    }
+
+    /**
+     * @return percentage of battery level as an integer
+     */
+    public static int getBatteryLevel(Context context) {
+        BatteryManager batteryManager = (BatteryManager) context.getSystemService(BATTERY_SERVICE);
+        return batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+    }
 }

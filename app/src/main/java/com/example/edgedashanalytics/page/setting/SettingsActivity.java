@@ -25,6 +25,7 @@ import androidx.preference.PreferenceManager;
 import com.example.edgedashanalytics.R;
 import com.example.edgedashanalytics.util.dashcam.DashCam;
 import com.example.edgedashanalytics.util.file.FileManager;
+import com.example.edgedashanalytics.util.hardware.PowerMonitor;
 import com.example.edgedashanalytics.util.nearby.Algorithm;
 import com.example.edgedashanalytics.util.nearby.Algorithm.AlgorithmKey;
 import com.example.edgedashanalytics.util.video.analysis.InnerAnalysis;
@@ -91,6 +92,7 @@ public class SettingsActivity extends AppCompatActivity {
         int simDelay = Integer.parseInt(pref.getString(c.getString(R.string.simulation_delay_key), defaultString));
         int testVideoCount = DashCam.getTestVideoCount();
         double stopDivisor = Double.parseDouble(pref.getString(c.getString(R.string.early_stop_divisor_key), "0"));
+        int batteryLevel = PowerMonitor.getBatteryLevel(c);
 
         StringJoiner prefMessage = new StringJoiner("\n  ");
         prefMessage.add("Preferences:");
@@ -111,6 +113,7 @@ public class SettingsActivity extends AppCompatActivity {
         prefMessage.add(String.format("Simulated delay: %s", simDelay));
         prefMessage.add(String.format("Test video count: %s", testVideoCount));
         prefMessage.add(String.format(Locale.ENGLISH, "Early stop divisor: %.4f", stopDivisor));
+        prefMessage.add(String.format("Starting battery level: %s%%", batteryLevel));
 
         Log.i(I_TAG, prefMessage.toString());
 

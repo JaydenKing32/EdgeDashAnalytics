@@ -575,6 +575,7 @@ public abstract class NearbyFragment extends Fragment {
 
             // TimeManager.printTurnaroundTime(videoName);
             PowerMonitor.printSummary();
+            PowerMonitor.printBatteryLevel(getContext());
         } else {
             Log.v(TAG, String.format("Received a segment of %s", baseName));
         }
@@ -763,6 +764,8 @@ public abstract class NearbyFragment extends Fragment {
                 handleSegment(result.getName());
                 nextTransfer();
             }
+
+            PowerMonitor.printBatteryLevel(getContext());
         };
     }
 
@@ -862,6 +865,7 @@ public abstract class NearbyFragment extends Fragment {
 
                         processFilePayload(payloadId, endpointId);
                         PowerMonitor.printSummary();
+                        PowerMonitor.printBatteryLevel(getContext());
                         break;
                     case COMPLETE:
                         requestHardwareInfo(endpointId);
