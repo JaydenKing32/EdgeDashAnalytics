@@ -94,7 +94,9 @@ re_network = re.compile(timestamp + r"I Important:\s+Wi-Fi: (\w+)" + trailing_wh
 re_early_divisor = re.compile(timestamp + r"I Important:\s+Early stop divisor: (\d+\.\d+)" + trailing_whitespace)
 re_frames = re.compile(timestamp + r"D Important:\s+Starting analysis of (.*)\.mp4, (\d+) frames" + trailing_whitespace)
 re_enqueue = re.compile(timestamp + r"D Important:\s+Enqueued (.*)\.mp4" + trailing_whitespace)
-re_start = re.compile(timestamp + r"D Important:\s+Started download: (.*)\.mp4" + trailing_whitespace)
+re_start_down = re.compile(timestamp + r"D Important:\s+Started download: (.*)\.mp4" + trailing_whitespace)
+re_start_battery = re.compile(timestamp + r"I Important:\s+Starting battery level: (\d+)%" + trailing_whitespace)
+re_end_battery = re.compile(timestamp + r"D PowerMonitor:\s+Battery level: (\d+)%" + trailing_whitespace)
 
 offline_header = [
     "Filename",
@@ -209,6 +211,7 @@ class Device:
         self.average_power = 0.0
         self.network = ""
         self.early_divisor = 0.0
+        self.battery_usage = 0
 
     def set_preferences(self, log_path: str):
         line_count = 0
@@ -266,7 +269,8 @@ class Device:
                 "skipped_frames": 0,
                 "skip_rate": 0,
                 "total_power": 0,
-                "power_per_frame": 0
+                "power_per_frame": 0,
+                "battery_usage": 0
             }
 
         totals = self.get_totals()
@@ -286,7 +290,8 @@ class Device:
             "power_per_frame": sum(
                 v.analysis_power / (v.frames - v.skipped_frames) for v in self.videos.values()
                 if (v.frames - v.skipped_frames) > 0
-            ) / video_count
+            ) / video_count,
+            "battery_usage": self.battery_usage / video_count
         }
 
     def __str__(self) -> str:
@@ -335,6 +340,7 @@ class Analysis:
         self.avg_skipped_frames = 0.0
         self.avg_skip_rate = 0.0
         self.avg_power_per_frame = 0.0
+        self.avg_battery_usage = 0.0
 
         self.parse_preferences()
 
@@ -390,6 +396,7 @@ class Analysis:
         self.avg_skipped_frames = self.skipped_frames / video_count
         self.avg_skip_rate = sum(averages["skip_rate"] for averages in device_averages) / len(self.devices)
         self.avg_power_per_frame = sum(averages["power_per_frame"] for averages in device_averages) / len(self.devices)
+        self.avg_battery_usage = sum(d.battery_usage for d in self.devices.values()) / len(self.devices)
 
     def get_average_stats(self) -> List[str]:
         return [
@@ -640,7 +647,7 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
 
         for line in master_log:
             enqueue = re_enqueue.match(line)
-            start = re_start.match(line)
+            start = re_start_down.match(line)
             down = re_down.match(line)
             transfer = re_transfer.match(line)
             comp = re_comp.match(line)
@@ -650,6 +657,8 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
             early = re_early.match(line)
             total_power = re_total_power.match(line)
             average_power = re_average_power.match(line)
+            start_battery = re_start_battery.match(line)
+            end_battery = re_end_battery.match(line)
 
             if enqueue is not None:
                 video_name = enqueue.group(2)
@@ -733,6 +742,10 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
                 master.total_power = parse_power(total_power.group(2), master_name)
             elif average_power is not None:
                 master.average_power = parse_power(average_power.group(2), master_name)
+            elif start_battery is not None:
+                start_battery_value = int(start_battery.group(2))
+            elif end_battery is not None:
+                master.battery_usage = start_battery_value - int(end_battery.group(2))
     clean_videos(videos)
     return videos
 
@@ -757,6 +770,8 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
                 early = re_early.match(line)
                 total_power = re_total_power.match(line)
                 average_power = re_average_power.match(line)
+                start_battery = re_start_battery.match(line)
+                end_battery = re_end_battery.match(line)
 
                 if transfer is not None:
                     video_name = transfer.group(2)
@@ -800,6 +815,10 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
                     worker.total_power = parse_power(total_power.group(2), device_name)
                 elif average_power is not None:
                     worker.average_power = parse_power(average_power.group(2), device_name)
+                elif start_battery is not None:
+                    start_battery_value = int(start_battery.group(2))
+                elif end_battery is not None:
+                    worker.battery_usage = start_battery_value - int(end_battery.group(2))
 
 
 def parse_offline_log(log_path: str) -> Device:
@@ -815,7 +834,7 @@ def parse_offline_log(log_path: str) -> Device:
 
         for line in offline_log:
             enqueue = re_enqueue.match(line)
-            start = re_start.match(line)
+            start = re_start_down.match(line)
             down = re_down.match(line)
             comp = re_comp.match(line)
             wait = re_wait.match(line)
@@ -824,6 +843,8 @@ def parse_offline_log(log_path: str) -> Device:
             early = re_early.match(line)
             total_power = re_total_power.match(line)
             average_power = re_average_power.match(line)
+            start_battery = re_start_battery.match(line)
+            end_battery = re_end_battery.match(line)
 
             if enqueue is not None:
                 video_name = enqueue.group(2)
@@ -878,6 +899,10 @@ def parse_offline_log(log_path: str) -> Device:
                 device.total_power = parse_power(total_power.group(2), device_name)
             elif average_power is not None:
                 device.average_power = parse_power(average_power.group(2), device_name)
+            elif start_battery is not None:
+                start_battery_value = int(start_battery.group(2))
+            elif end_battery is not None:
+                device.battery_usage = start_battery_value - int(end_battery.group(2))
     return device
 
 
@@ -1146,7 +1171,8 @@ def write_device_averages(device: Device, writer):
             f"{sub_averages['skipped_frames']:.3f}",
             f"{sub_averages['skip_rate']:.3f}",
             len(device.videos),
-            f"{sub_averages['power_per_frame']:.3f}"
+            f"{sub_averages['power_per_frame']:.3f}",
+            device.battery_usage
         ])
     else:
         write_row(writer, [get_device_name(device.name)] + ["0"] * 7 + [f"{device.early_divisor:.3f}"] + ["0"] * 5)
@@ -1167,7 +1193,8 @@ def write_offline_table(writer, runs: List[Analysis]):
             "Skipped",
             "Skip rate",
             "Total time",
-            "mW per frame"
+            "mW per frame",
+            "Battery"
         ]
     else:
         table_header = [
@@ -1183,7 +1210,8 @@ def write_offline_table(writer, runs: List[Analysis]):
             "Skipped",
             "Skip rate",
             "Total time (s)",
-            "mW per frame"
+            "mW per frame",
+            "Battery usage (%)"
         ]
     write_row(writer, ["Offline tests"])
     write_row(writer, table_header)
@@ -1205,14 +1233,16 @@ def write_offline_table(writer, runs: List[Analysis]):
             average_dict["skipped_frames"],
             average_dict["skip_rate"],
             run.total_time.total_seconds(),
-            average_dict["power_per_frame"]
+            average_dict["power_per_frame"],
+            device.battery_usage
         ]
         averages_list.append(averages)
 
         write_row(
             writer,
             [run.get_master_full_name()] +
-            [f"{a:.3f}" for a in averages]
+            [f"{a:.3f}" for a in averages[:-1]] +
+            [str(device.battery_usage)]
         )
     write_row(writer, get_average_row(averages_list))
     write_row(writer, [])
@@ -1233,7 +1263,8 @@ def write_online_table(writer, runs: List[Analysis], title: str):
             "Skipped",
             "Skip rate",
             "Videos",
-            "mW per frame"
+            "mW per frame",
+            "Battery"
         ]
         download_time_label = "Download:"
         total_time_label = "Total time:"
@@ -1252,7 +1283,8 @@ def write_online_table(writer, runs: List[Analysis], title: str):
             "Skipped",
             "Skip rate",
             "Videos",
-            "mW per frame"
+            "mW per frame",
+            "Battery usage (%)"
         ]
         download_time_label = "Download time (s):"
         total_time_label = "Total time (s):"
@@ -1284,7 +1316,8 @@ def write_online_table(writer, runs: List[Analysis], title: str):
             run.avg_skipped_frames,
             run.avg_skip_rate,
             sum(len(d.videos) for d in run.devices.values()) / len(run.devices),
-            run.avg_power_per_frame
+            run.avg_power_per_frame,
+            run.avg_battery_usage
         ]
         averages_list.append(averages)
 
@@ -1380,6 +1413,6 @@ if __name__ == "__main__":
     short = args.short
 
     if args.pad:
-        max_row_size = 14 if args.table else 20
+        max_row_size = 15 if args.table else 20
 
     make_spreadsheet(args.dir, args.output, args.append, args.sort, args.full_results, args.table)
