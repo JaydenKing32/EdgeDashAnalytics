@@ -64,13 +64,17 @@ with tqdm(desc=out_filename, total=length, smoothing=0.01) as pbar:
             x, y = key["coordinate"].values()
             x, y = int(x), int(y)
             part = key["bodyPart"]
-            # part = body_parts.index(key["bodyPart"])
 
-            colour = (0, 255, 0)
+            # x = int(x + (frame_width / 2) - (x * 0.4))
+
+            dot_size = 2
+            dot_colour = (0, 0, 255)
+            image_np = cv2.circle(image_np, (x, y), dot_size, dot_colour, -1)
 
             font_face = cv2.FONT_HERSHEY_SIMPLEX
             font_colour = (0, 255, 0)
-            image_np = cv2.putText(image_np, str(part), (x, y), font_face, 0.5, font_colour, 1)
+            offset = 4
+            image_np = cv2.putText(image_np, str(part), (x + offset, y - offset), font_face, 0.5, font_colour, 1)
 
         circle_size = 20
         circle_colour = (0, 0, 255) if key_points[frame]["distracted"] else (0, 255, 0)
