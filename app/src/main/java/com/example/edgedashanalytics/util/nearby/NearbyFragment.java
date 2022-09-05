@@ -48,6 +48,7 @@ import com.google.android.gms.nearby.connection.ConnectionInfo;
 import com.google.android.gms.nearby.connection.ConnectionLifecycleCallback;
 import com.google.android.gms.nearby.connection.ConnectionOptions;
 import com.google.android.gms.nearby.connection.ConnectionResolution;
+import com.google.android.gms.nearby.connection.ConnectionType;
 import com.google.android.gms.nearby.connection.ConnectionsClient;
 import com.google.android.gms.nearby.connection.ConnectionsStatusCodes;
 import com.google.android.gms.nearby.connection.DiscoveredEndpointInfo;
@@ -270,7 +271,7 @@ public abstract class NearbyFragment extends Fragment {
         PowerMonitor.startPowerMonitor(context);
 
         AdvertisingOptions advertisingOptions = new AdvertisingOptions.Builder()
-                .setStrategy(STRATEGY).setDisruptiveUpgrade(false).build();
+                .setStrategy(STRATEGY).setConnectionType(ConnectionType.DISRUPTIVE).build();
         connectionsClient.startAdvertising(localName, SERVICE_ID, connectionLifecycleCallback, advertisingOptions)
                 .addOnSuccessListener((Void unused) ->
                         Log.d(TAG, "Started advertising"))
@@ -437,7 +438,8 @@ public abstract class NearbyFragment extends Fragment {
     public void connectEndpoint(Endpoint endpoint) {
         Log.d(TAG, String.format("Attempting to connect to %s", endpoint));
         if (!endpoint.connected) {
-            ConnectionOptions connectionOptions = new ConnectionOptions.Builder().setDisruptiveUpgrade(false).build();
+            ConnectionOptions connectionOptions = new ConnectionOptions.Builder()
+                    .setConnectionType(ConnectionType.DISRUPTIVE).build();
 
             connectionsClient.requestConnection(localName, endpoint.id, connectionLifecycleCallback, connectionOptions)
                     .addOnSuccessListener(
