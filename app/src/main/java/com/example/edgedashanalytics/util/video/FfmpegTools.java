@@ -53,8 +53,12 @@ public class FfmpegTools {
         }
     }
 
-    public static double getDuration() {
+    private static double getDuration() {
         return duration;
+    }
+
+    public static long getDurationMillis() {
+        return Math.round(duration * 1000);
     }
 
     // Get base video name from split segment's name

@@ -29,14 +29,15 @@ import java.util.concurrent.TimeUnit;
 public abstract class VideoAnalysis {
     private static final String TAG = VideoAnalysis.class.getSimpleName();
     private static final boolean DEFAULT_VERBOSE = false;
-    private static final String DEFAULT_STOP_DIVISOR = "0";
 
     final static int TF_THREAD_NUM = 4;
     final static int THREAD_NUM = 2;
 
     final boolean verbose;
 
-    private final double stopDivisor;
+    private static double stopDivisor = 1.0;
+    private static final double ESD_STEP = 0.2;
+
     private static Long durationMillis = null;
 
     /**
@@ -45,8 +46,6 @@ public abstract class VideoAnalysis {
     VideoAnalysis(Context context) {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         this.verbose = pref.getBoolean(context.getString(R.string.verbose_output_key), DEFAULT_VERBOSE);
-        this.stopDivisor = Double.parseDouble(pref.getString(
-                context.getString(R.string.early_stop_divisor_key), DEFAULT_STOP_DIVISOR));
     }
 
     abstract Frame processFrame(Bitmap bitmap, int frameIndex, float scaleFactor);
@@ -56,6 +55,12 @@ public abstract class VideoAnalysis {
     abstract float getScaleFactor(int width);
 
     public abstract void printParameters();
+
+    public void increaseEsd() {
+        stopDivisor += ESD_STEP;
+        Log.d(TAG, String.format("Increased ESD to %.2f", stopDivisor));
+        durationMillis = (long) (FfmpegTools.getDurationMillis() / stopDivisor);
+    }
 
     public void analyse(String inPath, String outPath) {
         processVideo(inPath, outPath);
@@ -101,7 +106,7 @@ public abstract class VideoAnalysis {
                 durationMillis = 600000L;
             } else {
                 FfmpegTools.setDuration(inPath);
-                durationMillis = (long) ((FfmpegTools.getDuration() * 1000) / stopDivisor);
+                durationMillis = (long) (FfmpegTools.getDurationMillis() / stopDivisor);
             }
         }
 

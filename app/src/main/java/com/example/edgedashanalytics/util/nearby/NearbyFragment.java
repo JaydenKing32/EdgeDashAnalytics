@@ -755,6 +755,12 @@ public abstract class NearbyFragment extends Fragment {
                 EventBus.getDefault().post(new AddResultEvent(result));
 
                 if (master) {
+                    long turnaround = Duration.between(TimeManager.getStartTime(videoName), Instant.now()).toMillis();
+
+                    if (turnaround > FfmpegTools.getDurationMillis()) {
+                        videoAnalysis.increaseEsd();
+                    }
+
                     TimeManager.printTurnaroundTime(videoName);
                 }
             }
