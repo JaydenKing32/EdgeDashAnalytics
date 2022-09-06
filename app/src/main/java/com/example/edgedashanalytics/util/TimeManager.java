@@ -6,6 +6,8 @@ import android.util.Log;
 
 import androidx.collection.SimpleArrayMap;
 
+import com.example.edgedashanalytics.util.video.FfmpegTools;
+
 import org.apache.commons.lang3.time.DurationFormatUtils;
 
 import java.time.Duration;
@@ -35,6 +37,11 @@ public class TimeManager {
 
     public static Instant getStartTime(String filename) {
         return startTimes.get(filename);
+    }
+
+    public static boolean isTurnaroundHigherThanDuration(String filename) {
+        long turnaround = Duration.between(TimeManager.getStartTime(filename), Instant.now()).toMillis();
+        return turnaround > FfmpegTools.getDurationMillis();
     }
 
     public static void printTurnaroundTime(String filename) {

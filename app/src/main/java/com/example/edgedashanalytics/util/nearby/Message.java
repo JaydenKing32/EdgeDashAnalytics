@@ -18,7 +18,8 @@ class Message {
         COMPLETE, // Completed file transfer
         RETURN, // Returning results file
         HW_INFO, // Message contains hardware information
-        HW_INFO_REQUEST // Requesting hardware information
+        HW_INFO_REQUEST, // Requesting hardware information
+        INC_ESD // Increase ESD
     }
 
     static boolean isAnalyse(Command command) {

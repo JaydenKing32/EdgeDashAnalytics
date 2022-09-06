@@ -469,6 +469,11 @@ public abstract class NearbyFragment extends Fragment {
         deviceAdapter.notifyDataSetChanged();
     }
 
+    private void sendCommandMessage(Command command, String toEndpointId) {
+        Payload filenameBytesPayload = Payload.fromBytes(command.toString().getBytes(UTF_8));
+        connectionsClient.sendPayload(toEndpointId, filenameBytesPayload);
+    }
+
     @SuppressWarnings("SameParameterValue")
     private void sendCommandMessage(Command command, String filename, String toEndpointId) {
         String commandMessage = String.join(MESSAGE_SEPARATOR, command.toString(), filename);
@@ -755,10 +760,8 @@ public abstract class NearbyFragment extends Fragment {
                 EventBus.getDefault().post(new AddResultEvent(result));
 
                 if (master) {
-                    long turnaround = Duration.between(TimeManager.getStartTime(videoName), Instant.now()).toMillis();
-
-                    if (turnaround > FfmpegTools.getDurationMillis()) {
-                        videoAnalysis.increaseEsd();
+                    if (TimeManager.isTurnaroundHigherThanDuration(videoName)) {
+                        VideoAnalysis.increaseEsd();
                     }
 
                     TimeManager.printTurnaroundTime(videoName);
@@ -898,6 +901,9 @@ public abstract class NearbyFragment extends Fragment {
                     case HW_INFO_REQUEST:
                         sendHardwareInfo(context);
                         break;
+                    case INC_ESD:
+                        VideoAnalysis.increaseEsd();
+                        break;
                 }
             } else if (payload.getType() == Payload.Type.FILE) {
                 // Add this to our tracking map, so that we can retrieve the payload later.
@@ -1012,6 +1018,10 @@ public abstract class NearbyFragment extends Fragment {
                     EventBus.getDefault().post(new RemoveByNameEvent(videoName, Type.PROCESSING));
 
                     TimeManager.printTurnaroundTime(videoName);
+
+                    if (TimeManager.isTurnaroundHigherThanDuration(videoName)) {
+                        sendCommandMessage(Command.INC_ESD, fromEndpointId);
+                    }
                 }
             }
         }
