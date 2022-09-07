@@ -58,7 +58,7 @@ public abstract class VideoAnalysis {
 
     public static void increaseEsd() {
         stopDivisor += ESD_STEP;
-        Log.d(TAG, String.format("Increased ESD to %.2f", stopDivisor));
+        Log.d(I_TAG, String.format("Increased ESD to %.2f", stopDivisor));
         durationMillis = (long) (FfmpegTools.getDurationMillis() / stopDivisor);
     }
 

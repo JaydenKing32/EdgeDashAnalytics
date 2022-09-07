@@ -97,6 +97,7 @@ re_enqueue = re.compile(timestamp + r"D Important:\s+Enqueued (.*)\.mp4" + trail
 re_start_down = re.compile(timestamp + r"D Important:\s+Started download: (.*)\.mp4" + trailing_whitespace)
 re_start_battery = re.compile(timestamp + r"I Important:\s+Starting battery level: (\d+)%" + trailing_whitespace)
 re_end_battery = re.compile(timestamp + r"D PowerMonitor:\s+Battery level: (\d+)%" + trailing_whitespace)
+re_esd_inc = re.compile(timestamp + r"D Important:\s+Increased ESD to (\d+\.\d+)" + trailing_whitespace)
 
 offline_header = [
     "Filename",
@@ -214,16 +215,11 @@ class Device:
         self.battery_usage = 0
 
     def set_preferences(self, log_path: str):
-        line_count = 0
-
         with open(log_path, 'r', encoding="utf-8") as log:
             for line in log:
-                if line_count > 100:
-                    return
-                line_count += 1
-
                 network_match = re_network.match(line)
                 early_divisor_match = re_early_divisor.match(line)
+                esd_inc_match = re_esd_inc.match(line)
 
                 if network_match is not None:
                     network = network_match.group(2)
@@ -236,7 +232,10 @@ class Device:
                 if early_divisor_match is not None:
                     early_divisor = float(early_divisor_match.group(2))
                     self.early_divisor = early_divisor
-                    return
+
+                if esd_inc_match is not None:
+                    esd = float(esd_inc_match.group(2))
+                    self.early_divisor = esd
 
     def get_totals(self) -> Dict[str, float]:
         return {
