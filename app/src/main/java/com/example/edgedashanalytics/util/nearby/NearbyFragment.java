@@ -558,13 +558,17 @@ public abstract class NearbyFragment extends Fragment {
         }
     }
 
-    private void handleSegment(String resultName) {
+    private void handleSegment(String resultName, String fromEndpointId) {
         String segmentName = FileManager.getVideoNameFromResultName(resultName);
         String baseName = FfmpegTools.getBaseName(resultName);
         String parentName = String.format("%s.%s", baseName, FilenameUtils.getExtension(resultName));
         String videoName = FileManager.getVideoNameFromResultName(parentName);
 
-        TimeManager.printTurnaroundTime(videoName, segmentName, Instant.now());
+        Instant end = Instant.now();
+        TimeManager.printTurnaroundTime(videoName, segmentName, end);
+        if (fromEndpointId != null && TimeManager.isTurnaroundHigherThanDuration(videoName, end)) {
+            sendCommandMessage(Command.INC_ESD, fromEndpointId);
+        }
 
         List<Result> results = FileManager.getResultsFromDir(FileManager.getSegmentResSubDirPath(resultName));
         int resultTotal = FfmpegTools.getSegmentCount(resultName);
@@ -763,11 +767,10 @@ public abstract class NearbyFragment extends Fragment {
                 Instant end = Instant.now();
 
                 if (master) {
+                    TimeManager.printTurnaroundTime(videoName, end);
                     if (TimeManager.isTurnaroundHigherThanDuration(videoName, end)) {
                         VideoAnalysis.increaseEsd();
                     }
-
-                    TimeManager.printTurnaroundTime(videoName, end);
                 }
             }
 
@@ -775,7 +778,7 @@ public abstract class NearbyFragment extends Fragment {
                 returnContent(result);
             } else if (FfmpegTools.isSegment(result.getName())) {
                 // Master completed analysing a segment
-                handleSegment(result.getName());
+                handleSegment(result.getName(), null);
                 nextTransfer();
             }
 
@@ -1010,21 +1013,19 @@ public abstract class NearbyFragment extends Fragment {
                         return;
                     }
 
-                    String videoName = FileManager.getVideoNameFromResultName(filename);
-                    Instant end = Instant.now();
-
                     if (FfmpegTools.isSegment(resultName)) {
-                        handleSegment(resultName);
+                        handleSegment(resultName, fromEndpointId);
                     } else {
+                        String videoName = FileManager.getVideoNameFromResultName(filename);
                         Result result = new Result(resultsDestPath);
                         EventBus.getDefault().post(new AddResultEvent(result));
                         EventBus.getDefault().post(new RemoveByNameEvent(videoName, Type.PROCESSING));
 
+                        Instant end = Instant.now();
                         TimeManager.printTurnaroundTime(videoName, end);
-                    }
-
-                    if (TimeManager.isTurnaroundHigherThanDuration(videoName, end)) {
-                        sendCommandMessage(Command.INC_ESD, fromEndpointId);
+                        if (TimeManager.isTurnaroundHigherThanDuration(videoName, end)) {
+                            sendCommandMessage(Command.INC_ESD, fromEndpointId);
+                        }
                     }
                 }
             }
