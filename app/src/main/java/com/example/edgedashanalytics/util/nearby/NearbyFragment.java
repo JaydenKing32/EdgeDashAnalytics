@@ -469,6 +469,7 @@ public abstract class NearbyFragment extends Fragment {
         deviceAdapter.notifyDataSetChanged();
     }
 
+    @SuppressWarnings("SameParameterValue")
     private void sendCommandMessage(Command command, String toEndpointId) {
         Payload filenameBytesPayload = Payload.fromBytes(command.toString().getBytes(UTF_8));
         connectionsClient.sendPayload(toEndpointId, filenameBytesPayload);
@@ -562,7 +563,7 @@ public abstract class NearbyFragment extends Fragment {
         String parentName = String.format("%s.%s", baseName, FilenameUtils.getExtension(resultName));
         String videoName = FileManager.getVideoNameFromResultName(parentName);
 
-        TimeManager.printTurnaroundTime(videoName, segmentName);
+        TimeManager.printTurnaroundTime(videoName, segmentName, Instant.now());
 
         List<Result> results = FileManager.getResultsFromDir(FileManager.getSegmentResSubDirPath(resultName));
         int resultTotal = FfmpegTools.getSegmentCount(resultName);
@@ -758,13 +759,14 @@ public abstract class NearbyFragment extends Fragment {
 
             if (!FfmpegTools.isSegment(result.getName())) {
                 EventBus.getDefault().post(new AddResultEvent(result));
+                Instant end = Instant.now();
 
                 if (master) {
-                    if (TimeManager.isTurnaroundHigherThanDuration(videoName)) {
+                    if (TimeManager.isTurnaroundHigherThanDuration(videoName, end)) {
                         VideoAnalysis.increaseEsd();
                     }
 
-                    TimeManager.printTurnaroundTime(videoName);
+                    TimeManager.printTurnaroundTime(videoName, end);
                 }
             }
 
@@ -1007,19 +1009,20 @@ public abstract class NearbyFragment extends Fragment {
                         return;
                     }
 
+                    String videoName = FileManager.getVideoNameFromResultName(filename);
+                    Instant end = Instant.now();
+
                     if (FfmpegTools.isSegment(resultName)) {
                         handleSegment(resultName);
-                        return;
+                    } else {
+                        Result result = new Result(resultsDestPath);
+                        EventBus.getDefault().post(new AddResultEvent(result));
+                        EventBus.getDefault().post(new RemoveByNameEvent(videoName, Type.PROCESSING));
+
+                        TimeManager.printTurnaroundTime(videoName, end);
                     }
 
-                    Result result = new Result(resultsDestPath);
-                    EventBus.getDefault().post(new AddResultEvent(result));
-                    String videoName = FileManager.getVideoNameFromResultName(filename);
-                    EventBus.getDefault().post(new RemoveByNameEvent(videoName, Type.PROCESSING));
-
-                    TimeManager.printTurnaroundTime(videoName);
-
-                    if (TimeManager.isTurnaroundHigherThanDuration(videoName)) {
+                    if (TimeManager.isTurnaroundHigherThanDuration(videoName, end)) {
                         sendCommandMessage(Command.INC_ESD, fromEndpointId);
                     }
                 }

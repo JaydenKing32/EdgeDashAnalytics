@@ -22,6 +22,15 @@ public class TimeManager {
 
     public static String getDurationString(Instant start, boolean roundUp) {
         long duration = Duration.between(start, Instant.now()).toMillis();
+        return formatDuration(duration, roundUp);
+    }
+
+    private static String getDurationString(Instant start, Instant end) {
+        long duration = Duration.between(start, end).toMillis();
+        return formatDuration(duration, true);
+    }
+
+    private static String formatDuration(long duration, boolean roundUp) {
         String time = DurationFormatUtils.formatDuration(duration, "ss.SSS");
 
         if (roundUp && time.equals("00.000")) {
@@ -39,22 +48,22 @@ public class TimeManager {
         return startTimes.get(filename);
     }
 
-    public static boolean isTurnaroundHigherThanDuration(String filename) {
-        long turnaround = Duration.between(TimeManager.getStartTime(filename), Instant.now()).toMillis();
+    public static boolean isTurnaroundHigherThanDuration(String filename, Instant end) {
+        long turnaround = Duration.between(TimeManager.getStartTime(filename), end).toMillis();
         return turnaround > FfmpegTools.getDurationMillis();
     }
 
-    public static void printTurnaroundTime(String filename) {
-        printTurnaroundTime(filename, filename);
+    public static void printTurnaroundTime(String filename, Instant end) {
+        printTurnaroundTime(filename, filename, end);
     }
 
-    public static void printTurnaroundTime(String originalName, String newName) {
+    public static void printTurnaroundTime(String originalName, String newName, Instant end) {
         Instant start = startTimes.get(originalName);
 
         if (start == null) {
             Log.w(I_TAG, String.format("Could not calculate the turnaround time of %s", newName));
         } else {
-            String time = getDurationString(start);
+            String time = getDurationString(start, end);
             Log.i(I_TAG, String.format("Turnaround time of %s: %ss", newName, time));
         }
     }
