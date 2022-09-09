@@ -363,6 +363,7 @@ public abstract class NearbyFragment extends Fragment {
             return;
         }
 
+        FfmpegTools.setDuration(video.getData());
         EventBus.getDefault().post(new AddEvent(video, Type.RAW));
 
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
