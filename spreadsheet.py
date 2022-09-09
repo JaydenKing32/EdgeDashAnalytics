@@ -662,14 +662,20 @@ def parse_master_log(devices: Dict[str, Device], master_filename: str, log_dir: 
             if enqueue is not None:
                 video_name = enqueue.group(2)
 
-                videos[video_name] = Video(video_name)
-                enqueue_times[video_name] = timestamp_to_datetime(line)
+                if video_name not in enqueue_times:
+                    videos[video_name] = Video(video_name)
+                    enqueue_times[video_name] = timestamp_to_datetime(line)
             elif start is not None:
                 video_name = start.group(2)
-                start = enqueue_times[video_name]
-                end = timestamp_to_datetime(line)
 
-                videos[video_name].enqueue_time = (end - start).total_seconds()
+                if video_name not in enqueue_times:
+                    print(f"Unable to record enqueue time for {video_name} in {log_path}")
+                    videos[video_name] = Video(video_name)
+                    videos[video_name].enqueue_time = 0.0
+                else:
+                    start = enqueue_times[video_name]
+                    end = timestamp_to_datetime(line)
+                    videos[video_name].enqueue_time = (end - start).total_seconds()
             elif down is not None:
                 video_name = down.group(2)
                 down_time = float(down.group(3))
@@ -848,14 +854,20 @@ def parse_offline_log(log_path: str) -> Device:
             if enqueue is not None:
                 video_name = enqueue.group(2)
 
-                videos[video_name] = Video(video_name)
-                enqueue_times[video_name] = timestamp_to_datetime(line)
+                if video_name not in enqueue_times:
+                    videos[video_name] = Video(video_name)
+                    enqueue_times[video_name] = timestamp_to_datetime(line)
             elif start is not None:
                 video_name = start.group(2)
-                start = enqueue_times[video_name]
-                end = timestamp_to_datetime(line)
 
-                videos[video_name].enqueue_time = (end - start).total_seconds()
+                if video_name not in enqueue_times:
+                    print(f"Unable to record enqueue time for {video_name} in {log_path}")
+                    videos[video_name] = Video(video_name)
+                    videos[video_name].enqueue_time = 0.0
+                else:
+                    start = enqueue_times[video_name]
+                    end = timestamp_to_datetime(line)
+                    videos[video_name].enqueue_time = (end - start).total_seconds()
             elif down is not None:
                 video_name = down.group(2)
                 down_time = float(down.group(3))
