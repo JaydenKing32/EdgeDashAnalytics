@@ -12,6 +12,7 @@ import com.arthenica.ffmpegkit.MediaInformation;
 import com.arthenica.ffmpegkit.MediaInformationSession;
 import com.example.edgedashanalytics.model.Video;
 import com.example.edgedashanalytics.util.file.FileManager;
+import com.example.edgedashanalytics.util.video.analysis.VideoAnalysis;
 
 import org.apache.commons.io.FilenameUtils;
 
@@ -121,6 +122,7 @@ public class FfmpegTools {
         DecimalFormat df = new DecimalFormat("#.##");
         df.setRoundingMode(RoundingMode.CEILING);
         String segTimeString = df.format(segTime);
+        VideoAnalysis.addDuration(filePath, Math.round(Double.parseDouble(segTimeString) * 1000));
 
         String outDir = FileManager.getSegmentDirPath(baseName);
         Log.v(TAG, String.format("Splitting %s with %ss long segments", filePath, segTimeString));

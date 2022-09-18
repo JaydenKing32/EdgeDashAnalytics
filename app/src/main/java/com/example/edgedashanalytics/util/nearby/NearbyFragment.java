@@ -352,6 +352,10 @@ public abstract class NearbyFragment extends Fragment {
             return;
         }
 
+        if (VideoAnalysis.getDurationCount() < 2) {
+            VideoAnalysis.addDuration(video.getData());
+        }
+
         if (!isConnected()) {
             analyse(video, false);
             return;

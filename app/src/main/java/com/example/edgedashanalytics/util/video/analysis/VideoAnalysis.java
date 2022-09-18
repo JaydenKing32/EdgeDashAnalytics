@@ -59,6 +59,18 @@ public abstract class VideoAnalysis {
 
     public abstract void printParameters();
 
+    public static void addDuration(String filepath) {
+        addDuration(filepath, Math.round(FfmpegTools.retrieveDuration(filepath) * 1000));
+    }
+
+    public static void addDuration(String filepath, long duration) {
+        videoDurations.put(FileManager.getVideoType(filepath), duration);
+    }
+
+    public static int getDurationCount() {
+        return videoDurations.size();
+    }
+
     public static boolean isTurnaroundHigherThanDuration(String filename, Instant end) {
         long turnaround = Duration.between(TimeManager.getStartTime(filename), end).toMillis();
         Long videoDuration = videoDurations.get(FileManager.getVideoType(filename));
@@ -126,6 +138,10 @@ public abstract class VideoAnalysis {
                 videoDurations.put(videoType, duration);
             }
             timeout = (long) (duration / stopDivisor);
+        }
+
+        if (verbose) {
+            Log.v(TAG, String.format("Time stats of %s - Duration: %dms, Timeout: %dms", videoName, duration, timeout));
         }
 
         try {
