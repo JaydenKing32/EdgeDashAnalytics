@@ -363,7 +363,6 @@ public abstract class NearbyFragment extends Fragment {
             return;
         }
 
-        FfmpegTools.setDuration(video.getData());
         EventBus.getDefault().post(new AddEvent(video, Type.RAW));
 
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
@@ -566,7 +565,7 @@ public abstract class NearbyFragment extends Fragment {
 
         Instant end = Instant.now();
         TimeManager.printTurnaroundTime(videoName, segmentName, end);
-        if (fromEndpointId != null && TimeManager.isTurnaroundHigherThanDuration(videoName, end)) {
+        if (fromEndpointId != null && VideoAnalysis.isTurnaroundHigherThanDuration(videoName, end)) {
             sendCommandMessage(Command.INC_ESD, fromEndpointId);
         }
 
@@ -768,7 +767,7 @@ public abstract class NearbyFragment extends Fragment {
 
                 if (master) {
                     TimeManager.printTurnaroundTime(videoName, end);
-                    if (TimeManager.isTurnaroundHigherThanDuration(videoName, end)) {
+                    if (VideoAnalysis.isTurnaroundHigherThanDuration(videoName, end)) {
                         VideoAnalysis.increaseEsd();
                     }
                 }
@@ -1023,7 +1022,7 @@ public abstract class NearbyFragment extends Fragment {
 
                         Instant end = Instant.now();
                         TimeManager.printTurnaroundTime(videoName, end);
-                        if (TimeManager.isTurnaroundHigherThanDuration(videoName, end)) {
+                        if (VideoAnalysis.isTurnaroundHigherThanDuration(videoName, end)) {
                             sendCommandMessage(Command.INC_ESD, fromEndpointId);
                         }
                     }

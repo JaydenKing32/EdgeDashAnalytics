@@ -130,6 +130,10 @@ public class FileManager {
         return filename.regionMatches(true, extensionStartIndex, RESULT_EXTENSION, 0, RESULT_EXTENSION.length());
     }
 
+    public static String getVideoType(String filename) {
+        return FilenameUtils.getBaseName(filename).substring(0, 4);
+    }
+
     public static boolean isInner(String filename) {
         return FilenameUtils.getBaseName(filename).startsWith("inn");
     }
