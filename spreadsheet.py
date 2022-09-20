@@ -97,7 +97,7 @@ re_enqueue = re.compile(timestamp + r"D Important:\s+Enqueued (.*)\.mp4" + trail
 re_start_down = re.compile(timestamp + r"D Important:\s+Started download: (.*)\.mp4" + trailing_whitespace)
 re_start_battery = re.compile(timestamp + r"I Important:\s+Starting battery level: (\d+)%" + trailing_whitespace)
 re_end_battery = re.compile(timestamp + r"D PowerMonitor:\s+Battery level: (\d+)%" + trailing_whitespace)
-re_esd_inc = re.compile(timestamp + r"D Important:\s+Increased ESD to (\d+\.\d+)" + trailing_whitespace)
+re_esd_inc = re.compile(timestamp + r"D Important:\s+Changed ESD to (\d+\.\d+)" + trailing_whitespace)
 
 offline_header = [
     "Filename",
