@@ -74,7 +74,12 @@ public abstract class VideoAnalysis {
     }
 
     public static void adjustEsd(double adjust) {
-        stopDivisor += adjust;
+        if (stopDivisor + adjust < 1) {
+            stopDivisor = 1;
+        } else {
+            stopDivisor += adjust;
+        }
+
         Log.d(I_TAG, String.format("Changed ESD to %.4f", stopDivisor));
         timeout = (long) (FfmpegTools.getDurationMillis() / stopDivisor);
     }
