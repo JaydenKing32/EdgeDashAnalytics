@@ -17,6 +17,7 @@ import com.example.edgedashanalytics.util.hardware.PowerMonitor;
 import com.example.edgedashanalytics.util.video.FfmpegTools;
 
 import java.io.File;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,9 +37,8 @@ public abstract class VideoAnalysis {
     final boolean verbose;
 
     private static double stopDivisor = 1.0;
-    private static final double ESD_STEP = 0.2;
 
-    private static Long durationMillis = null;
+    private static Long timeout = null;
 
     /**
      * Set up default parameters
@@ -56,10 +56,27 @@ public abstract class VideoAnalysis {
 
     public abstract void printParameters();
 
-    public static void increaseEsd() {
-        stopDivisor += ESD_STEP;
-        Log.d(I_TAG, String.format("Increased ESD to %.2f", stopDivisor));
-        durationMillis = (long) (FfmpegTools.getDurationMillis() / stopDivisor);
+    public static double getEsdAdjust(String filename, Instant end) {
+        final double baseEsdStep = 0.2;
+        final double margin = 0.1;
+        final double scale = 2.0;
+
+        long turnaround = Duration.between(TimeManager.getStartTime(filename), end).toMillis();
+        double difference = (turnaround / (double) FfmpegTools.getDurationMillis()) - 1;
+
+        if (difference >= -margin && difference <= 0) {
+            return 0;
+        } else if (difference > 0) {
+            return difference * baseEsdStep * scale;
+        } else { // difference < -margin
+            return difference * baseEsdStep / scale;
+        }
+    }
+
+    public static void adjustEsd(double adjust) {
+        stopDivisor += adjust;
+        Log.d(I_TAG, String.format("Changed ESD to %.4f", stopDivisor));
+        timeout = (long) (FfmpegTools.getDurationMillis() / stopDivisor);
     }
 
     public void analyse(String inPath, String outPath) {
@@ -100,25 +117,25 @@ public abstract class VideoAnalysis {
 
         boolean complete = false;
 
-        if (durationMillis == null) {
+        if (timeout == null) {
             if (stopDivisor <= 0) {
                 // Ten minutes in milliseconds
-                durationMillis = 600000L;
+                timeout = 600000L;
             } else {
                 FfmpegTools.setDuration(inPath);
-                durationMillis = (long) (FfmpegTools.getDurationMillis() / stopDivisor);
+                timeout = (long) (FfmpegTools.getDurationMillis() / stopDivisor);
             }
         }
 
         try {
             loopExecutor.shutdown();
-            complete = loopExecutor.awaitTermination(durationMillis, TimeUnit.MILLISECONDS);
+            complete = loopExecutor.awaitTermination(timeout, TimeUnit.MILLISECONDS);
 
             if (stopDivisor < 0) {
                 // Guarantee complete processing
                 frameExecutor.shutdown();
                 //noinspection ResultOfMethodCallIgnored
-                frameExecutor.awaitTermination(durationMillis * 60, TimeUnit.MILLISECONDS);
+                frameExecutor.awaitTermination(timeout * 60, TimeUnit.MILLISECONDS);
             }
         } catch (InterruptedException e) {
             Log.e(I_TAG, String.format("Interrupted analysis of %s:\n  %s", videoName, e.getMessage()));

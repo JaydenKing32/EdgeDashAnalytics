@@ -73,6 +73,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
@@ -470,10 +471,11 @@ public abstract class NearbyFragment extends Fragment {
         deviceAdapter.notifyDataSetChanged();
     }
 
-    @SuppressWarnings("SameParameterValue")
-    private void sendCommandMessage(Command command, String toEndpointId) {
-        Payload filenameBytesPayload = Payload.fromBytes(command.toString().getBytes(UTF_8));
-        connectionsClient.sendPayload(toEndpointId, filenameBytesPayload);
+    private void sendAdjMessage(double adjust, String toEndpointId) {
+        String commandMessage = String.join(
+                MESSAGE_SEPARATOR, Command.ADJ_ESD.toString(), String.format(Locale.ENGLISH, "%.4f", adjust));
+        Payload commandBytesPayload = Payload.fromBytes(commandMessage.getBytes(UTF_8));
+        connectionsClient.sendPayload(toEndpointId, commandBytesPayload);
     }
 
     @SuppressWarnings("SameParameterValue")
@@ -566,8 +568,10 @@ public abstract class NearbyFragment extends Fragment {
 
         Instant end = Instant.now();
         TimeManager.printTurnaroundTime(videoName, segmentName, end);
-        if (fromEndpointId != null && TimeManager.isTurnaroundHigherThanDuration(videoName, end)) {
-            sendCommandMessage(Command.INC_ESD, fromEndpointId);
+        double adjust = VideoAnalysis.getEsdAdjust(videoName, end);
+
+        if (fromEndpointId != null && adjust != 0) {
+            sendAdjMessage(adjust, fromEndpointId);
         }
 
         List<Result> results = FileManager.getResultsFromDir(FileManager.getSegmentResSubDirPath(resultName));
@@ -768,8 +772,10 @@ public abstract class NearbyFragment extends Fragment {
 
                 if (master) {
                     TimeManager.printTurnaroundTime(videoName, end);
-                    if (TimeManager.isTurnaroundHigherThanDuration(videoName, end)) {
-                        VideoAnalysis.increaseEsd();
+                    double adjust = VideoAnalysis.getEsdAdjust(videoName, end);
+
+                    if (adjust != 0) {
+                        VideoAnalysis.adjustEsd(adjust);
                     }
                 }
             }
@@ -907,8 +913,8 @@ public abstract class NearbyFragment extends Fragment {
                     case HW_INFO_REQUEST:
                         sendHardwareInfo(context);
                         break;
-                    case INC_ESD:
-                        VideoAnalysis.increaseEsd();
+                    case ADJ_ESD:
+                        VideoAnalysis.adjustEsd(Double.parseDouble(parts[1]));
                         break;
                 }
             } else if (payload.getType() == Payload.Type.FILE) {
@@ -1023,8 +1029,10 @@ public abstract class NearbyFragment extends Fragment {
 
                         Instant end = Instant.now();
                         TimeManager.printTurnaroundTime(videoName, end);
-                        if (TimeManager.isTurnaroundHigherThanDuration(videoName, end)) {
-                            sendCommandMessage(Command.INC_ESD, fromEndpointId);
+                        double adjust = VideoAnalysis.getEsdAdjust(videoName, end);
+
+                        if (adjust != 0) {
+                            sendAdjMessage(adjust, fromEndpointId);
                         }
                     }
                 }
