@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 public abstract class VideoAnalysis {
     private static final String TAG = VideoAnalysis.class.getSimpleName();
     private static final boolean DEFAULT_VERBOSE = false;
+    private static final String DEFAULT_STOP_DIVISOR = "1";
 
     final static int TF_THREAD_NUM = 4;
     final static int THREAD_NUM = 2;
@@ -46,6 +47,8 @@ public abstract class VideoAnalysis {
     VideoAnalysis(Context context) {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         this.verbose = pref.getBoolean(context.getString(R.string.verbose_output_key), DEFAULT_VERBOSE);
+        stopDivisor = Double.parseDouble(pref.getString(
+                context.getString(R.string.early_stop_divisor_key), DEFAULT_STOP_DIVISOR));
     }
 
     abstract Frame processFrame(Bitmap bitmap, int frameIndex, float scaleFactor);
@@ -57,6 +60,10 @@ public abstract class VideoAnalysis {
     public abstract void printParameters();
 
     public static double getEsdAdjust(String filename, Instant end) {
+        if (stopDivisor <= 0) {
+            return 0;
+        }
+
         final double baseEsdStep = 0.2;
         final double margin = 0.1;
         final double scale = 2.0;
@@ -74,6 +81,10 @@ public abstract class VideoAnalysis {
     }
 
     public static void adjustEsd(double adjust) {
+        if (stopDivisor <= 0) {
+            return;
+        }
+
         if (stopDivisor + adjust < 1) {
             stopDivisor = 1;
         } else {
