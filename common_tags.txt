@@ -110,3 +110,6 @@ MediaCodec
 MediaBufferGroup
 ContextImpl
 BpBinder
+MediaProvider
+FileSource
+powerhal-libperfmgr

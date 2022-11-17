@@ -26,7 +26,10 @@ serial_numbers = {
     "01BK": "18121FDF6001BK",  # Pixel 6
     "X9BT": "R52R901X9BT",  # Samsung Galaxy Tab S7 FE/SM-T733
     "dd83": "4885dd83",  # OnePlus 8/IN2013
-    "43e2": "105a43e2"  # OPPO Find X2 Pro/CPH2025
+    "43e2": "105a43e2",  # OPPO Find X2 Pro/CPH2025
+    "1456": "26171JEGR01456",  # Pixel 6a
+    "L73H": "ZY22FSL73H",  # Motorola Moto G62
+    "d8e6": "172cd8e6"  # Xiaomi Pad 5
 }
 device_names = {
     "1825": "Nexus 5",
@@ -37,7 +40,10 @@ device_names = {
     "01BK": "Pixel 6",
     "X9BT": "Tab S7 FE",
     "dd83": "OnePlus 8",
-    "43e2": "Find X2 Pro"
+    "43e2": "Find X2 Pro",
+    "1456": "Pixel 6a",
+    "L73H": "Moto G62",
+    "d8e6": "Xiaomi Pad 5"
 }
 milliamp_devices = ["2802", "X9BT", "43e2", "dd83"]
 models = {
@@ -91,7 +97,7 @@ re_total_power = re.compile(timestamp + r"D PowerMonitor:\s+Total: -?(\d+)nW" + 
 re_average_power = re.compile(timestamp + r"D PowerMonitor:\s+Average: -?(\d+)\.(\d+)nW" + trailing_whitespace)
 re_master = re.compile(timestamp + r"I Important:\s+Master: (\w+)" + trailing_whitespace)
 re_network = re.compile(timestamp + r"I Important:\s+Wi-Fi: (\w+)" + trailing_whitespace)
-re_early_divisor = re.compile(timestamp + r"I Important:\s+Early stop divisor: (\d+\.\d+)" + trailing_whitespace)
+re_early_divisor = re.compile(timestamp + r"I Important:\s+Early stop divisor: (-?\d+\.\d+)" + trailing_whitespace)
 re_frames = re.compile(timestamp + r"D Important:\s+Starting analysis of (.*)\.mp4, (\d+) frames" + trailing_whitespace)
 re_enqueue = re.compile(timestamp + r"D Important:\s+Enqueued (.*)\.mp4" + trailing_whitespace)
 re_start_down = re.compile(timestamp + r"D Important:\s+Started download: (.*)\.mp4" + trailing_whitespace)
