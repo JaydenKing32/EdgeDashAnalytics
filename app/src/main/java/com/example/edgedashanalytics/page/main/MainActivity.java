@@ -129,7 +129,6 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void checkPermissions() {
-        final int REQUEST_PERMISSIONS = 1;
         String[] PERMISSIONS = {
                 Manifest.permission.INTERNET,
                 Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -144,8 +143,8 @@ public class MainActivity extends AppCompatActivity implements
                 Manifest.permission.NFC
         };
 
-        if (hasPermissions()) {
-            requestPermissions(PERMISSIONS, REQUEST_PERMISSIONS);
+        if (lacksPermissions(PERMISSIONS)) {
+            requestPermissions(PERMISSIONS, 1);
         }
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
@@ -155,8 +154,17 @@ public class MainActivity extends AppCompatActivity implements
                     Manifest.permission.BLUETOOTH_CONNECT,
                     Manifest.permission.MANAGE_EXTERNAL_STORAGE
             };
-            if (hasPermissions()) {
-                requestPermissions(ANDROID_12_PERMISSIONS, REQUEST_PERMISSIONS);
+            if (lacksPermissions(ANDROID_12_PERMISSIONS)) {
+                requestPermissions(ANDROID_12_PERMISSIONS, 2);
+            }
+        }
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            String[] ANDROID_13_PERMISSIONS = {
+                    Manifest.permission.NEARBY_WIFI_DEVICES
+            };
+            if (lacksPermissions(ANDROID_13_PERMISSIONS)) {
+                requestPermissions(ANDROID_13_PERMISSIONS, 3);
             }
         }
 
@@ -167,15 +175,15 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    private boolean hasPermissions(String... permissions) {
+    private boolean lacksPermissions(String... permissions) {
         if (permissions != null) {
             for (String permission : permissions) {
                 if (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
-                    return false;
+                    return true;
                 }
             }
         }
-        return true;
+        return false;
     }
 
     private void scanVideoDirectories() {
