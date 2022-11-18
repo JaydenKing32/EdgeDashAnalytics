@@ -599,15 +599,19 @@ public abstract class NearbyFragment extends Fragment {
     }
 
     public void nextTransfer() {
-        if (transferQueue.isEmpty()) {
-            Log.i(TAG, "Transfer queue is empty");
-            return;
-        }
-
         Context context = getContext();
         if (context == null) {
             Log.e(TAG, "No context");
             return;
+        }
+
+        Message message;
+        synchronized (transferQueue) {
+            if (transferQueue.isEmpty()) {
+                Log.i(TAG, "Transfer queue is empty");
+                return;
+            }
+            message = transferQueue.remove();
         }
 
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
@@ -623,7 +627,6 @@ public abstract class NearbyFragment extends Fragment {
         boolean anyFreeEndpoint = endpoints.stream().anyMatch(Endpoint::isInactive);
 
         if (localProcess && endpoints.size() == 1 && algorithm.equals(AlgorithmKey.max_capacity)) {
-            Message message = transferQueue.remove();
             Video video = (Video) message.content;
             boolean isOuter = video.isOuter();
 
@@ -637,7 +640,7 @@ public abstract class NearbyFragment extends Fragment {
         }
 
         if (localProcess && localFree && (isMasterFastest || !anyFreeEndpoint)) {
-            Video video = (Video) transferQueue.remove().content;
+            Video video = (Video) message.content;
             Log.d(I_TAG, String.format("Processing %s locally", video.getName()));
             analyse(video, false);
             return;
@@ -674,7 +677,7 @@ public abstract class NearbyFragment extends Fragment {
                 break;
         }
 
-        sendFile(transferQueue.remove(), selected);
+        sendFile(message, selected);
     }
 
     private void sendFile(Message message, Endpoint toEndpoint) {
