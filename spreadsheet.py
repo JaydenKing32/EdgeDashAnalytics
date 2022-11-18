@@ -789,6 +789,10 @@ def parse_worker_logs(devices: Dict[str, Device], videos: Dict[str, Video], log_
                     transfer_time = float(transfer.group(5))
                     transfer_power = parse_power(transfer.group(6), device_name)
 
+                    if video_name not in videos:
+                        # Video was not parsed in master's log file, add it to the videos list
+                        videos[video_name] = Video(video_name)
+
                     video = videos[video_name]
                     video.transfer_time += transfer_time
                     video.transfer_power += transfer_power
