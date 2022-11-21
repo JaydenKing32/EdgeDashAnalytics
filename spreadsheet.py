@@ -1347,10 +1347,17 @@ def write_online_table(writer, runs: List[Analysis], title: str):
 
 
 def write_tables(runs: List[Analysis], writer):
-    write_offline_table(writer, sorted([r for r in runs if r.algorithm == "offline"],
-                                       key=lambda run: list(device_names.keys()).index(run.get_master_short_name())))
+    write_offline_table(writer, sorted(
+        [r for r in runs if r.algorithm == "offline"],
+        key=lambda run: (
+            0 if all(d.early_divisor == -1 for d in run.devices.values()) else 1,
+            list(device_names.keys()).index(run.get_master_short_name()))
+    ))
     write_online_table(writer, [r for r in runs if len(r.devices) == 2], "Two-node tests")
-    write_online_table(writer, [r for r in runs if len(r.devices) == 3], "Three-node tests")
+    write_online_table(writer, sorted(
+        [r for r in runs if len(r.devices) == 3],
+        key=lambda run: (-run.seg_num, run.log_dir)
+    ), "Three-node tests")
 
 
 def make_spreadsheet(root: str, out: str, append: bool, sort: bool, full_results: bool, table: bool):
