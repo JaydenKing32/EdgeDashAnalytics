@@ -1205,14 +1205,18 @@ def write_offline_table(writer, runs: List[Analysis]):
             "Device",
             "Enqueue",
             "Download",
-            "Processing",
-            "Wait",
-            "Turnaround",
+            "O processing",
+            "I processing",
+            "O wait",
+            "I wait",
+            "O turnaround",
+            "I turnaround",
             "Total power",
             "Average power",
             "ESD",
             "Skipped",
-            "Skip rate",
+            "O skip",
+            "I skip",
             "Total time",
             "mW per frame",
             "Battery"
@@ -1222,14 +1226,18 @@ def write_offline_table(writer, runs: List[Analysis]):
             "Device",
             "Enqueue time (s)",
             "Download time (s)",
-            "Processing time (s)",
-            "Wait time (s)",
-            "Turnaround time (s)",
+            "Outer processing time (s)",
+            "Inner processing time (s)",
+            "Outer wait time (s)",
+            "Inner wait time (s)",
+            "Outer turnaround time (s)",
+            "Inner turnaround time (s)",
             "Total power (mW)",
             "Average power (mW)",
             "ESD",
             "Skipped",
-            "Skip rate",
+            "Outer skip rate",
+            "Inner skip rate",
             "Total time (s)",
             "mW per frame",
             "Battery usage (%)"
@@ -1242,17 +1250,33 @@ def write_offline_table(writer, runs: List[Analysis]):
         device = run.devices[run.get_master_short_name()]
         average_dict = device.get_averages()
 
+        outer_videos = [v for v in device.videos.values() if v.name.startswith("out")]
+        inner_videos = [v for v in device.videos.values() if v.name.startswith("inn")]
+
+        outer_analysis = sum(v.analysis_time for v in outer_videos) / len(outer_videos)
+        inner_analysis = sum(v.analysis_time for v in inner_videos) / len(inner_videos)
+        outer_wait = sum(v.wait_time for v in outer_videos) / len(outer_videos)
+        inner_wait = sum(v.wait_time for v in inner_videos) / len(inner_videos)
+        outer_turnaround = sum(v.turnaround_time for v in outer_videos) / len(outer_videos)
+        inner_turnaround = sum(v.turnaround_time for v in inner_videos) / len(inner_videos)
+        outer_skip = sum(v.skip_rate for v in outer_videos) / len(outer_videos)
+        inner_skip = sum(v.skip_rate for v in inner_videos) / len(inner_videos)
+
         averages = [
             average_dict["enqueue_time"],
             average_dict["down_time"],
-            average_dict["analysis_time"],
-            average_dict["wait_time"],
-            average_dict["turnaround_time"],
+            outer_analysis,
+            inner_analysis,
+            outer_wait,
+            inner_wait,
+            outer_turnaround,
+            inner_turnaround,
             device.total_power,
             average_dict["total_power"],
             device.early_divisor,
             average_dict["skipped_frames"],
-            average_dict["skip_rate"],
+            outer_skip,
+            inner_skip,
             run.total_time.total_seconds(),
             average_dict["power_per_frame"],
             device.battery_usage
