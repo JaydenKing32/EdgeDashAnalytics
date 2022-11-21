@@ -1201,12 +1201,12 @@ def write_offline_table(writer, runs: List[Analysis]):
             "Device",
             "Enqueue",
             "Download",
-            "O processing",
-            "I processing",
+            "O process",
+            "I process",
             "O wait",
             "I wait",
-            "O turnaround",
-            "I turnaround",
+            "O turn",
+            "I turn",
             "ESD",
             "O skip",
             "I skip",
@@ -1283,17 +1283,18 @@ def write_online_table(writer, runs: List[Analysis], title: str):
             "Device",
             "Transfer",
             "Return",
-            "Processing",
+            "Process",
             "Wait",
-            "Turnaround",
+            "Turn",
             "ESD",
             "Skip rate",
             "Videos",
             "Battery"
         ]
         download_time_label = "Download:"
-        total_time_label = "Total time:"
+        total_time_label = "Total t:"
         enqueue_time_label = "Enqueue:"
+        combined_average_label = "Combined avg"
     else:
         table_header = [
             "Device",
@@ -1310,6 +1311,7 @@ def write_online_table(writer, runs: List[Analysis], title: str):
         download_time_label = "Download time (s):"
         total_time_label = "Total time (s):"
         enqueue_time_label = "Enqueue time (s):"
+        combined_average_label = "Combined average"
 
     write_row(writer, [title])
     write_row(writer, table_header)
@@ -1340,7 +1342,7 @@ def write_online_table(writer, runs: List[Analysis], title: str):
 
         write_row(writer, ["Average"] + [f"{a:.3f}" for a in averages])
     if len(averages_list) > 1:
-        write_row(writer, get_average_row(averages_list, "Combined Average"))
+        write_row(writer, get_average_row(averages_list, combined_average_label))
     write_row(writer, [])
 
 
