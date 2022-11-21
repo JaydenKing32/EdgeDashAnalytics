@@ -1186,13 +1186,9 @@ def write_device_averages(device: Device, writer):
             f"{sub_averages['analysis_time']:.3f}",
             f"{sub_averages['wait_time']:.3f}",
             f"{sub_averages['turnaround_time']:.3f}",
-            f"{device.total_power:.3f}",
-            f"{sub_averages['total_power']:.3f}",
             f"{device.early_divisor:.3f}",
-            f"{sub_averages['skipped_frames']:.3f}",
             f"{sub_averages['skip_rate']:.3f}",
             len(device.videos),
-            f"{sub_averages['power_per_frame']:.3f}",
             device.battery_usage
         ])
     else:
@@ -1211,14 +1207,10 @@ def write_offline_table(writer, runs: List[Analysis]):
             "I wait",
             "O turnaround",
             "I turnaround",
-            "Total power",
-            "Average power",
             "ESD",
-            "Skipped",
             "O skip",
             "I skip",
             "Total time",
-            "mW per frame",
             "Battery"
         ]
     else:
@@ -1232,14 +1224,10 @@ def write_offline_table(writer, runs: List[Analysis]):
             "Inner wait time (s)",
             "Outer turnaround time (s)",
             "Inner turnaround time (s)",
-            "Total power (mW)",
-            "Average power (mW)",
             "ESD",
-            "Skipped",
             "Outer skip rate",
             "Inner skip rate",
             "Total time (s)",
-            "mW per frame",
             "Battery usage (%)"
         ]
     write_row(writer, ["Offline tests"])
@@ -1271,14 +1259,10 @@ def write_offline_table(writer, runs: List[Analysis]):
             inner_wait,
             outer_turnaround,
             inner_turnaround,
-            device.total_power,
-            average_dict["total_power"],
             device.early_divisor,
-            average_dict["skipped_frames"],
             outer_skip,
             inner_skip,
             run.total_time.total_seconds(),
-            average_dict["power_per_frame"],
             device.battery_usage
         ]
         averages_list.append(averages)
@@ -1302,13 +1286,9 @@ def write_online_table(writer, runs: List[Analysis], title: str):
             "Processing",
             "Wait",
             "Turnaround",
-            "Total power",
-            "Average power",
             "ESD",
-            "Skipped",
             "Skip rate",
             "Videos",
-            "mW per frame",
             "Battery"
         ]
         download_time_label = "Download:"
@@ -1322,13 +1302,9 @@ def write_online_table(writer, runs: List[Analysis], title: str):
             "Processing time (s)",
             "Wait time (s)",
             "Turnaround time (s)",
-            "Total power (mW)",
-            "Average power (mW)",
             "ESD",
-            "Skipped",
             "Skip rate",
             "Videos",
-            "mW per frame",
             "Battery usage (%)"
         ]
         download_time_label = "Download time (s):"
@@ -1355,13 +1331,9 @@ def write_online_table(writer, runs: List[Analysis], title: str):
             run.avg_analysis_time,
             run.avg_wait_time,
             run.avg_turnaround_time,
-            run.get_total_power(),
-            run.avg_total_power,
             sum(d.early_divisor for d in run.devices.values()) / len(run.devices),
-            run.avg_skipped_frames,
             run.avg_skip_rate,
             sum(len(d.videos) for d in run.devices.values()) / len(run.devices),
-            run.avg_power_per_frame,
             run.avg_battery_usage
         ]
         averages_list.append(averages)
