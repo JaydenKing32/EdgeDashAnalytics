@@ -279,24 +279,42 @@ class Device:
             }
 
         totals = self.get_totals()
+
+        enqueue_time = totals["enqueue_time"] / video_count
+        down_time = totals["down_time"] / video_count
+        transfer_time = totals["transfer_time"] / video_count
+        return_time = totals["return_time"] / video_count
+        analysis_time = totals["analysis_time"] / video_count
+        wait_time = totals["wait_time"] / video_count
+        turnaround_time = totals["turnaround_time"] / video_count
+        network_power = totals["network_power"] / video_count
+        analysis_power = totals["analysis_power"] / video_count
+        skipped_frames = totals["skipped_frames"] / video_count
+        skip_rate = sum(v.skip_rate for v in self.videos.values()) / video_count
+        total_power = self.total_power / video_count
+        power_per_frame = sum(
+            v.analysis_power / (v.frames - v.skipped_frames) for v in self.videos.values()
+            if (v.frames - v.skipped_frames) > 0
+        ) / video_count
+        battery_usage = self.battery_usage / video_count
+        overhead = turnaround_time - (down_time + transfer_time + analysis_time + wait_time)
+
         return {
-            "enqueue_time": totals["enqueue_time"] / video_count,
-            "down_time": totals["down_time"] / video_count,
-            "transfer_time": totals["transfer_time"] / video_count,
-            "return_time": totals["return_time"] / video_count,
-            "analysis_time": totals["analysis_time"] / video_count,
-            "wait_time": totals["wait_time"] / video_count,
-            "turnaround_time": totals["turnaround_time"] / video_count,
-            "network_power": totals["network_power"] / video_count,
-            "analysis_power": totals["analysis_power"] / video_count,
-            "skipped_frames": totals["skipped_frames"] / video_count,
-            "skip_rate": sum(v.skip_rate for v in self.videos.values()) / video_count,
-            "total_power": self.total_power / video_count,
-            "power_per_frame": sum(
-                v.analysis_power / (v.frames - v.skipped_frames) for v in self.videos.values()
-                if (v.frames - v.skipped_frames) > 0
-            ) / video_count,
-            "battery_usage": self.battery_usage / video_count
+            "enqueue_time": enqueue_time,
+            "down_time": down_time,
+            "transfer_time": transfer_time,
+            "return_time": return_time,
+            "analysis_time": analysis_time,
+            "wait_time": wait_time,
+            "turnaround_time": turnaround_time,
+            "network_power": network_power,
+            "analysis_power": analysis_power,
+            "skipped_frames": skipped_frames,
+            "skip_rate": skip_rate,
+            "total_power": total_power,
+            "power_per_frame": power_per_frame,
+            "battery_usage": battery_usage,
+            "overhead": overhead
         }
 
     def __str__(self) -> str:
@@ -1186,13 +1204,20 @@ def write_device_averages(device: Device, writer):
             f"{sub_averages['analysis_time']:.3f}",
             f"{sub_averages['wait_time']:.3f}",
             f"{sub_averages['turnaround_time']:.3f}",
+            f"{sub_averages['overhead']:.3f}",
             f"{device.early_divisor:.3f}",
             f"{sub_averages['skip_rate']:.3f}",
             len(device.videos),
             device.battery_usage
         ])
     else:
-        write_row(writer, [get_device_name(device.name)] + ["0"] * 7 + [f"{device.early_divisor:.3f}"] + ["0"] * 5)
+        write_row(writer, (
+                [get_device_name(device.name)] +
+                ["0"] * 6 +
+                [f"{device.early_divisor:.3f}"] +
+                ["0"] * 2 +
+                [str(device.battery_usage)]
+        ))
 
 
 def write_offline_table(writer, runs: List[Analysis]):
@@ -1207,6 +1232,7 @@ def write_offline_table(writer, runs: List[Analysis]):
             "I wait",
             "O turn",
             "I turn",
+            "Overhead",
             "ESD",
             "O skip",
             "I skip",
@@ -1224,6 +1250,7 @@ def write_offline_table(writer, runs: List[Analysis]):
             "Inner wait time (s)",
             "Outer turnaround time (s)",
             "Inner turnaround time (s)",
+            "Overhead (s)",
             "ESD",
             "Outer skip rate",
             "Inner skip rate",
@@ -1249,6 +1276,12 @@ def write_offline_table(writer, runs: List[Analysis]):
         inner_turnaround = sum(v.turnaround_time for v in inner_videos) / len(inner_videos)
         outer_skip = sum(v.skip_rate for v in outer_videos) / len(outer_videos)
         inner_skip = sum(v.skip_rate for v in inner_videos) / len(inner_videos)
+        overhead = average_dict["turnaround_time"] - (
+                average_dict["down_time"] +
+                average_dict["transfer_time"] +
+                average_dict["analysis_time"] +
+                average_dict["wait_time"]
+        )
 
         averages = [
             average_dict["enqueue_time"],
@@ -1259,6 +1292,7 @@ def write_offline_table(writer, runs: List[Analysis]):
             inner_wait,
             outer_turnaround,
             inner_turnaround,
+            overhead,
             device.early_divisor,
             outer_skip,
             inner_skip,
@@ -1286,6 +1320,7 @@ def write_online_table(writer, runs: List[Analysis], title: str):
             "Process",
             "Wait",
             "Turn",
+            "Overhead",
             "ESD",
             "Skip rate",
             "Videos",
@@ -1303,6 +1338,7 @@ def write_online_table(writer, runs: List[Analysis], title: str):
             "Processing time (s)",
             "Wait time (s)",
             "Turnaround time (s)",
+            "Overhead (s)",
             "ESD",
             "Skip rate",
             "Videos",
@@ -1327,12 +1363,15 @@ def write_online_table(writer, runs: List[Analysis], title: str):
         for device in run.devices.values():
             write_device_averages(device, writer)
 
+        overhead = run.avg_turnaround_time - (
+                run.avg_down_time + run.avg_transfer_time + run.avg_analysis_time + run.avg_wait_time)
         averages = [
             run.avg_transfer_time,
             run.avg_return_time,
             run.avg_analysis_time,
             run.avg_wait_time,
             run.avg_turnaround_time,
+            overhead,
             sum(d.early_divisor for d in run.devices.values()) / len(run.devices),
             run.avg_skip_rate,
             sum(len(d.videos) for d in run.devices.values()) / len(run.devices),
@@ -1439,6 +1478,6 @@ if __name__ == "__main__":
     short = args.short
 
     if args.pad:
-        max_row_size = 15 if args.table else 20
+        max_row_size = 16 if args.table else 20
 
     make_spreadsheet(args.dir, args.output, args.append, args.sort, args.full_results, args.table)
