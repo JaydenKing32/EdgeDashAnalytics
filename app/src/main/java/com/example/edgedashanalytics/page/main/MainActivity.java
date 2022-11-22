@@ -110,6 +110,16 @@ public class MainActivity extends AppCompatActivity implements
         DashCam.setup(this);
     }
 
+    @Override
+    protected void onStop() {
+        super.onStop();
+        try {
+            Runtime.getRuntime().exec("logcat -c");
+        } catch (IOException e) {
+            Log.e(I_TAG, String.format("Unable to clear logcat:\n%s", e.getMessage()));
+        }
+    }
+
     private void storeLogsInFile() {
         int id = android.os.Process.myPid();
         @SuppressWarnings("SpellCheckingInspection")
