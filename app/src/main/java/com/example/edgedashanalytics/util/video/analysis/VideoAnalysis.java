@@ -66,7 +66,8 @@ public abstract class VideoAnalysis {
 
         final double baseEsdStep = 0.2;
         final double margin = 0.1;
-        final double scale = 2.0;
+        final double increaseScale = 2.0;
+        final double decreaseScale = 0.2;
 
         long turnaround = Duration.between(TimeManager.getStartTime(filename), end).toMillis();
         double difference = (turnaround / (double) FfmpegTools.getDurationMillis()) - 1;
@@ -74,9 +75,9 @@ public abstract class VideoAnalysis {
         if (difference >= -margin && difference <= 0) {
             return 0;
         } else if (difference > 0) {
-            return difference * baseEsdStep * scale;
+            return difference * baseEsdStep * increaseScale;
         } else { // difference < -margin
-            return difference * baseEsdStep / scale;
+            return difference * baseEsdStep * decreaseScale;
         }
     }
 
