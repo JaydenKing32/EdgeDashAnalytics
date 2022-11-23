@@ -568,7 +568,7 @@ public abstract class NearbyFragment extends Fragment {
 
         Instant end = Instant.now();
         TimeManager.printTurnaroundTime(videoName, segmentName, end);
-        double adjust = VideoAnalysis.getEsdAdjust(videoName, end);
+        double adjust = VideoAnalysis.getEsdAdjust(videoName, end, isConnected());
 
         if (fromEndpointId != null && adjust != 0) {
             sendAdjMessage(adjust, fromEndpointId);
@@ -775,7 +775,7 @@ public abstract class NearbyFragment extends Fragment {
 
                 if (master) {
                     TimeManager.printTurnaroundTime(videoName, end);
-                    double adjust = VideoAnalysis.getEsdAdjust(videoName, end);
+                    double adjust = VideoAnalysis.getEsdAdjust(videoName, end, isConnected());
 
                     if (adjust != 0) {
                         VideoAnalysis.adjustEsd(adjust);
@@ -1032,7 +1032,7 @@ public abstract class NearbyFragment extends Fragment {
 
                         Instant end = Instant.now();
                         TimeManager.printTurnaroundTime(videoName, end);
-                        double adjust = VideoAnalysis.getEsdAdjust(videoName, end);
+                        double adjust = VideoAnalysis.getEsdAdjust(videoName, end, isConnected());
 
                         if (adjust != 0) {
                             sendAdjMessage(adjust, fromEndpointId);
