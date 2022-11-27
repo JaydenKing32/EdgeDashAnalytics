@@ -1225,7 +1225,8 @@ def write_offline_table(writer, runs: List[Analysis]):
         table_header = [
             "Device",
             "Enqueue",
-            "Download",
+            "O down",
+            "I down",
             "O process",
             "I process",
             "O wait",
@@ -1243,7 +1244,8 @@ def write_offline_table(writer, runs: List[Analysis]):
         table_header = [
             "Device",
             "Enqueue time (s)",
-            "Download time (s)",
+            "Outer download time (s)",
+            "Inner download time (s)",
             "Outer processing time (s)",
             "Inner processing time (s)",
             "Outer wait time (s)",
@@ -1268,6 +1270,8 @@ def write_offline_table(writer, runs: List[Analysis]):
         outer_videos = [v for v in device.videos.values() if v.name.startswith("out")]
         inner_videos = [v for v in device.videos.values() if v.name.startswith("inn")]
 
+        outer_download = sum(v.down_time for v in outer_videos) / len(outer_videos)
+        inner_download = sum(v.down_time for v in inner_videos) / len(inner_videos)
         outer_analysis = sum(v.analysis_time for v in outer_videos) / len(outer_videos)
         inner_analysis = sum(v.analysis_time for v in inner_videos) / len(inner_videos)
         outer_wait = sum(v.wait_time for v in outer_videos) / len(outer_videos)
@@ -1285,7 +1289,8 @@ def write_offline_table(writer, runs: List[Analysis]):
 
         averages = [
             average_dict["enqueue_time"],
-            average_dict["down_time"],
+            outer_download,
+            inner_download,
             outer_analysis,
             inner_analysis,
             outer_wait,
