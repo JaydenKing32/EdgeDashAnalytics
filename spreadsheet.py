@@ -297,7 +297,7 @@ class Device:
             if (v.frames - v.skipped_frames) > 0
         ) / video_count
         battery_usage = self.battery_usage / video_count
-        overhead = turnaround_time - (down_time + transfer_time + analysis_time + wait_time)
+        overhead = turnaround_time - (down_time + transfer_time + return_time + analysis_time + wait_time)
 
         return {
             "enqueue_time": enqueue_time,
