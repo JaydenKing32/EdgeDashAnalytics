@@ -163,7 +163,7 @@ public class VideoFragment extends Fragment {
             }
             videoViewModel.getVideos().observe(activity, videos -> adapter.setVideos(videos));
 
-            ItemKeyProvider<Long> videoKeyProvider = new ItemKeyProvider<Long>(ItemKeyProvider.SCOPE_MAPPED) {
+            ItemKeyProvider<Long> videoKeyProvider = new ItemKeyProvider<>(ItemKeyProvider.SCOPE_MAPPED) {
                 @Override
                 public Long getKey(int position) {
                     return adapter.getItemId(position);
@@ -184,7 +184,7 @@ public class VideoFragment extends Fragment {
                     StorageStrategy.createLongStorage())
                     .withSelectionPredicate(SelectionPredicates.createSelectAnything())
                     .build();
-            tracker.addObserver(new SelectionTracker.SelectionObserver<Long>() {
+            tracker.addObserver(new SelectionTracker.SelectionObserver<>() {
                 @Override
                 public void onSelectionChanged() {
                     super.onSelectionChanged();

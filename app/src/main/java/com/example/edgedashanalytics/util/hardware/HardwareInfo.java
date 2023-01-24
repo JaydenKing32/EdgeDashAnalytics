@@ -61,9 +61,9 @@ public class HardwareInfo {
         long maxFreq = -1;
 
         for (int i = 0; i < cpuCores; i++) {
-            try {
-                String filepath = "/sys/devices/system/cpu/cpu" + i + "/cpufreq/cpuinfo_max_freq";
-                RandomAccessFile raf = new RandomAccessFile(filepath, "r");
+            String filepath = "/sys/devices/system/cpu/cpu" + i + "/cpufreq/cpuinfo_max_freq";
+
+            try (RandomAccessFile raf = new RandomAccessFile(filepath, "r")) {
                 String line = raf.readLine();
 
                 if (line != null) {

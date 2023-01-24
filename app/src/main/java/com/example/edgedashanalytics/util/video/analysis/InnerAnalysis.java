@@ -78,11 +78,12 @@ public class InnerAnalysis extends VideoAnalysis {
             }
         }
 
-        Interpreter interpreter = interpreterQueue.peek();
-        if (interpreter != null) {
-            inputWidth = interpreter.getInputTensor(0).shape()[1];
-            inputHeight = interpreter.getInputTensor(0).shape()[2];
-            outputShape = interpreter.getOutputTensor(0).shape();
+        try (Interpreter interpreter = interpreterQueue.peek()) {
+            if (interpreter != null) {
+                inputWidth = interpreter.getInputTensor(0).shape()[1];
+                inputHeight = interpreter.getInputTensor(0).shape()[2];
+                outputShape = interpreter.getOutputTensor(0).shape();
+            }
         }
     }
 

@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import com.example.edgedashanalytics.util.file.FileManager;
 
 import java.math.BigInteger;
+import java.util.Objects;
 
 public class Video extends Content {
     private final String id;
@@ -18,7 +19,7 @@ public class Video extends Content {
     private final boolean visible;
     private final String mimeType;
 
-    public static final Creator<Video> CREATOR = new Creator<Video>() {
+    public static final Creator<Video> CREATOR = new Creator<>() {
         @Override
         public Video createFromParcel(Parcel parcel) {
             return new Video(parcel);
@@ -67,11 +68,7 @@ public class Video extends Content {
         super(in.readString(), in.readString());
         this.id = in.readString();
         String size = in.readString();
-        if (size != null) {
-            this.size = new BigInteger(size);
-        } else {
-            this.size = new BigInteger("-1");
-        }
+        this.size = new BigInteger(Objects.requireNonNullElse(size, "-1"));
         this.mimeType = in.readString();
         this.visible = in.readByte() != 0;
     }

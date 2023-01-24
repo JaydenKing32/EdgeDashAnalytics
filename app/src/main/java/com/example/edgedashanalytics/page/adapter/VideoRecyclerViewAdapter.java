@@ -179,7 +179,7 @@ public abstract class VideoRecyclerViewAdapter extends RecyclerView.Adapter<Vide
         }
 
         public ItemDetailsLookup.ItemDetails<Long> getItemDetails() {
-            return new ItemDetailsLookup.ItemDetails<Long>() {
+            return new ItemDetailsLookup.ItemDetails<>() {
                 @Override
                 public int getPosition() {
                     return getAbsoluteAdapterPosition();

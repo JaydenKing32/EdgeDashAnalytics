@@ -78,8 +78,7 @@ public class OuterAnalysis extends VideoAnalysis {
                 .setScoreThreshold(MIN_SCORE)
                 .build();
 
-        try {
-            Interpreter interpreter = new Interpreter(FileUtil.loadMappedFile(context, modelFilename));
+        try (Interpreter interpreter = new Interpreter(FileUtil.loadMappedFile(context, modelFilename))) {
             inputSize = interpreter.getInputTensor(0).shape()[1];
         } catch (IOException e) {
             Log.w(I_TAG, String.format("Model failure:\n  %s", e.getMessage()));
