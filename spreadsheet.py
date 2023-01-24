@@ -1205,6 +1205,7 @@ def write_device_averages(device: Device, writer):
             f"{sub_averages['wait_time']:.3f}",
             f"{sub_averages['turnaround_time']:.3f}",
             f"{sub_averages['overhead']:.3f}",
+            f"{sub_averages['total_power']:.3f}",
             f"{device.early_divisor:.3f}",
             f"{sub_averages['skip_rate']:.3f}",
             len(device.videos),
@@ -1213,7 +1214,7 @@ def write_device_averages(device: Device, writer):
     else:
         write_row(writer, (
                 [get_device_name(device.name)] +
-                ["0"] * 6 +
+                ["0"] * 7 +
                 [f"{device.early_divisor:.3f}"] +
                 ["0"] * 2 +
                 [str(device.battery_usage)]
@@ -1234,6 +1235,7 @@ def write_offline_table(writer, runs: List[Analysis]):
             "O turn",
             "I turn",
             "Overhead",
+            "Power",
             "ESD",
             "O skip",
             "I skip",
@@ -1253,6 +1255,7 @@ def write_offline_table(writer, runs: List[Analysis]):
             "Outer turnaround time (s)",
             "Inner turnaround time (s)",
             "Overhead (s)",
+            "Average power (mW)",
             "ESD",
             "Outer skip rate",
             "Inner skip rate",
@@ -1298,6 +1301,7 @@ def write_offline_table(writer, runs: List[Analysis]):
             outer_turnaround,
             inner_turnaround,
             overhead,
+            average_dict["total_power"],
             device.early_divisor,
             outer_skip,
             inner_skip,
@@ -1326,6 +1330,7 @@ def write_online_table(writer, runs: List[Analysis], title: str):
             "Wait",
             "Turn",
             "Overhead",
+            "Power",
             "ESD",
             "Skip rate",
             "Videos",
@@ -1344,6 +1349,7 @@ def write_online_table(writer, runs: List[Analysis], title: str):
             "Wait time (s)",
             "Turnaround time (s)",
             "Overhead (s)",
+            "Average power (mW)",
             "ESD",
             "Skip rate",
             "Videos",
@@ -1377,6 +1383,7 @@ def write_online_table(writer, runs: List[Analysis], title: str):
             run.avg_wait_time,
             run.avg_turnaround_time,
             overhead,
+            run.avg_total_power,
             sum(d.early_divisor for d in run.devices.values()) / len(run.devices),
             run.avg_skip_rate,
             sum(len(d.videos) for d in run.devices.values()) / len(run.devices),
@@ -1483,6 +1490,6 @@ if __name__ == "__main__":
     short = args.short
 
     if args.pad:
-        max_row_size = 16 if args.table else 20
+        max_row_size = 17 if args.table else 20
 
     make_spreadsheet(args.dir, args.output, args.append, args.sort, args.full_results, args.table)
