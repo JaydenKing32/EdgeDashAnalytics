@@ -113,3 +113,6 @@ BpBinder
 MediaProvider
 FileSource
 powerhal-libperfmgr
+BLASTBufferQueue
+OpenGLRenderer
+skia
