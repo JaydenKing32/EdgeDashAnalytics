@@ -33,8 +33,8 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.6.0'
-    implementation 'com.google.android.material:material:1.7.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.8.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'androidx.preference:preference:1.2.0'
@@ -43,7 +43,7 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 
-    implementation 'androidx.recyclerview:recyclerview:1.2.1'
+    implementation 'androidx.recyclerview:recyclerview:1.3.0'
     implementation 'androidx.recyclerview:recyclerview-selection:1.1.0'
     implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
     implementation 'androidx.lifecycle:lifecycle-viewmodel:2.5.1'
@@ -59,8 +59,8 @@ dependencies {
     implementation 'org.apache.commons:commons-lang3:3.12.0'
     implementation 'org.apache.commons:commons-collections4:4.4'
     implementation 'org.greenrobot:eventbus:3.3.1'
-    implementation 'org.jsoup:jsoup:1.15.3'
-    implementation 'com.google.android.gms:play-services-nearby:18.3.0'
+    implementation 'org.jsoup:jsoup:1.15.4'
+    implementation 'com.google.android.gms:play-services-nearby:18.5.0'
     implementation 'com.arthenica:ffmpeg-kit-full-gpl:5.1'
     implementation "com.github.tonyofrancis:fetch:3.1.6"
     implementation 'com.fasterxml.jackson.core:jackson-annotations:2.14.1'
